@@ -22,15 +22,18 @@ def run_smoke_test():
     actions = [
         ActionType.HOLD,
         ActionType.BUY,
+        ActionType.HOLD,
         ActionType.BUY,
         ActionType.SELL,
         ActionType.BUY,
         ActionType.HOLD,
         ActionType.REPAY,
         ActionType.SELL,
+        ActionType.HOLD,
         ActionType.SELL,
         ActionType.BUY,
         ActionType.SELL,
+        ActionType.HOLD,
         ActionType.REPAY,
     ]
     df = create_dummy_data(len(actions))
@@ -43,7 +46,7 @@ def run_smoke_test():
     for step, act in enumerate(actions):
         obs, reward, done, _, _ = env.step(act)
         print(
-            f"🕒 Step {step}: Action={ActionType(act).name}, "
+            f"🕒 Step {step:02d}: Action={ActionType(act).name}, "
             f"Reward={reward:.2f}, Done={done}"
         )
 

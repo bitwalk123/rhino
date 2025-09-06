@@ -20,16 +20,21 @@ class PositionType(Enum):
 
 class TransactionManager:
     def __init__(self):
-        self.reward_none = 0.0
-        self.reward_pnl_patio = 0.01
-        self.penalty_avg_down = -1.0
+        self.reward_none = 0.0  # 報酬なし
+        self.reward_pnl_patio = 0.01  # 含み損益に対する報酬比
+        self.penalty_avg_down = -1.0  # ナンピン・アクションのペナルティ
 
         self.position = PositionType.NONE
         self.entry_price = 0.0
+        self.pnl_total = 0
 
     def clearPosition(self):
         self.position = PositionType.NONE
         self.entry_price = 0.0
+
+    def clearAll(self):
+        self.clearPosition()
+        self.pnl_total = 0
 
     def setAction(self, action: ActionType, price: float) -> float:
         if action == ActionType.HOLD:
@@ -42,12 +47,14 @@ class TransactionManager:
         elif self.position == PositionType.LONG:
             if action == ActionType.REPAY:
                 reward = price - self.entry_price
+                self.pnl_total += reward
                 self.clearPosition()
             else:
                 reward = self.penalty_avg_down
         elif self.position == PositionType.SHORT:
             if action == ActionType.REPAY:
                 reward = self.entry_price - price
+                self.pnl_total += reward
                 self.clearPosition()
             else:
                 reward = self.penalty_avg_down
@@ -62,7 +69,7 @@ class TransactionManager:
                 # ペナルティ要検討
                 pass
             else:
-                # ありえないケース
+                # ありえないケース（念の為）
                 pass
             reward = self.reward_none
         else:
@@ -87,7 +94,7 @@ class TradingEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         self.current_step = 0
-        self.transman.clearPosition()
+        self.transman.clearAll()
         obs = self._get_observation()
         return obs, {}
 
