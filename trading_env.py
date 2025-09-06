@@ -59,8 +59,10 @@ class TransactionManager:
                 self.position = PositionType.SHORT
                 self.entry_price = price
             elif action == ActionType.REPAY:
+                # ペナルティ要検討
                 pass
             else:
+                # ありえないケース
                 pass
             reward = self.reward_none
         else:
