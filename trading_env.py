@@ -121,6 +121,8 @@ class TradingEnv(gym.Env):
 
     def _get_observation(self):
         row = self.df.iloc[self.current_step]
+
+        # Time は使用しないので観測ベクトルから削除
         features = row.drop("Time").values.astype(np.float32)
 
         # PositionType を数値に変換して追加
