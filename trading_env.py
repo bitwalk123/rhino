@@ -45,7 +45,12 @@ class TradingEnv(gym.Env):
         self.prev_action = ActionType.HOLD
         self.entry_price = 0.0
 
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(df.shape[1] - 1,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=(df.shape[1] - 1,),
+            dtype=np.float32
+        )
         self.action_space = gym.spaces.Discrete(len(ActionType))
 
     def reset(self, seed=None, options=None):
