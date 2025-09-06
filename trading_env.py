@@ -18,24 +18,55 @@ class PositionType(Enum):
     SHORT = 2
 
 
-def is_valid_transition(action_prev, action_current, has_position):
-    if has_position:
-        if action_prev == ActionType.HOLD:
-            return action_current in {ActionType.HOLD, ActionType.REPAY}
-        elif action_prev == ActionType.BUY:
-            return action_current in {ActionType.HOLD, ActionType.REPAY}
-        elif action_prev == ActionType.SELL:
-            return action_current in {ActionType.HOLD, ActionType.REPAY}
-    else:
-        if action_prev == ActionType.HOLD:
-            return action_current in {ActionType.HOLD, ActionType.BUY, ActionType.SELL}
-        elif action_prev == ActionType.REPAY:
-            return action_current in {ActionType.BUY, ActionType.SELL, ActionType.HOLD}
+class TransactionManager:
+    def __init__(self):
+        self.reward_none = 0.0
+        self.reward_pnl_patio = 0.01
+        self.penalty = -1.0
 
-    if action_prev == ActionType.REPAY and action_current == ActionType.REPAY:
-        return False
+        self.position = PositionType.NONE
+        self.entry_price = 0.0
 
-    return True
+    def clearPosition(self):
+        self.position = PositionType.NONE
+        self.entry_price = 0.0
+
+    def setAction(self, action: ActionType, price: float) -> float:
+        if action == ActionType.HOLD:
+            if self.position == PositionType.LONG:
+                reward = (price - self.entry_price) * self.reward_pnl_patio
+            elif self.position == PositionType.SHORT:
+                reward = (self.entry_price - price) * self.reward_pnl_patio
+            else:
+                reward = self.reward_none
+        elif self.position == PositionType.LONG:
+            if action == ActionType.REPAY:
+                reward = price - self.entry_price
+                self.clearPosition()
+            else:
+                reward = self.penalty
+        elif self.position == PositionType.SHORT:
+            if action == ActionType.REPAY:
+                reward = self.entry_price - price
+                self.clearPosition()
+            else:
+                reward = self.penalty
+        elif self.position == PositionType.NONE:
+            if action == ActionType.BUY:
+                self.position = PositionType.LONG
+                self.entry_price = price
+            elif action == ActionType.SELL:
+                self.position = PositionType.SHORT
+                self.entry_price = price
+            elif action == ActionType.REPAY:
+                pass
+            else:
+                pass
+            reward = self.reward_none
+        else:
+            reward = self.reward_none
+
+        return reward
 
 
 class TradingEnv(gym.Env):
@@ -43,10 +74,7 @@ class TradingEnv(gym.Env):
         super().__init__()
         self.df = df
         self.current_step = 0
-        self.position = PositionType.NONE
-        self.prev_action = ActionType.HOLD
-        self.entry_price = 0.0
-
+        self.transman = TransactionManager()
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
@@ -57,51 +85,32 @@ class TradingEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         self.current_step = 0
-        self.position = PositionType.NONE
-        self.prev_action = ActionType.HOLD
-        self.entry_price = 0.0
+        self.transman.clearPosition()
         obs = self._get_observation()
         return obs, {}
 
-    def step(self, action):
-        action = ActionType(action)
+    def step(self, action: ActionType):
         reward = 0.0
         done = False
 
-        if is_valid_transition(self.prev_action, action, self.has_position()):
-            price = self.df.iloc[self.current_step]["Price"]
-
-            if action == ActionType.BUY and self.position == PositionType.NONE:
-                self.position = PositionType.LONG
-                self.entry_price = price
-
-            elif action == ActionType.SELL and self.position == PositionType.NONE:
-                self.position = PositionType.SHORT
-                self.entry_price = price
-
-            elif action == ActionType.REPAY:
-                if self.position == PositionType.LONG:
-                    reward += price - self.entry_price
-                elif self.position == PositionType.SHORT:
-                    reward += self.entry_price - price
-                self.position = PositionType.NONE
-                self.entry_price = 0.0
-        else:
-            # 無効な遷移はペナルティ
-            reward -= 1000.0
-
-        self.prev_action = action
-        self.current_step += 1
+        price = self.df.at[self.current_step, "Price"]
+        reward += self.transman.setAction(action, price)
+        obs = self._get_observation()
         if self.current_step >= len(self.df) - 1:
             done = True
 
-        obs = self._get_observation()
+        self.current_step += 1
+
+        """
+        obs: 行動後の状態（＝現在の観測）
+        reward: そのステップで得られた報酬
+        terminated: エピソードが「自然終了」したか（例：目標達成、時間切れ）
+        truncated: エピソードが「強制終了」されたか（例：最大ステップ数到達）
+        info: デバッグやログ用の追加情報（辞書型）
+        """
         return obs, reward, done, False, {}
 
     def _get_observation(self):
         row = self.df.iloc[self.current_step]
         obs = row.drop("Time").values.astype(np.float32)
         return obs
-
-    def has_position(self):
-        return self.position != PositionType.NONE
