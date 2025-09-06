@@ -61,10 +61,7 @@ class TradingEnv(gym.Env):
         reward = 0.0
         done = False
 
-        if not is_valid_transition(self.prev_action, action, self.has_position()):
-            # 無効な遷移はペナルティ
-            reward -= 1000.0
-        else:
+        if is_valid_transition(self.prev_action, action, self.has_position()):
             price = self.df.iloc[self.current_step]["Price"]
 
             if action == ActionType.BUY and self.position == PositionType.NONE:
@@ -82,6 +79,9 @@ class TradingEnv(gym.Env):
                     reward += self.entry_price - price
                 self.position = PositionType.NONE
                 self.entry_price = 0.0
+        else:
+            # 無効な遷移はペナルティ
+            reward -= 1000.0
 
         self.prev_action = action
         self.current_step += 1
