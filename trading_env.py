@@ -82,14 +82,15 @@ class TradingEnv(gym.Env):
     def __init__(self, df: pd.DataFrame):
         super().__init__()
         self.df = df
+        self.selected_features = ["Price"]  # Volume は加工した特徴量として扱うので含めない
         self.last_volume = df.iloc[0]["Volume"]  # Volume 初期値を設定
         self.current_step = 0
-
         self.transman = TransactionManager()
+
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(df.shape[1],),
+            shape=(len(self.selected_features) + 1 + 3,),  # Price + log_volume + one-hot(3)
             dtype=np.float32
         )
         self.action_space = gym.spaces.Discrete(len(ActionType))
@@ -124,8 +125,7 @@ class TradingEnv(gym.Env):
     def _get_observation(self):
         row = self.df.iloc[self.current_step]
 
-        selected_features = ["Price"]  # 必要に応じて ["Price", "MA", "RSI"] などに拡張可能
-        features = row[selected_features].values.astype(np.float32)
+        features = row[self.selected_features].values.astype(np.float32)
 
         # ΔVolume の計算
         current_volume = row["Volume"]
@@ -133,10 +133,10 @@ class TradingEnv(gym.Env):
         log_volume = np.log1p(max(delta_volume, 0)).astype(np.float32)
         self.last_volume = current_volume  # 更新
 
-        # PositionType を数値に変換して追加
-        pos_value = np.array([self.transman.position.value], dtype=np.float32)
+        # PositionType を数値に変換して追加（one-hot で表現）
+        pos_onehot = np.eye(3)[self.transman.position.value].astype(np.float32)
 
         # 観測ベクトル = Price + ΔVolume + 現在のポジション
-        obs = np.concatenate([features, [log_volume], pos_value])
+        obs = np.concatenate([features, [log_volume], pos_onehot])
 
         return obs
