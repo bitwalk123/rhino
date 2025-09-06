@@ -2,6 +2,8 @@ import gymnasium as gym
 import numpy as np
 from enum import Enum
 
+import pandas as pd
+
 
 class ActionType(Enum):
     HOLD = 0
@@ -37,7 +39,7 @@ def is_valid_transition(action_prev, action_current, has_position):
 
 
 class TradingEnv(gym.Env):
-    def __init__(self, df):
+    def __init__(self, df: pd.DataFrame):
         super().__init__()
         self.df = df
         self.current_step = 0
