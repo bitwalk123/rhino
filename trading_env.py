@@ -16,6 +16,26 @@ class PositionType(Enum):
     SHORT = 2
 
 
+def is_valid_transition(action_prev, action_current, has_position):
+    if has_position:
+        if action_prev == ActionType.HOLD:
+            return action_current in {ActionType.HOLD, ActionType.REPAY}
+        elif action_prev == ActionType.BUY:
+            return action_current in {ActionType.HOLD, ActionType.REPAY}
+        elif action_prev == ActionType.SELL:
+            return action_current in {ActionType.HOLD, ActionType.REPAY}
+    else:
+        if action_prev == ActionType.HOLD:
+            return action_current in {ActionType.HOLD, ActionType.BUY, ActionType.SELL}
+        elif action_prev == ActionType.REPAY:
+            return action_current in {ActionType.BUY, ActionType.SELL, ActionType.HOLD}
+
+    if action_prev == ActionType.REPAY and action_current == ActionType.REPAY:
+        return False
+
+    return True
+
+
 class TradingEnv(gym.Env):
     def __init__(self, df):
         super().__init__()
@@ -41,7 +61,7 @@ class TradingEnv(gym.Env):
         reward = 0.0
         done = False
 
-        if not self._is_valid_transition(self.prev_action, action, self.has_position()):
+        if not is_valid_transition(self.prev_action, action, self.has_position()):
             # 無効な遷移はペナルティ
             reward -= 1000.0
         else:
@@ -78,22 +98,3 @@ class TradingEnv(gym.Env):
 
     def has_position(self):
         return self.position != PositionType.NONE
-
-    def _is_valid_transition(self, prev_action, current_action, has_position):
-        if not has_position:
-            if prev_action == ActionType.HOLD:
-                return current_action in {ActionType.HOLD, ActionType.BUY, ActionType.SELL}
-            elif prev_action == ActionType.REPAY:
-                return current_action in {ActionType.BUY, ActionType.SELL, ActionType.HOLD}
-        else:
-            if prev_action == ActionType.HOLD:
-                return current_action in {ActionType.HOLD, ActionType.REPAY}
-            elif prev_action == ActionType.BUY:
-                return current_action in {ActionType.HOLD, ActionType.REPAY}
-            elif prev_action == ActionType.SELL:
-                return current_action in {ActionType.HOLD, ActionType.REPAY}
-
-        if prev_action == ActionType.REPAY and current_action == ActionType.REPAY:
-            return False
-
-        return True
