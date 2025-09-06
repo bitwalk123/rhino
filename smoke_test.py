@@ -9,9 +9,9 @@ from trading_env import TradingEnv, ActionType  # 必要に応じて import 修�
 def create_dummy_data(n: int):
     np.random.seed(42)
     time = np.arange(n)
-    price = np.linspace(1000, 1200, n) + np.random.normal(0, 10, n)
+    price = np.linspace(1100, 1200, n) - np.random.normal(0, 5, n)
     price = [float(int(p)) for p in price]
-    volume = np.cumsum(np.random.randint(1, 1000, n))
+    volume = np.cumsum(np.random.randint(1, 500, n))
     volume = [v * 100 for v in volume]
     df = pd.DataFrame({"Time": time, "Price": price, "Volume": volume})
     return df
