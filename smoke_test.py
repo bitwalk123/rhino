@@ -48,7 +48,7 @@ def run_smoke_test():
         obs, reward, done, _, _ = env.step(act)
         print(
             f"🕒 Step {step:02d}: "
-            f"Obs={obs}, "
+            f"Obs=[{obs[0]:.1f}, {obs[1]:5.2f}, {int(obs[2])}], "
             f"Action={ActionType(act).name}, "
             f"Reward={reward:.2f}, "
             f"Done={done}"

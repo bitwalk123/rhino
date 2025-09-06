@@ -82,7 +82,9 @@ class TradingEnv(gym.Env):
     def __init__(self, df: pd.DataFrame):
         super().__init__()
         self.df = df
+        self.last_volume = df.iloc[0]["Volume"]  # Volume 初期値を設定
         self.current_step = 0
+
         self.transman = TransactionManager()
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
@@ -122,13 +124,19 @@ class TradingEnv(gym.Env):
     def _get_observation(self):
         row = self.df.iloc[self.current_step]
 
-        # Time は使用しないので観測ベクトルから削除
-        features = row.drop("Time").values.astype(np.float32)
+        selected_features = ["Price"]  # 必要に応じて ["Price", "MA", "RSI"] などに拡張可能
+        features = row[selected_features].values.astype(np.float32)
+
+        # ΔVolume の計算
+        current_volume = row["Volume"]
+        delta_volume = current_volume - self.last_volume
+        log_volume = np.log1p(max(delta_volume, 0)).astype(np.float32)
+        self.last_volume = current_volume  # 更新
 
         # PositionType を数値に変換して追加
         pos_value = np.array([self.transman.position.value], dtype=np.float32)
 
-        # 観測ベクトル = 市場データ + 現在のポジション
-        obs = np.concatenate([features, pos_value])
+        # 観測ベクトル = Price + ΔVolume + 現在のポジション
+        obs = np.concatenate([features, [log_volume], pos_value])
 
         return obs
