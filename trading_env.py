@@ -22,7 +22,7 @@ class TransactionManager:
     def __init__(self):
         self.reward_none = 0.0
         self.reward_pnl_patio = 0.01
-        self.penalty = -1.0
+        self.penalty_avg_down = -1.0
 
         self.position = PositionType.NONE
         self.entry_price = 0.0
@@ -44,13 +44,13 @@ class TransactionManager:
                 reward = price - self.entry_price
                 self.clearPosition()
             else:
-                reward = self.penalty
+                reward = self.penalty_avg_down
         elif self.position == PositionType.SHORT:
             if action == ActionType.REPAY:
                 reward = self.entry_price - price
                 self.clearPosition()
             else:
-                reward = self.penalty
+                reward = self.penalty_avg_down
         elif self.position == PositionType.NONE:
             if action == ActionType.BUY:
                 self.position = PositionType.LONG
