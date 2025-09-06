@@ -1,0 +1,4 @@
+gymnasium
+pandas
+pip-chill
+pip-review
