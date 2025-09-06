@@ -9,7 +9,7 @@ from trading_env import TradingEnv, ActionType  # 必要に応じて import 修�
 def create_dummy_data(n: int):
     np.random.seed(42)
     time = np.arange(n)
-    price = np.linspace(1000, 1200, n) + np.random.normal(0, 1, n)
+    price = np.linspace(1000, 1200, n) + np.random.normal(0, 10, n)
     price = [float(int(p)) for p in price]
     volume = np.cumsum(np.random.randint(1, 1000, n))
     volume = [v * 100 for v in volume]
@@ -23,6 +23,7 @@ def run_smoke_test():
         ActionType.HOLD,
         ActionType.BUY,
         ActionType.HOLD,
+        ActionType.HOLD,
         ActionType.BUY,
         ActionType.SELL,
         ActionType.BUY,
@@ -31,6 +32,7 @@ def run_smoke_test():
         ActionType.SELL,
         ActionType.HOLD,
         ActionType.SELL,
+        ActionType.HOLD,
         ActionType.BUY,
         ActionType.SELL,
         ActionType.HOLD,
@@ -40,14 +42,16 @@ def run_smoke_test():
     print(df)
     env = TradingEnv(df)
     obs, _ = env.reset()
-
-    print("📈 初期観測:", obs)
+    print("\n📈 初期観測:", obs)
 
     for step, act in enumerate(actions):
         obs, reward, done, _, _ = env.step(act)
         print(
-            f"🕒 Step {step:02d}: Action={ActionType(act).name}, "
-            f"Reward={reward:.2f}, Done={done}"
+            f"🕒 Step {step:02d}: "
+            f"Obs={obs}, "
+            f"Action={ActionType(act).name}, "
+            f"Reward={reward:.2f}, "
+            f"Done={done}"
         )
 
         if done:

@@ -87,7 +87,7 @@ class TradingEnv(gym.Env):
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(df.shape[1] - 1,),
+            shape=(df.shape[1],),
             dtype=np.float32
         )
         self.action_space = gym.spaces.Discrete(len(ActionType))
@@ -121,5 +121,12 @@ class TradingEnv(gym.Env):
 
     def _get_observation(self):
         row = self.df.iloc[self.current_step]
-        obs = row.drop("Time").values.astype(np.float32)
+        features = row.drop("Time").values.astype(np.float32)
+
+        # PositionType を数値に変換して追加
+        pos_value = np.array([self.transman.position.value], dtype=np.float32)
+
+        # 観測ベクトル = 市場データ + 現在のポジション
+        obs = np.concatenate([features, pos_value])
+
         return obs
