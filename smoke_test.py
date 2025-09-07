@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # TradingEnv クラスはすでに定義済みとする
-from trading_env import TradingEnv, ActionType  # 必要に応じて import 修正
+from trading_env import TradingEnv, ActionType
 
 
 # 1. ダミーデータの作成（Time, Price, Volume）
@@ -46,6 +46,7 @@ def run_smoke_test():
 
     for step, act in enumerate(actions):
         obs, reward, done, _, _ = env.step(act)
+        # 確認しやすいように整形して標準出力
         print(
             f"🕒 Step {step:02d}: "
             f"Obs=[{obs[0]:.1f}, {obs[1]:5.2f}, "
