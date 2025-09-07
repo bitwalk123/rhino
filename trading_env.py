@@ -113,6 +113,10 @@ class TradingEnv(gym.Env):
 
         self.current_step += 1
 
+        dict_info = {
+            "pnl_total": self.transman.pnl_total,
+        }
+
         """
         obs: 行動後の状態（＝現在の観測）
         reward: そのステップで得られた報酬
@@ -120,7 +124,7 @@ class TradingEnv(gym.Env):
         truncated: エピソードが「強制終了」されたか（例：最大ステップ数到達）
         info: デバッグやログ用の追加情報（辞書型）
         """
-        return obs, reward, done, False, {}
+        return obs, reward, done, False, dict_info
 
     def _get_observation(self):
         row = self.df.iloc[self.current_step]
