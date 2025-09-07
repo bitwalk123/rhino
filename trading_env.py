@@ -22,8 +22,8 @@ class TransactionManager:
     def __init__(self):
         self.reward_none = 0.0  # 報酬なし
         self.reward_rule = 1.0  # ルール適合報酬
-        self.penalty_rule = -10.0  # ルール違反ペナルティ
-        self.penalty_rule_dbl = -20.0  # ルール違反ペナルティ2
+        self.penalty_rule = -1.0  # ルール違反ペナルティ
+        self.penalty_rule_dbl = -2.0  # ルール違反ペナルティ（厳しめ）
 
         self.reward_pnl_patio = 0.5  # 含み損益に対する報酬比
         self.penalty_some = -0.05  #
