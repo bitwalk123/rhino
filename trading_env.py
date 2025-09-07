@@ -21,80 +21,15 @@ class PositionType(Enum):
 class TransactionManager:
     def __init__(self):
         self.reward_none = 0.0  # 報酬なし
-        self.reward_allowance = 0.02  # お小遣い
-        self.reward_pnl_patio = 0.01  # 含み損益に対する報酬比
-        self.penalty_avg_down = -0.01  # ナンピン・アクションのペナルティ
-        self.penalty_some = -0.005  #
+        self.reward_rule = 1.0  # ルール適合報酬
+        self.penalty_rule = -1.0  # ルール違反ペナルティ
+
+        self.reward_pnl_patio = 0.1  # 含み損益に対する報酬比
+        self.penalty_some = -0.05  #
 
         self.position = PositionType.NONE
         self.price_entry = 0.0
-        self.pnl_total = 0
-
-    def clearPosition(self):
-        self.position = PositionType.NONE
-        self.price_entry = 0.0
-
-    def clearAll(self):
-        self.clearPosition()
-        self.pnl_total = 0
-
-    def setAction(self, action: ActionType, price: float) -> float:
-        if action == ActionType.HOLD:
-            if self.position == PositionType.LONG:
-                reward = (price - self.price_entry) * self.reward_pnl_patio
-            elif self.position == PositionType.SHORT:
-                reward = (self.price_entry - price) * self.reward_pnl_patio
-            else:
-                reward = self.penalty_some
-        elif self.position == PositionType.LONG:
-            pnl = price - self.price_entry
-            if action == ActionType.REPAY:
-                reward = pnl
-                self.pnl_total += reward
-                self.clearPosition()
-            else:
-                reward = self.penalty_avg_down + pnl
-        elif self.position == PositionType.SHORT:
-            pnl = self.price_entry - price
-            if action == ActionType.REPAY:
-                reward = pnl
-                self.pnl_total += reward
-                self.clearPosition()
-            else:
-                reward = self.penalty_avg_down + pnl
-        elif self.position == PositionType.NONE:
-            if action == ActionType.BUY:
-                self.position = PositionType.LONG
-                self.price_entry = price
-                reward = self.reward_allowance
-            elif action == ActionType.SELL:
-                self.position = PositionType.SHORT
-                self.price_entry = price
-                # reward = self.reward_none
-                reward = self.reward_allowance
-            elif action == ActionType.REPAY:
-                # ペナルティ要検討
-                reward = self.penalty_some
-            else:
-                # ありえないケース（念の為）
-                reward = self.reward_none
-        else:
-            reward = self.reward_none
-
-        return reward
-
-
-class TransactionManager2:
-    def __init__(self):
-        self.reward_none = 0.0  # 報酬なし
-        self.reward_rule = 0.02  # お小遣い
-        self.reward_pnl_patio = 0.01  # 含み損益に対する報酬比
-        self.penalty_rule = -0.01  # ナンピン・アクションのペナルティ
-        self.penalty_some = -0.005  #
-
-        self.position = PositionType.NONE
         self.action_pre = ActionType.HOLD
-        self.price_entry = 0.0
         self.pnl_total = 0
 
     def clearPosition(self):
@@ -103,6 +38,7 @@ class TransactionManager2:
 
     def clearAll(self):
         self.clearPosition()
+        self.action_pre = ActionType.HOLD
         self.pnl_total = 0
 
     def has_position(self) -> bool:
@@ -117,118 +53,102 @@ class TransactionManager2:
         if self.action_pre == ActionType.HOLD:
             if action == ActionType.HOLD:
                 reward += self.reward_none
-            elif self.has_position():
+            elif self.has_position():  # 建玉あり
                 if action == ActionType.BUY:
                     reward += self.penalty_rule
                 elif action == ActionType.SELL:
                     reward += self.penalty_rule
                 elif action == ActionType.REPAY:
                     reward += self.reward_rule
-                else:
-                    reward += self.reward_none
-            else:
+            else:  # 建玉なし
                 if action == ActionType.BUY:
                     reward += self.reward_rule
                 elif action == ActionType.SELL:
                     reward += self.reward_rule
                 elif action == ActionType.REPAY:
                     reward += self.penalty_rule
-                else:
-                    reward += self.reward_none
         elif self.action_pre == ActionType.BUY:
             if action == ActionType.HOLD:
                 reward += self.reward_none
-            elif self.has_position():
+            elif self.has_position():  # 建玉あり
                 if action == ActionType.BUY:
                     reward += self.penalty_rule
                 elif action == ActionType.SELL:
                     reward += self.penalty_rule
                 elif action == ActionType.REPAY:
                     reward += self.reward_rule
-                else:
-                    reward += self.reward_none
-            else:
+            else:  # 建玉なし
                 if action == ActionType.BUY:
                     reward += self.reward_rule
                 elif action == ActionType.SELL:
                     reward += self.reward_rule
                 elif action == ActionType.REPAY:
                     reward += self.penalty_rule
-                else:
-                    reward += self.reward_none
         elif self.action_pre == ActionType.SELL:
             if action == ActionType.HOLD:
                 reward += self.reward_none
-            elif self.has_position():
+            elif self.has_position():  # 建玉あり
                 if action == ActionType.BUY:
                     reward += self.penalty_rule
                 elif action == ActionType.SELL:
                     reward += self.penalty_rule
                 elif action == ActionType.REPAY:
                     reward += self.reward_rule
-                else:
-                    reward += self.reward_none
-            else:
+            else:  # 建玉なし
                 if action == ActionType.BUY:
                     reward += self.reward_rule
                 elif action == ActionType.SELL:
                     reward += self.reward_rule
                 elif action == ActionType.REPAY:
                     reward += self.penalty_rule
-                else:
-                    reward += self.reward_none
         elif self.action_pre == ActionType.REPAY:
             if action == ActionType.HOLD:
                 reward += self.reward_none
-            elif self.has_position():  # ありえないケース
+            elif self.has_position():  # 建玉あり
                 if action == ActionType.BUY:
                     reward += self.penalty_rule
                 elif action == ActionType.SELL:
                     reward += self.penalty_rule
                 elif action == ActionType.REPAY:
                     reward += self.reward_rule
-                else:
-                    reward += self.reward_none
-            else:
+            else:  # 建玉なし
                 if action == ActionType.BUY:
                     reward += self.reward_rule
                 elif action == ActionType.SELL:
                     reward += self.reward_rule
                 elif action == ActionType.REPAY:
                     reward += self.penalty_rule
-                else:
-                    reward += self.reward_none
         else:
             reward += self.reward_none
 
+        # 一つ前のアクションを更新
+        self.action_pre = action
+
+        # 建玉損益
         if self.position == PositionType.LONG:
             pnl = price - self.price_entry
-            if action == ActionType.REPAY:
+            if action == ActionType.REPAY:  # 利確
                 reward += pnl
                 self.pnl_total += reward
                 self.clearPosition()
+            else:  # 含み損益
+                reward += pnl * self.reward_pnl_patio
         elif self.position == PositionType.SHORT:
             pnl = self.price_entry - price
-            if action == ActionType.REPAY:
+            if action == ActionType.REPAY:  # 利確
                 reward += pnl
                 self.pnl_total += reward
                 self.clearPosition()
+            else:  # 含み損益
+                reward += pnl * self.reward_pnl_patio
         elif self.position == PositionType.NONE:
-            if action == ActionType.HOLD:
-                pass
-                # 含み益の報酬！
-            elif action == ActionType.BUY:
+            if action == ActionType.BUY:  # 買建
                 self.position = PositionType.LONG
                 self.price_entry = price
-            elif action == ActionType.SELL:
+            elif action == ActionType.SELL:  # 売建（空売り）
                 self.position = PositionType.SHORT
                 self.price_entry = price
-            else:
-                reward += self.reward_none
-        else:
-            reward += self.reward_none
 
-        self.action_pre = action
         return reward
 
 
