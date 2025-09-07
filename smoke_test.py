@@ -45,7 +45,7 @@ def run_smoke_test():
     print("\n📈 初期観測:", obs)
 
     for step, act in enumerate(actions):
-        obs, reward, done, _, dict_info = env.step(act)
+        obs, reward, done, _, dict_info = env.step(act.value)
         # 確認しやすいように整形して標準出力
         print(
             f"🕒 Step {step:02d}: "

@@ -21,8 +21,10 @@ class PositionType(Enum):
 class TransactionManager:
     def __init__(self):
         self.reward_none = 0.0  # 報酬なし
+        self.reward_allowance = 0.02  # お小遣い
         self.reward_pnl_patio = 0.01  # 含み損益に対する報酬比
-        self.penalty_avg_down = -1.0  # ナンピン・アクションのペナルティ
+        self.penalty_avg_down = -0.01  # ナンピン・アクションのペナルティ
+        self.penalty_some = -0.005  #
 
         self.position = PositionType.NONE
         self.entry_price = 0.0
@@ -43,35 +45,39 @@ class TransactionManager:
             elif self.position == PositionType.SHORT:
                 reward = (self.entry_price - price) * self.reward_pnl_patio
             else:
-                reward = self.reward_none
+                reward = self.penalty_some
         elif self.position == PositionType.LONG:
+            pnl = price - self.entry_price
             if action == ActionType.REPAY:
-                reward = price - self.entry_price
+                reward = pnl
                 self.pnl_total += reward
                 self.clearPosition()
             else:
-                reward = self.penalty_avg_down
+                reward = self.penalty_avg_down + pnl
         elif self.position == PositionType.SHORT:
+            pnl = self.entry_price - price
             if action == ActionType.REPAY:
-                reward = self.entry_price - price
+                reward = pnl
                 self.pnl_total += reward
                 self.clearPosition()
             else:
-                reward = self.penalty_avg_down
+                reward = self.penalty_avg_down + pnl
         elif self.position == PositionType.NONE:
             if action == ActionType.BUY:
                 self.position = PositionType.LONG
                 self.entry_price = price
+                reward = self.reward_allowance
             elif action == ActionType.SELL:
                 self.position = PositionType.SHORT
                 self.entry_price = price
+                # reward = self.reward_none
+                reward = self.reward_allowance
             elif action == ActionType.REPAY:
                 # ペナルティ要検討
-                pass
+                reward = self.penalty_some
             else:
                 # ありえないケース（念の為）
-                pass
-            reward = self.reward_none
+                reward = self.reward_none
         else:
             reward = self.reward_none
 
@@ -101,12 +107,14 @@ class TradingEnv(gym.Env):
         obs = self._get_observation()
         return obs, {}
 
-    def step(self, action: ActionType):
+    def step(self, n_action: int):
+        action = ActionType(n_action)
         reward = 0.0
         done = False
 
         price = self.df.at[self.current_step, "Price"]
         reward += self.transman.setAction(action, price)
+        #print(self.current_step, price, n_action, action, reward)
         obs = self._get_observation()
         if self.current_step >= len(self.df) - 1:
             done = True
