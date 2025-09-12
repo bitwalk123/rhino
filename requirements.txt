@@ -1,8 +1,15 @@
 gymnasium
+importlib-metadata
+jaraco-collections
+jaraco-functools
+jaraco.collections
 matplotlib
 openpyxl
 pandas
 pandas-stubs
 pip-chill
 pip-review
+platformdirs
+pyside6
 ta-lib
+tomli
