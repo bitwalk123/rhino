@@ -1,0 +1,10 @@
+backports.tarfile
+gymnasium
+importlib-metadata
+jaraco.collections
+pandas
+pip-chill
+pip-review
+platformdirs
+ta-lib
+tomli
