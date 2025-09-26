@@ -7,7 +7,7 @@ from funcs.ios import get_excel_sheet
 from modules.dock import Dock
 from modules.toolbar import ToolBar
 from structs.res import AppRes
-from widgets.chart import TrendChart
+from widgets.chart import TickChart
 from widgets.statusbar import StatusBar
 
 
@@ -46,7 +46,7 @@ class Rhino(QMainWindow):
         # ---------------------------------------------------------------------
         # チャート
         # ---------------------------------------------------------------------
-        self.chart = chart = TrendChart(res)
+        self.chart = chart = TickChart(res)
         self.setCentralWidget(chart)
 
         # ---------------------------------------------------------------------

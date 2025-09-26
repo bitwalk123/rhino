@@ -1,10 +1,10 @@
 from PySide6.QtWidgets import QStatusBar
 
-from widgets.chart import TrendChart, ChartNavigation
+from widgets.chart import TickChart, ChartNavigation
 
 
 class StatusBar(QStatusBar):
-    def __init__(self, chart: TrendChart):
+    def __init__(self, chart: TickChart):
         super().__init__()
         navbar = ChartNavigation(chart)
         self.addWidget(navbar)
