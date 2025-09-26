@@ -1,3 +1,4 @@
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QToolBar
 
@@ -6,6 +7,8 @@ from structs.res import AppRes
 
 
 class ToolBar(QToolBar):
+    clickedPlay = Signal()
+
     def __init__(self, res: AppRes):
         super().__init__()
         self.res = res
@@ -15,4 +18,4 @@ class ToolBar(QToolBar):
         self.addAction(action_play)
 
     def on_play(self):
-        pass
+        self.clickedPlay.emit()

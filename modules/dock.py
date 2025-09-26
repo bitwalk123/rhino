@@ -24,7 +24,7 @@ class Dock(DockWidget):
         self.layout = layout = VBoxLayout()
         base.setLayout(layout)
 
-        lv = ListView()
+        self.lv = lv = ListView()
         lv.clicked.connect(self.on_clicked)
         layout.addWidget(lv)
 
@@ -37,10 +37,20 @@ class Dock(DockWidget):
             item.setCheckable(True)
             model.appendRow(item)
 
-    def on_clicked(self, idx: QModelIndex):
-        lv: ListView | QObject = self.sender()
-        model: QStandardItemModel | QAbstractItemModel = lv.model()
-        item: QStandardItem = model.itemFromIndex(idx)
+    def getItemsSelected(self) -> list:
+        list_file = list()
+        model: QStandardItemModel | QAbstractItemModel = self.lv.model()
+        for idx in range(model.rowCount()):
+            item: QStandardItem = model.item(idx)
+            file: str = item.text()
+            state: Qt.CheckState = item.checkState()
+            if state == Qt.CheckState.Checked:
+                list_file.append(file)
+        return list_file
+
+    def on_clicked(self, midx: QModelIndex):
+        model: QStandardItemModel | QAbstractItemModel = self.lv.model()
+        item: QStandardItem = model.itemFromIndex(midx)
         file: str = item.text()
         state: Qt.CheckState = item.checkState()
         print(file, state)

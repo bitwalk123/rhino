@@ -26,6 +26,7 @@ class Rhino(QMainWindow):
         # ツールバー
         # ---------------------------------------------------------------------
         self.toolbar = toolbar = ToolBar(res)
+        toolbar.clickedPlay.connect(self.on_play)
         self.addToolBar(toolbar)
 
         # ---------------------------------------------------------------------
@@ -33,3 +34,10 @@ class Rhino(QMainWindow):
         # ---------------------------------------------------------------------
         self.dock = dock = Dock(res)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+
+    def on_play(self):
+        list_file = self.dock.getItemsSelected()
+        if len(list_file) > 0:
+            print(list_file)
+        else:
+            print("選択されたファイルはありません。")
