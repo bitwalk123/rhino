@@ -54,7 +54,7 @@ class TickChart(Chart):
         # 消去
         self.ax.cla()
         # プロット
-        self.ax.plot(ser, color='lightcyan', linewidth=0.5)
+        self.ax.plot(ser, color='lightyellow', linewidth=0.5)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
         self.ax.grid(True, lw=0.5)
         # 再描画

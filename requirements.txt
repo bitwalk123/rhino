@@ -4,6 +4,7 @@ importlib-metadata
 jaraco.collections
 opencv-python
 openpyxl
+pandas-stubs
 pip-chill
 pip-review
 platformdirs
@@ -16,3 +17,4 @@ ta-lib
 tensorboard
 tomli
 tqdm
+xlrd

@@ -1,6 +1,6 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QMargins, Signal
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QToolBar, QComboBox
+from PySide6.QtWidgets import QComboBox, QToolBar
 
 from funcs.commons import get_icon
 from structs.res import AppRes
@@ -13,6 +13,8 @@ class ToolBar(QToolBar):
         super().__init__()
         self.res = res
         self.code_default = "7011"
+
+        self.setContentsMargins(QMargins(0, 0, 0, 0))
 
         self.combo_code = combo_code = QComboBox()
         self.addWidget(combo_code)

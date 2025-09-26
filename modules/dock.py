@@ -1,7 +1,13 @@
 import logging
 import os
 
-from PySide6.QtCore import QModelIndex, QObject, QAbstractItemModel, Qt, Signal
+from PySide6.QtCore import (
+    QMargins,
+    QModelIndex,
+    QAbstractItemModel,
+    Qt,
+    Signal,
+)
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from funcs.ios import get_excel_sheet_list
@@ -21,6 +27,8 @@ class Dock(DockWidget):
         self.logger = logging.getLogger(__name__)
         self.res = res
 
+        self.setContentsMargins(QMargins(0, 0, 0, 0))
+
         self.dock_title = DockTitle("ティックファイル一覧")
         self.setTitleBarWidget(self.dock_title)
 
@@ -30,6 +38,7 @@ class Dock(DockWidget):
         base.setLayout(layout)
 
         self.lv = lv = ListView()
+        lv.setFixedWidth(200)
         lv.clicked.connect(self.on_clicked)
         layout.addWidget(lv)
 

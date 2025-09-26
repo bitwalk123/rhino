@@ -1,17 +1,18 @@
 import logging
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QMainWindow
 
 from funcs.ios import get_excel_sheet
+from funcs.tse import get_jpx_ticker_list
 from modules.dock import Dock
 from modules.toolbar import ToolBar
 from structs.res import AppRes
 from widgets.chart import TickChart
+from widgets.containers import MainWindow
 from widgets.statusbar import StatusBar
 
 
-class Rhino(QMainWindow):
+class Rhino(MainWindow):
     __app_name__ = "Rhino"
     __version__ = "0.1.0"
     __author__ = "Fuhito Suguri"
@@ -54,6 +55,12 @@ class Rhino(QMainWindow):
         # ---------------------------------------------------------------------
         self.statusbar = statusbar = StatusBar(chart)
         self.setStatusBar(statusbar)
+
+        # ---------------------------------------------------------------------
+        # 銘柄コードの保持
+        # ---------------------------------------------------------------------
+        df = get_jpx_ticker_list(res)
+        print(df)
 
     def code_list_updated(self, list_code):
         self.toolbar.updateCodeList(list_code)
