@@ -1,6 +1,7 @@
 import logging
 import os
 
+from PySide6.QtCore import QModelIndex, QObject, QAbstractItemModel, Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from structs.res import AppRes
@@ -24,6 +25,7 @@ class Dock(DockWidget):
         base.setLayout(layout)
 
         lv = ListView()
+        lv.clicked.connect(self.on_clicked)
         layout.addWidget(lv)
 
         model = QStandardItemModel(lv)
@@ -34,3 +36,11 @@ class Dock(DockWidget):
             item = QStandardItem(file)
             item.setCheckable(True)
             model.appendRow(item)
+
+    def on_clicked(self, idx: QModelIndex):
+        lv: ListView | QObject = self.sender()
+        model: QStandardItemModel | QAbstractItemModel = lv.model()
+        item: QStandardItem = model.itemFromIndex(idx)
+        file: str = item.text()
+        state: Qt.CheckState = item.checkState()
+        print(file, state)
