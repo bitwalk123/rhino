@@ -24,7 +24,6 @@ class Dock(DockWidget):
 
         base = Widget()
         self.setWidget(base)
-
         self.layout = layout = VBoxLayout()
         base.setLayout(layout)
 
@@ -56,8 +55,6 @@ class Dock(DockWidget):
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.itemFromIndex(midx)
         file: str = item.text()
-        # state: Qt.CheckState = item.checkState()
-        # print(file, state)
         path_excel = os.path.join(self.res.dir_collection, file)
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
