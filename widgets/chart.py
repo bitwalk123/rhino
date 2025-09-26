@@ -14,6 +14,10 @@ from structs.res import AppRes
 
 
 class Chart(FigureCanvas):
+    """
+    チャート用 FigureCanvas の雛形
+    """
+
     def __init__(self, res: AppRes):
         # フォント設定
         fm.fontManager.addfont(res.path_monospace)
@@ -40,7 +44,7 @@ class TickChart(Chart):
 
     def __init__(self, res: AppRes):
         super().__init__(res)
-        # タイムスタンプへ時差を加算・減算用（Asia/Tokyo)
+        # タイムスタンプへ時差を加算用（Asia/Tokyo)
         self.tz = 9. * 60 * 60
 
     def updateData(self, df: pd.DataFrame):
