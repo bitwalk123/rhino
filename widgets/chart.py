@@ -1,3 +1,4 @@
+import pandas as pd
 from matplotlib import (
     dates as mdates,
     font_manager as fm,
@@ -18,6 +19,9 @@ class TrendChart(FigureCanvas):
     """
 
     def __init__(self, res: AppRes):
+        # タイムスタンプへ時差を加算・減算用（Asia/Tokyo)
+        self.tz = 9. * 60 * 60
+
         # フォント設定
         fm.fontManager.addfont(res.path_monospace)
         font_prop = fm.FontProperties(fname=res.path_monospace)
@@ -28,6 +32,7 @@ class TrendChart(FigureCanvas):
 
         # Figure オブジェクト
         self.figure = Figure()
+
         # 余白設定
         self.figure.subplots_adjust(left=0.075, right=0.99, top=0.9, bottom=0.08)
         super().__init__(self.figure)
@@ -46,6 +51,18 @@ class TrendChart(FigureCanvas):
 
     def setTitle(self, title: str):
         self.ax.set_title(title)
+
+    def updateData(self, df: pd.DataFrame):
+        # トレンドライン（株価）
+        ser = df['Price']
+        ser.index = [pd.Timestamp(ts + self.tz, unit='s') for ts in df["Time"]]
+        self.ax.cla()
+        self.trend_line, = self.ax.plot(ser, color='lightgray', linewidth=0.5)
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        self.ax.grid(True, lw=0.5)
+
+        # 再描画
+        self.reDraw()
 
 
 class ChartNavigation(NavigationToolbar):

@@ -3,6 +3,7 @@ import logging
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMainWindow
 
+from funcs.ios import get_excel_sheet
 from modules.dock import Dock
 from modules.toolbar import ToolBar
 from structs.res import AppRes
@@ -39,6 +40,7 @@ class Rhino(QMainWindow):
         # ---------------------------------------------------------------------
         self.dock = dock = Dock(res)
         dock.listedSheets.connect(self.code_list_updated)
+        dock.requestUpdateChart.connect(self.update_chart)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
         # ---------------------------------------------------------------------
@@ -62,3 +64,9 @@ class Rhino(QMainWindow):
             print(list_file)
         else:
             print("選択されたファイルはありません。")
+
+    def update_chart(self, path_excel: str):
+        code = self.toolbar.getCurrentCode()
+        # print(path_excel, code)
+        df = get_excel_sheet(path_excel, code)
+        self.chart.updateData(df)

@@ -21,6 +21,9 @@ class ToolBar(QToolBar):
         action_play.triggered.connect(self.on_play)
         self.addAction(action_play)
 
+    def getCurrentCode(self) -> str:
+        return self.combo_code.currentText()
+
     def on_play(self):
         self.clickedPlay.emit()
 

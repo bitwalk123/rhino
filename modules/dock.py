@@ -14,11 +14,13 @@ from widgets.views import ListView
 
 class Dock(DockWidget):
     listedSheets = Signal(list)
+    requestUpdateChart = Signal(str)
 
     def __init__(self, res: AppRes):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.res = res
+
         self.dock_title = DockTitle("ティックファイル一覧")
         self.setTitleBarWidget(self.dock_title)
 
@@ -59,3 +61,4 @@ class Dock(DockWidget):
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
             self.listedSheets.emit(list_sheet)
+            self.requestUpdateChart.emit(path_excel)
