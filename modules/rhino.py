@@ -6,6 +6,8 @@ from PySide6.QtWidgets import QMainWindow
 from modules.dock import Dock
 from modules.toolbar import ToolBar
 from structs.res import AppRes
+from widgets.chart import TrendChart
+from widgets.statusbar import StatusBar
 
 
 class Rhino(QMainWindow):
@@ -18,6 +20,9 @@ class Rhino(QMainWindow):
         super().__init__()
         self.logger = logging.getLogger(__name__)  # モジュール固有のロガーを取得
         self.res = res = AppRes()
+
+        self.setMinimumWidth(1000)
+        self.setFixedHeight(400)
 
         title_win = f"{self.__app_name__} - {self.__version__}"
         self.setWindowTitle(title_win)
@@ -33,7 +38,23 @@ class Rhino(QMainWindow):
         # 右側のドック
         # ---------------------------------------------------------------------
         self.dock = dock = Dock(res)
+        dock.listedSheets.connect(self.code_list_updated)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+
+        # ---------------------------------------------------------------------
+        # チャート
+        # ---------------------------------------------------------------------
+        self.chart = chart = TrendChart(res)
+        self.setCentralWidget(chart)
+
+        # ---------------------------------------------------------------------
+        # ステータスバー
+        # ---------------------------------------------------------------------
+        self.statusbar = statusbar = StatusBar(chart)
+        self.setStatusBar(statusbar)
+
+    def code_list_updated(self, list_code):
+        self.toolbar.updateCodeList(list_code)
 
     def on_play(self):
         list_file = self.dock.getItemsSelected()

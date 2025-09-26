@@ -7,6 +7,6 @@ class ListView(QListView):
         self.setStyleSheet("""
             QListView {
                 font-family: monospace;
-                font-size: 9pt;
+                font-size: 10pt;
             }
         """)

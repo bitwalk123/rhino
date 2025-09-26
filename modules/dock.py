@@ -1,9 +1,10 @@
 import logging
 import os
 
-from PySide6.QtCore import QModelIndex, QObject, QAbstractItemModel, Qt
+from PySide6.QtCore import QModelIndex, QObject, QAbstractItemModel, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
+from funcs.ios import get_excel_sheet_list
 from structs.res import AppRes
 from widgets.containers import Widget
 from widgets.docks import DockWidget, DockTitle
@@ -12,9 +13,12 @@ from widgets.views import ListView
 
 
 class Dock(DockWidget):
+    listedSheets = Signal(list)
+
     def __init__(self, res: AppRes):
         super().__init__()
         self.logger = logging.getLogger(__name__)
+        self.res = res
         self.dock_title = DockTitle("ティックファイル一覧")
         self.setTitleBarWidget(self.dock_title)
 
@@ -52,5 +56,9 @@ class Dock(DockWidget):
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.itemFromIndex(midx)
         file: str = item.text()
-        state: Qt.CheckState = item.checkState()
-        print(file, state)
+        # state: Qt.CheckState = item.checkState()
+        # print(file, state)
+        path_excel = os.path.join(self.res.dir_collection, file)
+        list_sheet = get_excel_sheet_list(path_excel)
+        if len(list_sheet) > 0:
+            self.listedSheets.emit(list_sheet)
