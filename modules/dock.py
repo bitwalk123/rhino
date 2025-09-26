@@ -15,7 +15,7 @@ class Dock(DockWidget):
     def __init__(self, res: AppRes):
         super().__init__()
         self.logger = logging.getLogger(__name__)
-        self.dock_title = DockTitle("ティックファイル")
+        self.dock_title = DockTitle("ティックファイル一覧")
         self.setTitleBarWidget(self.dock_title)
 
         base = Widget()
