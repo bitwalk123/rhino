@@ -25,7 +25,7 @@ class Chart(FigureCanvas):
         plt.rcParams["font.family"] = font_prop.get_name()
         plt.rcParams["font.size"] = 11
         # ダークモードの設定
-        # plt.style.use("dark_background")
+        plt.style.use("dark_background")
 
         # Figure オブジェクト
         self.figure = Figure()
@@ -54,7 +54,7 @@ class TickChart(Chart):
         # 消去
         self.ax.cla()
         # プロット
-        self.ax.plot(ser, color='black', linewidth=0.5, alpha=0.5)
+        self.ax.plot(ser, color='lightyellow', linewidth=0.5)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
         self.ax.grid(True, lw=0.5)
         self.ax.set_title(title)
