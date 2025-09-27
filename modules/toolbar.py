@@ -18,7 +18,8 @@ class ToolBar(QToolBar):
         self.setContentsMargins(QMargins(0, 0, 0, 0))
 
         self.combo_code = combo_code = QComboBox()
-        self.combo_code.currentIndexChanged.connect(self.changed_code)
+        combo_code.setContentsMargins(QMargins(0, 0, 0, 0))
+        combo_code.currentIndexChanged.connect(self.changed_code)
         self.addWidget(combo_code)
 
         action_play = QAction(get_icon(self.res, "play.png"), "開始", self)

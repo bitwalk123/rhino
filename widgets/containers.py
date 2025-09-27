@@ -2,7 +2,8 @@ from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import (
     QMainWindow,
     QSizePolicy,
-    QWidget, QTabWidget,
+    QTabWidget,
+    QWidget,
 )
 
 

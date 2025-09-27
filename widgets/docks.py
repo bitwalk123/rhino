@@ -1,7 +1,7 @@
 from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import QDockWidget
 
-from widgets.containers import Widget, PadH
+from widgets.containers import Widget
 from widgets.labels import LabelLeftSmall
 from widgets.layouts import HBoxLayout
 
