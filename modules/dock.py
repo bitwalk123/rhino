@@ -51,7 +51,7 @@ class Dock(DockWidget):
             item.setCheckable(True)
             model.appendRow(item)
 
-    def getCurrentSelection(self) -> str:
+    def getCurrentFile(self) -> str:
         idx = self.lv.currentIndex().row()
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.item(idx)

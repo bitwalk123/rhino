@@ -5,7 +5,6 @@ import unicodedata
 from PySide6.QtCore import Qt
 
 from funcs.commons import get_date_str_from_filename
-from funcs.ios import get_excel_sheet
 from funcs.tse import get_jpx_ticker_list
 from modules.dock import Dock
 from modules.toolbar import ToolBar
@@ -47,7 +46,7 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         self.toolbar = toolbar = ToolBar(res)
         toolbar.clickedPlay.connect(self.on_play)
-        toolbar.codeChanged.connect(self.code_selection_changed)
+        toolbar.codeChanged.connect(self.update_chart)
         self.addToolBar(toolbar)
 
         # ---------------------------------------------------------------------
@@ -71,24 +70,37 @@ class Rhino(MainWindow):
         self.toolbar.updateCodeList(list_code)
 
     def on_play(self):
+        """
+        学習モデルのトレーニング
+        Returns:
+
+        """
         list_file = self.dock.getItemsSelected()
         if len(list_file) > 0:
             print(list_file)
         else:
             print("選択されたファイルはありません。")
 
-    def code_selection_changed(self, code: str):
-        # print(code)
-        file = self.dock.getCurrentSelection()
-        self.update_chart(file, code)
-
     def file_selection_changed(self, path_excel: str):
         pass
         # print(path_excel)
 
-    def update_chart(self, file: str, code: str):
+    def update_chart(self, code: str):
+        """
+        チャートの更新
+        Args:
+            code: 銘柄コード
+
+        Returns:
+
+        """
+        # 現在選択されている Excel ファイル名の取得
+        file = self.dock.getCurrentFile()
+        # Excel ファイル名から日付情報を取得
         date_str = get_date_str_from_filename(file)
+        # チャート・タイトルの文字列生成
         title = f"{self.dict_name[code]}({code}) on {date_str}"
+        # Excel ファイルのフルパス
         path_excel = os.path.join(self.res.dir_collection, file)
-        df = get_excel_sheet(path_excel, code)
-        self.win_tick.chart.updateData(df, title)
+        # チャートの更新
+        self.win_tick.updateChart(path_excel, code, title)
