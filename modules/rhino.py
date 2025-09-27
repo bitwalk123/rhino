@@ -25,12 +25,13 @@ class Rhino(MainWindow):
         self.res = res = AppRes()
 
         # ---------------------------------------------------------------------
-        # 銘柄コードの保持
+        # 銘柄コード、銘柄名の辞書を保持
         # ---------------------------------------------------------------------
-        self.dict_name = dict()
+        self.dict_name = dict_name = dict()
         df = get_jpx_ticker_list(res)
         for code, name in zip(df["コード"], df["銘柄名"]):
-            self.dict_name[str(code)] = unicodedata.normalize('NFKC', name)
+            # 銘柄名は、半角文字にできる文字は変換する
+            dict_name[str(code)] = unicodedata.normalize('NFKC', name)
 
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # UI
