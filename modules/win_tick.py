@@ -1,7 +1,7 @@
 import logging
 
 from structs.res import AppRes
-from widgets.chart import TickChart
+from widgets.chart import TickChart, ChartNavigation
 from widgets.containers import MainWindow
 from widgets.statusbar import StatusBar
 
@@ -22,4 +22,7 @@ class WinTick(MainWindow):
         # ステータスバー
         # ---------------------------------------------------------------------
         self.statusbar = statusbar = StatusBar(chart)
+        self.statusbar.setSizeGripEnabled(False)
+        navbar = ChartNavigation(chart)
+        self.statusbar.addWidget(navbar)
         self.setStatusBar(statusbar)
