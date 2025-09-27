@@ -7,7 +7,7 @@ from widgets.statusbar import StatusBar
 
 
 class WinTick(MainWindow):
-    def __init__(self, res:AppRes):
+    def __init__(self, res: AppRes):
         super().__init__()
         self.logger = logging.getLogger(__name__)  # モジュール固有のロガーを取得
         self.res = res
@@ -22,7 +22,7 @@ class WinTick(MainWindow):
         # ステータスバー
         # ---------------------------------------------------------------------
         self.statusbar = statusbar = StatusBar(chart)
-        self.statusbar.setSizeGripEnabled(False)
+        statusbar.setSizeGripEnabled(False)
         navbar = ChartNavigation(chart)
-        self.statusbar.addWidget(navbar)
+        statusbar.addWidget(navbar)
         self.setStatusBar(statusbar)
