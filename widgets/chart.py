@@ -23,7 +23,7 @@ class Chart(FigureCanvas):
         fm.fontManager.addfont(res.path_monospace)
         font_prop = fm.FontProperties(fname=res.path_monospace)
         plt.rcParams["font.family"] = font_prop.get_name()
-        plt.rcParams["font.size"] = 12
+        plt.rcParams["font.size"] = 11
         # ダークモードの設定
         plt.style.use("dark_background")
 
@@ -47,7 +47,7 @@ class TickChart(Chart):
         # タイムスタンプへ時差を加算用（Asia/Tokyo)
         self.tz = 9. * 60 * 60
 
-    def updateData(self, df: pd.DataFrame):
+    def updateData(self, df: pd.DataFrame, title: str):
         # トレンドライン（株価）
         ser = df['Price']
         ser.index = [pd.Timestamp(ts + self.tz, unit='s') for ts in df["Time"]]
@@ -57,6 +57,7 @@ class TickChart(Chart):
         self.ax.plot(ser, color='lightyellow', linewidth=0.5)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
         self.ax.grid(True, lw=0.5)
+        self.ax.set_title(title)
         # 再描画
         self.draw()
 

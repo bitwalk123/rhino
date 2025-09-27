@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QDockWidget
 
 from widgets.containers import Widget, PadH
-from widgets.labels import LabelRightSmall
+from widgets.labels import LabelLeftSmall
 from widgets.layouts import HBoxLayout
 
 
@@ -11,10 +11,7 @@ class DockTitle(Widget):
         layout = HBoxLayout()
         self.setLayout(layout)
 
-        pad = PadH()
-        layout.addWidget(pad)
-
-        self.lab_title = LabelRightSmall(title)
+        self.lab_title = LabelLeftSmall(title)
         layout.addWidget(self.lab_title)
 
 

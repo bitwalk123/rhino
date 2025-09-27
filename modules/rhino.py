@@ -1,15 +1,17 @@
 import logging
+import os
+import unicodedata
 
 from PySide6.QtCore import Qt
 
+from funcs.commons import get_date_str_from_filename
 from funcs.ios import get_excel_sheet
 from funcs.tse import get_jpx_ticker_list
 from modules.dock import Dock
 from modules.toolbar import ToolBar
+from modules.win_tick import WinTick
 from structs.res import AppRes
-from widgets.chart import TickChart
-from widgets.containers import MainWindow
-from widgets.statusbar import StatusBar
+from widgets.containers import MainWindow, TabWidget
 
 
 class Rhino(MainWindow):
@@ -23,6 +25,17 @@ class Rhino(MainWindow):
         self.logger = logging.getLogger(__name__)  # モジュール固有のロガーを取得
         self.res = res = AppRes()
 
+        # ---------------------------------------------------------------------
+        # 銘柄コードの保持
+        # ---------------------------------------------------------------------
+        self.dict_name = dict()
+        df = get_jpx_ticker_list(res)
+        for code, name in zip(df["コード"], df["銘柄名"]):
+            self.dict_name[str(code)] = unicodedata.normalize('NFKC', name)
+
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        # UI
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         self.setMinimumWidth(1000)
         self.setFixedHeight(400)
 
@@ -34,6 +47,7 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         self.toolbar = toolbar = ToolBar(res)
         toolbar.clickedPlay.connect(self.on_play)
+        toolbar.codeChanged.connect(self.code_selection_changed)
         self.addToolBar(toolbar)
 
         # ---------------------------------------------------------------------
@@ -41,26 +55,17 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         self.dock = dock = Dock(res)
         dock.listedSheets.connect(self.code_list_updated)
-        dock.requestUpdateChart.connect(self.update_chart)
+        dock.selectionChanged.connect(self.file_selection_changed)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
         # ---------------------------------------------------------------------
-        # チャート
+        # メイン・ウィンドウ
         # ---------------------------------------------------------------------
-        self.chart = chart = TickChart(res)
-        self.setCentralWidget(chart)
+        base = TabWidget()
+        self.setCentralWidget(base)
 
-        # ---------------------------------------------------------------------
-        # ステータスバー
-        # ---------------------------------------------------------------------
-        self.statusbar = statusbar = StatusBar(chart)
-        self.setStatusBar(statusbar)
-
-        # ---------------------------------------------------------------------
-        # 銘柄コードの保持
-        # ---------------------------------------------------------------------
-        df = get_jpx_ticker_list(res)
-        print(df)
+        self.win_tick = win_tick = WinTick(res)
+        base.addTab(win_tick, "ティックチャート")
 
     def code_list_updated(self, list_code):
         self.toolbar.updateCodeList(list_code)
@@ -72,8 +77,18 @@ class Rhino(MainWindow):
         else:
             print("選択されたファイルはありません。")
 
-    def update_chart(self, path_excel: str):
-        code = self.toolbar.getCurrentCode()
-        # print(path_excel, code)
+    def code_selection_changed(self, code: str):
+        # print(code)
+        file = self.dock.getCurrentSelection()
+        self.update_chart(file, code)
+
+    def file_selection_changed(self, path_excel: str):
+        pass
+        # print(path_excel)
+
+    def update_chart(self, file: str, code: str):
+        date_str = get_date_str_from_filename(file)
+        title = f"{self.dict_name[code]}({code}) on {date_str}"
+        path_excel = os.path.join(self.res.dir_collection, file)
         df = get_excel_sheet(path_excel, code)
-        self.chart.updateData(df)
+        self.win_tick.chart.updateData(df, title)

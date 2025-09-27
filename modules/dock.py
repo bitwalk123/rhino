@@ -20,7 +20,7 @@ from widgets.views import ListView
 
 class Dock(DockWidget):
     listedSheets = Signal(list)
-    requestUpdateChart = Signal(str)
+    selectionChanged = Signal(str)
 
     def __init__(self, res: AppRes):
         super().__init__()
@@ -38,7 +38,7 @@ class Dock(DockWidget):
         base.setLayout(layout)
 
         self.lv = lv = ListView()
-        lv.setFixedWidth(200)
+        #lv.setMinimumWidth(200)
         lv.clicked.connect(self.on_clicked)
         layout.addWidget(lv)
 
@@ -50,6 +50,13 @@ class Dock(DockWidget):
             item = QStandardItem(file)
             item.setCheckable(True)
             model.appendRow(item)
+
+    def getCurrentSelection(self) -> str:
+        idx = self.lv.currentIndex().row()
+        model: QStandardItemModel | QAbstractItemModel = self.lv.model()
+        item: QStandardItem = model.item(idx)
+        file: str = item.text()
+        return file
 
     def getItemsSelected(self) -> list:
         list_file = list()
@@ -70,4 +77,4 @@ class Dock(DockWidget):
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
             self.listedSheets.emit(list_sheet)
-            self.requestUpdateChart.emit(path_excel)
+            self.selectionChanged.emit(path_excel)

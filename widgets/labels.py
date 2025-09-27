@@ -3,17 +3,17 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel
 
 
-class LabelRight(QLabel):
+class LabelLeft(QLabel):
     def __init__(self, *args):
         super().__init__(*args)
         self.setStyleSheet("""
             QLabel {font-family: monospace;}
         """)
         self.setContentsMargins(QMargins(5, 1, 5, 1))
-        self.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
 
-class LabelRightSmall(LabelRight):
+class LabelLeftSmall(LabelLeft):
     def __init__(self, *args):
         super().__init__(*args)
         font = QFont()
