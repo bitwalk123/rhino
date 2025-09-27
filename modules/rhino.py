@@ -36,9 +36,11 @@ class Rhino(MainWindow):
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # UI
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        # ウィンドウサイズ
         self.setMinimumWidth(1000)
         self.setFixedHeight(400)
 
+        # ウィンドウタイトル
         title_win = f"{self.__app_name__} - {self.__version__}"
         self.setWindowTitle(title_win)
 
@@ -63,11 +65,19 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         base = TabWidget()
         self.setCentralWidget(base)
-
+        # タブオブジェクト
         self.win_tick = win_tick = WinTick(res)
         base.addTab(win_tick, "ティックチャート")
 
     def code_list_updated(self, list_code):
+        """
+        銘柄コードのリストをツールバーのコンボボックスへ反映
+        Args:
+            list_code: 銘柄コードのリスト（Excel ファイルのシート名）
+
+        Returns:
+
+        """
         self.toolbar.updateCodeList(list_code)
 
     def on_play(self):
@@ -76,6 +86,7 @@ class Rhino(MainWindow):
         Returns:
 
         """
+        # チェックされているファイルをリストで取得
         list_file = self.dock.getItemsSelected()
         if len(list_file) > 0:
             print(list_file)
