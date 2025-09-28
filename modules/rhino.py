@@ -20,17 +20,12 @@ class Rhino(MainWindow):
     __version__ = "0.1.0"
     __author__ = "Fuhito Suguri"
     __license__ = "MIT"
+    requestTraining = Signal(str, str)
 
     def __init__(self):
         super().__init__()
         self.logger = logging.getLogger(__name__)  # モジュール固有のロガーを取得
         self.res = res = AppRes()
-
-        # ---------------------------------------------------------------------
-        # スレッド用インスタンス
-        # ---------------------------------------------------------------------
-        self.thread = QThread(self)
-        self.worker = None
 
         # ---------------------------------------------------------------------
         # 銘柄コード、銘柄名の辞書を保持
@@ -77,6 +72,26 @@ class Rhino(MainWindow):
         self.win_tick = win_tick = WinTick(res)
         base.addTab(win_tick, "ティックチャート")
 
+        # ---------------------------------------------------------------------
+        # スレッド用インスタンス
+        # ---------------------------------------------------------------------
+        # スレッドとワーカー準備
+        self.thread = QThread()
+        self.worker = PPOAgent(res)
+        self.worker.moveToThread(self.thread)
+
+        # GUI → ワーカー
+        self.requestTraining.connect(self.worker.train)
+
+        # ワーカー → GUI
+        # self.worker.progress.connect(self.on_progress)
+        self.worker.finishedTraining.connect(self.on_finished_training)
+
+        # 終了シグナルでスレッド停止
+        # self.worker.finished.connect(self.thread.quit)
+
+        self.thread.start()
+
     def closeEvent(self, event: QCloseEvent):
         """✕ボタンで安全にスレッド停止"""
         self.logger.info(f"{__name__} MainWindow closing...")
@@ -98,6 +113,9 @@ class Rhino(MainWindow):
         """
         self.toolbar.updateCodeList(list_code)
 
+    def on_finished_training(self):
+        print("finished training!")
+
     def on_play(self):
         """
         学習モデルのトレーニング
@@ -112,8 +130,7 @@ class Rhino(MainWindow):
 
         file = list_file[0]
         code = self.toolbar.getCurrentCode()
-        agent = PPOAgent(self.res)
-        agent.train(file, code)
+        self.requestTraining.emit(file, code)
 
     def file_selection_changed(self, path_excel: str):
         pass
