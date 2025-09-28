@@ -3,12 +3,16 @@ backports.tarfile
 black
 fqdn
 importlib-metadata
+inflect
 isoduration
 isort
+jaraco-collections
+jaraco-functools
 jaraco.collections
 jsonpointer
 jupyterlab
 jupyterlab-code-formatter
+mplfinance
 opencv-python
 openpyxl
 pandas-stubs
@@ -27,3 +31,4 @@ tqdm
 uri-template
 webcolors
 xlrd
+yfinance
