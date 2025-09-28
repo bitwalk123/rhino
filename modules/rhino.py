@@ -20,7 +20,6 @@ class Rhino(MainWindow):
     __version__ = "0.1.0"
     __author__ = "Fuhito Suguri"
     __license__ = "MIT"
-    requestStopProcess = Signal()
 
     def __init__(self):
         super().__init__()
