@@ -5,9 +5,12 @@ import unicodedata
 from PySide6.QtCore import Qt
 
 from funcs.commons import get_date_str_from_filename
+from funcs.ios import get_excel_sheet
 from funcs.tse import get_jpx_ticker_list
 from modules.dock import Dock
+from modules.env import TradingEnv
 from modules.toolbar import ToolBar
+from modules.trainer import PPOTrainer
 from modules.win_tick import WinTick
 from structs.res import AppRes
 from widgets.containers import MainWindow, TabWidget
@@ -88,10 +91,17 @@ class Rhino(MainWindow):
         """
         # チェックされているファイルをリストで取得
         list_file = self.dock.getItemsSelected()
-        if len(list_file) > 0:
-            print(list_file)
-        else:
+        if len(list_file) == 0:
             print("選択されたファイルはありません。")
+            return
+
+        file = list_file[0]
+        path_excel = os.path.join(self.res.dir_collection, file)
+        code = self.toolbar.getCurrentCode()
+        df = get_excel_sheet(path_excel, code)
+        env = TradingEnv(df)
+        trainer = PPOTrainer(env)
+        trainer.train()
 
     def file_selection_changed(self, path_excel: str):
         pass
@@ -108,6 +118,10 @@ class Rhino(MainWindow):
         """
         # 現在選択されている Excel ファイル名の取得
         file = self.dock.getCurrentFile()
+        if file == "":
+            # file が空だったら処理終了
+            return
+
         # Excel ファイル名から日付情報を取得
         date_str = get_date_str_from_filename(file)
         # チャート・タイトルの文字列生成

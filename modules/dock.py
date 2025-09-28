@@ -55,7 +55,11 @@ class Dock(DockWidget):
         idx = self.lv.currentIndex().row()
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.item(idx)
-        file: str = item.text()
+        try:
+            file: str = item.text()
+        except AttributeError:
+            file:str = ""
+
         return file
 
     def getItemsSelected(self) -> list:

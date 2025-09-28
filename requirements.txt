@@ -1,11 +1,14 @@
 ale-py
 backports.tarfile
+black
 fqdn
 importlib-metadata
 isoduration
+isort
 jaraco.collections
 jsonpointer
 jupyterlab
+jupyterlab-code-formatter
 opencv-python
 openpyxl
 pandas-stubs
