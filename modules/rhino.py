@@ -1,8 +1,10 @@
 import logging
 import os
+import time
 import unicodedata
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QCloseEvent
 
 from funcs.commons import get_date_str_from_filename
 from funcs.ios import get_excel_sheet
@@ -10,7 +12,7 @@ from funcs.tse import get_jpx_ticker_list
 from modules.dock import Dock
 from modules.env import TradingEnv
 from modules.toolbar import ToolBar
-from modules.trainer import PPOTrainer
+from modules.trainer import PPOAgent
 from modules.win_tick import WinTick
 from structs.res import AppRes
 from widgets.containers import MainWindow, TabWidget
@@ -21,11 +23,18 @@ class Rhino(MainWindow):
     __version__ = "0.1.0"
     __author__ = "Fuhito Suguri"
     __license__ = "MIT"
+    requestStopProcess = Signal()
 
     def __init__(self):
         super().__init__()
         self.logger = logging.getLogger(__name__)  # モジュール固有のロガーを取得
         self.res = res = AppRes()
+
+        # ---------------------------------------------------------------------
+        # スレッド用インスタンス
+        # ---------------------------------------------------------------------
+        self.thread = QThread(self)
+        self.worker = None
 
         # ---------------------------------------------------------------------
         # 銘柄コード、銘柄名の辞書を保持
@@ -72,6 +81,16 @@ class Rhino(MainWindow):
         self.win_tick = win_tick = WinTick(res)
         base.addTab(win_tick, "ティックチャート")
 
+    def closeEvent(self, event: QCloseEvent):
+        """✕ボタンで安全にスレッド停止"""
+        self.logger.info(f"{__name__} MainWindow closing...")
+        if self.thread.isRunning():
+            self.worker.stop()
+            self.thread.quit()
+            self.thread.wait()
+        self.logger.info(f"{__name__} Thread safely stopped. Exiting.")
+        event.accept()
+
     def code_list_updated(self, list_code):
         """
         銘柄コードのリストをツールバーのコンボボックスへ反映
@@ -100,7 +119,7 @@ class Rhino(MainWindow):
         code = self.toolbar.getCurrentCode()
         df = get_excel_sheet(path_excel, code)
         env = TradingEnv(df)
-        trainer = PPOTrainer(env)
+        trainer = PPOAgent(env)
         trainer.train()
 
     def file_selection_changed(self, path_excel: str):
