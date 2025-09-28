@@ -1,18 +1,15 @@
 import logging
 import os
-import time
 import unicodedata
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QCloseEvent
 
 from funcs.commons import get_date_str_from_filename
-from funcs.ios import get_excel_sheet
 from funcs.tse import get_jpx_ticker_list
+from modules.agent import PPOAgent
 from modules.dock import Dock
-from modules.env import TradingEnv
 from modules.toolbar import ToolBar
-from modules.trainer import PPOAgent
 from modules.win_tick import WinTick
 from structs.res import AppRes
 from widgets.containers import MainWindow, TabWidget
@@ -115,12 +112,9 @@ class Rhino(MainWindow):
             return
 
         file = list_file[0]
-        path_excel = os.path.join(self.res.dir_collection, file)
         code = self.toolbar.getCurrentCode()
-        df = get_excel_sheet(path_excel, code)
-        env = TradingEnv(df)
-        trainer = PPOAgent(env)
-        trainer.train()
+        agent = PPOAgent(self.res)
+        agent.train(file, code)
 
     def file_selection_changed(self, path_excel: str):
         pass
