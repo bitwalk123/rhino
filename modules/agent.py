@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import pandas as pd
 from PySide6.QtCore import QObject, Signal
 from stable_baselines3 import PPO
 
@@ -11,6 +12,7 @@ from structs.res import AppRes
 
 class PPOAgent(QObject):
     finishedTraining = Signal()
+    finishedInferring = Signal()
 
     def __init__(self, res: AppRes):
         super().__init__()
@@ -31,6 +33,40 @@ class PPOAgent(QObject):
         path_excel = self.get_source_path(file)
         df = get_excel_sheet(path_excel, code)
         env = TradingEnv(df)
+
         model = PPO("MlpPolicy", env, verbose=True)
         model.learn(total_timesteps=self.total_timesteps)
+
+        obs, info = env.reset()
+        total_reward = 0.0
+
+        # 推論の実行
+        while True:
+            # モデルの推論
+            arr_action, _states = model.predict(obs, deterministic=True)
+            action = arr_action.item()
+
+            # 1ステップ実行
+            obs, reward, done, truncated, info = env.step(action)
+
+            # モデル報酬
+            total_reward += reward
+
+            # エピソード完了
+            if done:
+                break
+
+        # 学習環境の解放
+        env.close()
+
+
+        print("取引明細")
+        print(pd.DataFrame(env.transman.dict_transaction))
+
+        print(f"--- テスト結果 ---")
+        # モデル報酬（総額）
+        print(f"モデル報酬（総額）: {total_reward:.2f}")
+        if "pnl_total" in info.keys():
+            print(f"最終的な累積報酬（1 株利益）: {info['pnl_total']:.2f}")
+
         self.finishedTraining.emit()

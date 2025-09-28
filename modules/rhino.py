@@ -86,6 +86,7 @@ class Rhino(MainWindow):
         # ワーカー → GUI
         # self.worker.progress.connect(self.on_progress)
         self.worker.finishedTraining.connect(self.on_finished_training)
+        self.worker.finishedInferring.connect(self.on_finished_inferring)
 
         # 終了シグナルでスレッド停止
         # self.worker.finished.connect(self.thread.quit)
@@ -115,6 +116,9 @@ class Rhino(MainWindow):
 
     def on_finished_training(self):
         print("finished training!")
+
+    def on_finished_inferring(self):
+        print("finished inferring!")
 
     def on_play(self):
         """
