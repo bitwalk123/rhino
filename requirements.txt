@@ -2,6 +2,7 @@ ale-py
 backports.tarfile
 black
 fqdn
+html5lib
 importlib-metadata
 inflect
 isoduration
@@ -12,6 +13,7 @@ jaraco.collections
 jsonpointer
 jupyterlab
 jupyterlab-code-formatter
+lxml
 mplfinance
 opencv-python
 openpyxl
