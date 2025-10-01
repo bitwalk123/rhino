@@ -25,6 +25,7 @@ pyside6
 rfc3987-syntax
 rich
 sb3-contrib
+setuptools<81
 ta-lib
 tensorboard
 tinycss2
