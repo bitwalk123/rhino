@@ -8,7 +8,8 @@ if __name__ == "__main__":
     model = PPO('MlpPolicy', env, verbose=True)
 
     # 学習の実行
-    model.learn(total_timesteps=128000)
+    #model.learn(total_timesteps=128000)
+    model.learn(total_timesteps=50000)
 
     obs, info = env.reset()
     print(f"Starting observation: {obs}")
