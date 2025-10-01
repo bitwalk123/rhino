@@ -11,6 +11,7 @@ if __name__ == "__main__":
     #model.learn(total_timesteps=128000)
     model.learn(total_timesteps=50000)
 
+    # 推論の実行
     obs, info = env.reset()
     print(f"Starting observation: {obs}")
 
