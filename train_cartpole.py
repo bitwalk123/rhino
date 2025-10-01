@@ -1,30 +1,29 @@
 import gymnasium as gym
 from stable_baselines3 import PPO
 
-# 学習環境の準備
-env = gym.make('CartPole-v1', render_mode="rgb_array")
+if __name__ == "__main__":
+    env = gym.make("CartPole-v1", render_mode="human")
 
-# モデルの準備
-model = PPO('MlpPolicy', env, verbose=1)
+    # モデルの準備
+    model = PPO('MlpPolicy', env, verbose=True)
 
-# 学習の実行
-model.learn(total_timesteps=128000)
+    # 学習の実行
+    model.learn(total_timesteps=128000)
 
-# 推論の実行
-obs, info = env.reset()
-while True:
-    # 学習環境の描画
-    env.render()
+    obs, info = env.reset()
+    print(f"Starting observation: {obs}")
 
-    # モデルの推論
-    action, _ = model.predict(obs, deterministic=True)
+    episode_over = False
+    total_reward = 0
 
-    # 1ステップ実行
-    obs, reward, done, truncated, info = env.step(action)
+    while not episode_over:
+        #action = env.action_space.sample()  # Random action for now - real agents will be smarter!
+        action, _ = model.predict(obs, deterministic=True)
 
-    # エピソード完了
-    if done:
-        break
+        obs, reward, terminated, truncated, info = env.step(action)
 
-# 学習環境の解放
-env.close()
+        total_reward += reward
+        episode_over = terminated or truncated
+
+    print(f"Episode finished! Total reward: {total_reward}")
+    env.close()
