@@ -10,8 +10,8 @@ df = pd.read_csv(os.path.join(dir_log, name_log), skiprows=[0])
 
 # 報酬のプロット
 plt.plot(df["r"])
-plt.xlabel('episode')
-plt.ylabel('reward')
+plt.xlabel("episode")
+plt.ylabel("reward")
 plt.grid()
 plt.tight_layout()
 plt.show()
