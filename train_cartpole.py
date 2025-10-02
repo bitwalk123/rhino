@@ -6,7 +6,7 @@ from stable_baselines3.common.monitor import Monitor
 
 if __name__ == "__main__":
     # ログフォルダの準備
-    dir_log = './logs/'
+    dir_log = "./logs/"
     os.makedirs(dir_log, exist_ok=True)
 
     # 学習環境の準備
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     env = Monitor(env, dir_log)  # Monitorの利用
 
     # モデルの準備
-    model = PPO('MlpPolicy', env, verbose=True)
+    model = PPO("MlpPolicy", env, verbose=True)
 
     # 学習の実行
     model.learn(total_timesteps=50000)
