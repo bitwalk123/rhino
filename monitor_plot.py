@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 # monitor.csv の読み込み
 dir_log = "./logs/"
 name_log = "monitor.csv"
+# 最初の行の読み込みを除外
 df = pd.read_csv(os.path.join(dir_log, name_log), skiprows=[0])
 print(df.head())
 
