@@ -31,12 +31,17 @@ class PPOAgent(QObject):
     def train(self, file: str, code: str):
         # Excel ファイルをフルパスに
         path_excel = self.get_source_path(file)
+        # Excel ファイルをデータフレームに読み込む
         df = get_excel_sheet(path_excel, code)
+        # 学習環境のインスタンスを生成
         env = TradingEnv(df)
-
+        # PPO モデルの生成
+        # 多層パーセプトロン (MLP) ベースの方策と価値関数を使う MlpPolicy を指定
         model = PPO("MlpPolicy", env, verbose=True)
+        # モデルの学習
         model.learn(total_timesteps=self.total_timesteps)
 
+        # 学習環境のリセット
         obs, info = env.reset()
         total_reward = 0.0
 
