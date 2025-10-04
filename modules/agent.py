@@ -73,7 +73,7 @@ class PPOAgent(QObject):
         # 学習済モデルを読み込む
         model_path = self.get_model_path(code)
         if os.path.exists(model_path):
-            print(f"モデルを {model_path} を読み込みます。")
+            print(f"モデル {model_path} を読み込みます。")
         else:
             print(f"モデルを {model_path} がありませんでした。")
             self.finishedInferring.emit()
