@@ -17,6 +17,7 @@ class AppRes:
         # システムディレクトリのチェック
         list_dir = [
             self.dir_collection,
+            self.dir_log,
             self.dir_model,
             self.dir_output,
         ]
