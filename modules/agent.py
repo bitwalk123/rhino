@@ -30,9 +30,11 @@ class PPOAgent(QObject):
         env = TradingEnv(df)
         return env
 
-    def get_model_path(self, code: str) -> str:
+    def get_model_path(self, code: str, new=False) -> str:
         model_path = os.path.join(self.res.dir_model, f"ppo_{code}.zip")
-        if os.path.exists(model_path):
+        if new:
+            return model_path
+        elif os.path.exists(model_path):
             return model_path
         else:
             raise FileNotFoundError(f"{model_path} not found!")
@@ -58,7 +60,7 @@ class PPOAgent(QObject):
         model.learn(total_timesteps=self.total_timesteps)
 
         # 6. モデルの保存
-        model_path = self.get_model_path(code)
+        model_path = self.get_model_path(code, new=True)
         model.save(model_path)
         print(f"\nモデルを {model_path} に保存しました。")
 
