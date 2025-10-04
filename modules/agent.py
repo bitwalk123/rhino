@@ -20,6 +20,22 @@ class PPOAgent(QObject):
         self._stopping = False
         self.total_timesteps = 128000
 
+    def get_env(self, file: str, code: str) -> TradingEnv:
+        # Excel ファイルをフルパスに
+        path_excel = self.get_source_path(file)
+        # Excel ファイルをデータフレームに読み込む
+        df = get_excel_sheet(path_excel, code)
+        # 学習環境のインスタンスを生成
+        env = TradingEnv(df)
+        return env
+
+    def get_model_path(self, code: str) -> str:
+        model_path = os.path.join(self.res.dir_model, f"ppo_{code}.zip")
+        if os.path.exists(model_path):
+            return model_path
+        else:
+            raise FileNotFoundError(f"{model_path} not found!")
+
     def get_source_path(self, file: str) -> str:
         path_excel = str(Path(os.path.join(self.res.dir_collection, file)).resolve())
         return path_excel
@@ -29,21 +45,36 @@ class PPOAgent(QObject):
         self._stopping = True
 
     def train(self, file: str, code: str):
-        # Excel ファイルをフルパスに
-        path_excel = self.get_source_path(file)
-        # Excel ファイルをデータフレームに読み込む
-        df = get_excel_sheet(path_excel, code)
-        # 学習環境のインスタンスを生成
-        env = TradingEnv(df)
+        # 学習環境の取得
+        env = self.get_env(file, code)
+
         # PPO モデルの生成
         # 多層パーセプトロン (MLP) ベースの方策と価値関数を使う MlpPolicy を指定
         model = PPO("MlpPolicy", env, verbose=True)
+
         # モデルの学習
         model.learn(total_timesteps=self.total_timesteps)
+
+        # 6. モデルの保存
+        model_path = self.get_model_path(code)
+        model.save(model_path)
+        print(f"\nモデルを {model_path} に保存しました。")
+
+        # 学習環境の解放
+        env.close()
+        self.finishedTraining.emit()
+
+    def infer(self, file: str, code: str):
+        # 学習環境の取得
+        env = self.get_env(file, code)
 
         # 学習環境のリセット
         obs, info = env.reset()
         total_reward = 0.0
+
+        # 学習済モデルを読み込む
+        model_path = self.get_model_path(code)
+        model = PPO.load(model_path, env, verbose=True)
 
         # 推論の実行
         while True:
@@ -64,7 +95,6 @@ class PPOAgent(QObject):
         # 学習環境の解放
         env.close()
 
-
         print("取引明細")
         print(pd.DataFrame(env.transman.dict_transaction))
 
@@ -74,4 +104,4 @@ class PPOAgent(QObject):
         if "pnl_total" in info.keys():
             print(f"最終的な累積報酬（1 株利益）: {info['pnl_total']:.2f}")
 
-        self.finishedTraining.emit()
+        self.finishedInferring.emit()

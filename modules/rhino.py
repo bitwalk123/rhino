@@ -21,6 +21,7 @@ class Rhino(MainWindow):
     __author__ = "Fuhito Suguri"
     __license__ = "MIT"
     requestTraining = Signal(str, str)
+    requestInferring = Signal(str, str)
 
     def __init__(self):
         super().__init__()
@@ -82,6 +83,7 @@ class Rhino(MainWindow):
 
         # GUI → ワーカー
         self.requestTraining.connect(self.worker.train)
+        self.requestInferring.connect(self.worker.infer)
 
         # ワーカー → GUI
         # self.worker.progress.connect(self.on_progress)
@@ -114,8 +116,22 @@ class Rhino(MainWindow):
         """
         self.toolbar.updateCodeList(list_code)
 
+    def get_selected_files(self) -> str:
+        # チェックされているファイルをリストで取得
+        list_file = self.dock.getItemsSelected()
+        if len(list_file) == 0:
+            print("選択されたファイルはありません。")
+            file = ""
+        else:
+            file = list_file[0]
+        return file
+
     def on_finished_training(self):
         print("finished training!")
+        file = self.get_selected_files()
+        code = self.toolbar.getCurrentCode()
+        self.requestInferring.emit(file, code)
+        print("start inferring as test!")
 
     def on_finished_inferring(self):
         print("finished inferring!")
@@ -126,13 +142,7 @@ class Rhino(MainWindow):
         Returns:
 
         """
-        # チェックされているファイルをリストで取得
-        list_file = self.dock.getItemsSelected()
-        if len(list_file) == 0:
-            print("選択されたファイルはありません。")
-            return
-
-        file = list_file[0]
+        file = self.get_selected_files()
         code = self.toolbar.getCurrentCode()
         self.requestTraining.emit(file, code)
 
