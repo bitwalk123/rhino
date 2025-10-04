@@ -2,6 +2,9 @@ import logging
 import os
 import unicodedata
 
+import pandas as pd
+import matplotlib.pyplot as plt
+
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QCloseEvent
 
@@ -135,6 +138,19 @@ class Rhino(MainWindow):
 
     def on_finished_inferring(self):
         print("finished inferring!")
+        file_csv = "monitor.csv"
+        path_monitor = os.path.join(self.res.dir_log, file_csv)
+        if not os.path.exists(path_monitor):
+            print(f"{file_csv} is not found in {self.res.dir_log}!")
+            return
+        df_monitor = pd.read_csv(path_monitor, skiprows=[0])
+        # 報酬のプロット
+        plt.plot(df_monitor["r"])
+        plt.xlabel("episode")
+        plt.ylabel("reward")
+        plt.grid()
+        plt.tight_layout()
+        plt.show()
 
     def on_play(self):
         """
