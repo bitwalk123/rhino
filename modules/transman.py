@@ -44,32 +44,7 @@ class TransactionManager:
         self.count_violate_rule_transaction = 0
         return 0.0
 
-    @staticmethod
-    def _get_datetime(t: float) -> str:
-        return str(datetime.datetime.fromtimestamp(int(t)))
-
-    @staticmethod
-    def _init_transaction() -> dict:
-        return {
-            "注文日時": [],
-            "銘柄コード": [],
-            "売買": [],
-            "約定単価": [],
-            "約定数量": [],
-            "損益": [],
-        }
-
-    def _violate_transaction_rule(self) -> float:
-        self.count_violate_rule_transaction += 1
-        return self.penalty_rule_transaction * self.count_violate_rule_transaction
-
-    def clearAll(self):
-        self.position = PositionType.NONE  # ポジション（建玉）
-        self.price_entry = 0.0  # 取得価格
-        self.pnl_total = 0.0  # 総損益
-        self.dict_transaction = self._init_transaction()  # 取引明細
-
-    def setAction(self, action: int, t: float, price: float) -> float:
+    def _eval_reward(self, action: int, t: float, price: float) -> float:
         action_type = ActionType(action)
         reward = 0.0
 
@@ -150,5 +125,35 @@ class TransactionManager:
                 self.price_entry = 0
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
+        return reward
+
+    @staticmethod
+    def _get_datetime(t: float) -> str:
+        return str(datetime.datetime.fromtimestamp(int(t)))
+
+    @staticmethod
+    def _init_transaction() -> dict:
+        return {
+            "注文日時": [],
+            "銘柄コード": [],
+            "売買": [],
+            "約定単価": [],
+            "約定数量": [],
+            "損益": [],
+        }
+
+    def _violate_transaction_rule(self) -> float:
+        self.count_violate_rule_transaction += 1
+        return self.penalty_rule_transaction * self.count_violate_rule_transaction
+
+    def clearAll(self):
+        self.position = PositionType.NONE  # ポジション（建玉）
+        self.price_entry = 0.0  # 取得価格
+        self.pnl_total = 0.0  # 総損益
+        self.dict_transaction = self._init_transaction()  # 取引明細
+
+    def setAction(self, action: int, t: float, price: float) -> float:
+        # 報酬の評価
+        reward = self._eval_reward(action, t, price)
 
         return reward
