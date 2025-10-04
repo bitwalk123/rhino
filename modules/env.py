@@ -97,19 +97,16 @@ class TradingEnv(gym.Env):
         # 観測値と行動マスクを返す
         return obs, {"action_mask": self._get_action_mask()}
 
-    def step(self, n_action: int):
+    def step(self, action: int):
         # --- ウォームアップ期間 (self.period) は強制 HOLD ---
         if self.current_step < self.period:
-            action = ActionType.HOLD
-        else:
-            action = ActionType(n_action)
+            action = ActionType.HOLD.value
 
-        reward = 0.0
         done = False
 
         t = self.df.at[self.current_step, "Time"]
         price = self.df.at[self.current_step, "Price"]
-        reward += self.transman.setAction(action, t, price)
+        reward = self.transman.setAction(action, t, price)
         obs = self._get_observation()
 
         if self.current_step >= len(self.df) - 1:
