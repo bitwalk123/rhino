@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 import pandas as pd
 
-from modules.transman import TransactionManager
+from modules.tamer import Tamer
 from structs.app_enum import ActionType, PositionType
 
 
@@ -18,7 +18,7 @@ class TradingEnv(gym.Env):
         # 現在の行位置
         self.current_step = 0
         # 売買管理クラス
-        self.transman = TransactionManager()
+        self.tamer = Tamer()
         # obs: len(self.cols_features) + one-hot(3)
         n_features = len(self.cols_features) + 3
         self.observation_space = gym.spaces.Box(
@@ -69,7 +69,7 @@ class TradingEnv(gym.Env):
         if self.current_step < self.period:
             # ウォーミングアップ期間
             return np.array([1, 0, 0, 0], dtype=np.int8)  # 強制HOLD
-        if self.transman.position == PositionType.NONE:
+        if self.tamer.position == PositionType.NONE:
             # 建玉なし
             return np.array([1, 1, 1, 0], dtype=np.int8)  # HOLD, BUY, SELL
         else:
@@ -90,14 +90,14 @@ class TradingEnv(gym.Env):
         obs = np.array(features, dtype=np.float32)
 
         # PositionType → one-hot
-        pos_onehot = np.eye(3)[self.transman.position.value].astype(np.float32)
+        pos_onehot = np.eye(3)[self.tamer.position.value].astype(np.float32)
         obs = np.concatenate([obs, pos_onehot])
 
         return obs
 
     def reset(self, seed=None, options=None):
         self.current_step = 0
-        self.transman.clearAll()
+        self.tamer.clearAll()
         # 最初の観測値を取得
         obs = self._get_observation()
         # 観測値と行動マスクを返す
@@ -114,7 +114,7 @@ class TradingEnv(gym.Env):
         volume = self.df.at[self.current_step, "Volume"]
 
         # アクション（取引）に対する報酬
-        reward = self.transman.setAction(action, t, price, volume)
+        reward = self.tamer.setAction(action, t, price, volume)
         # 最初の観測値を取得
         obs = self._get_observation()
 
@@ -126,7 +126,7 @@ class TradingEnv(gym.Env):
         self.current_step += 1
         # info 辞書に総PnLと行動マスク
         info = {
-            "pnl_total": self.transman.pnl_total,
+            "pnl_total": self.tamer.pnl_total,
             "action_mask": self._get_action_mask()
         }
         # print(self.current_step, self.transman.action_pre, reward, done)

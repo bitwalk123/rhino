@@ -19,7 +19,7 @@ class PPOAgent(QObject):
         super().__init__()
         self.res = res
         self._stopping = False
-        self.total_timesteps = 1280000
+        self.total_timesteps = 200000
 
     def get_env(self, file: str, code: str) -> TradingEnv:
         # Excel ファイルをフルパスに
@@ -101,7 +101,7 @@ class PPOAgent(QObject):
         env.close()
 
         print("取引明細")
-        print(pd.DataFrame(env.transman.dict_transaction))
+        print(pd.DataFrame(env.tamer.dict_transaction))
 
         print(f"--- テスト結果 ---")
         # モデル報酬（総額）
