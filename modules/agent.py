@@ -53,7 +53,7 @@ class PPOAgent(QObject):
         # モデルの学習
         model.learn(total_timesteps=self.total_timesteps)
 
-        # 6. モデルの保存
+        # モデルの保存
         model_path = self.get_model_path(code)
         model.save(model_path)
         print(f"モデルを {model_path} に保存しました。")
