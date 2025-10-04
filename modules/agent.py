@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 from PySide6.QtCore import QObject, Signal
 from stable_baselines3 import PPO
+from stable_baselines3.common.monitor import Monitor
 
 from funcs.ios import get_excel_sheet
 from modules.env import TradingEnv
@@ -47,6 +48,7 @@ class PPOAgent(QObject):
     def train(self, file: str, code: str):
         # 学習環境の取得
         env = self.get_env(file, code)
+        env = Monitor(env, self.res.dir_log)  # Monitorの利用
 
         # PPO モデルの生成
         # 多層パーセプトロン (MLP) ベースの方策と価値関数を使う MlpPolicy を指定

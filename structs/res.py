@@ -5,6 +5,7 @@ class AppRes:
     dir_collection = 'collection'
     dir_font = 'fonts'
     dir_image = 'images'
+    dir_log = 'logs'
     dir_model = 'models'
     dir_output = 'output'
 
