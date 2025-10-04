@@ -13,16 +13,24 @@ class TransactionManager:
     def __init__(self, code: str = '7011'):
         self.code: str = code  # 銘柄コード
         self.unit: int = 1  # 売買単位
+        self.tickprice: float = 1.0
 
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self._init_transaction()  # 取引明細
 
-        # ペナルティ
-        self.penalty_rule_transaction = -1.0  # 取引ルール違反
+        # #####################################################################
+        # 報酬＆ペナルティ
+        # #####################################################################
+        # ほんの僅かな HOLD 報酬
+        self.reward_hold_small = +0.000001
+        # ほんの僅かな HOLD ペナルティ
+        self.penalty_hold_small = -0.000001
+        # 取引ルール違反
+        self.penalty_rule_transaction = -1.0
         # 取引ルール違反カウンター
-        self.count_violate_rule_transaction = 0  # 取引ルール違反カウント
+        self.count_violate_rule_transaction = 0
 
     def _add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self._get_datetime(t))
@@ -72,6 +80,8 @@ class TransactionManager:
             if action_type == ActionType.HOLD:
                 # 取引ルール適合
                 reward += self._comply_transaction_rule()
+                # ほんの僅かな HOLD ペナルティ
+                reward += self.penalty_hold_small
             elif action_type == ActionType.BUY:
                 # 取引ルール適合
                 reward += self._comply_transaction_rule()
@@ -102,6 +112,8 @@ class TransactionManager:
             if action_type == ActionType.HOLD:
                 # 取引ルール適合
                 reward += self._comply_transaction_rule()
+                # ほんの僅かな HOLD 報酬
+                reward += self.reward_hold_small
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 reward += self._violate_transaction_rule()
@@ -129,7 +141,7 @@ class TransactionManager:
                 # =============================================================
                 # 損益確定
                 # =============================================================
-                reward += profit
+                reward += profit / self.tickprice  # 呼び値で割って報酬を正規化
                 self.pnl_total += profit
                 # =============================================================
                 # ポジション解消

@@ -14,7 +14,7 @@ class TradingEnv(gym.Env):
         # ウォームアップ期間
         self.period = 60
         # 特徴量の列名のリストが返る
-        self.cols_features = self._add_features(self.period)
+        self.cols_features = self._add_features()
         # 現在の行位置
         self.current_step = 0
         # 売買管理クラス
@@ -29,7 +29,7 @@ class TradingEnv(gym.Env):
         )
         self.action_space = gym.spaces.Discrete(len(ActionType))
 
-    def _add_features(self, period: int) -> list:
+    def _add_features(self) -> list:
         """
         特徴量の追加
         :param period:
@@ -44,12 +44,17 @@ class TradingEnv(gym.Env):
         # 最初の株価（株価比率の算出用）
         price_start = self.df["Price"].iloc[0]
 
-        # 1. 株価比率
+        # 1. 株価差分
+        colname = "PriceDelta"
+        self.df[colname] = self.df["Price"].diff()
+        list_features.append(colname)
+
+        # 2. 株価比率
         colname = "PriceRatio"
         self.df[colname] = self.df["Price"] / price_start
         list_features.append(colname)
 
-        # 2. 累計出来高差分 / 最小取引単位
+        # 3. 累計出来高差分 / 最小取引単位
         colname = "dVol"
         self.df[colname] = np.log1p(self.df["Volume"].diff() / unit) / factor_ticker
         list_features.append(colname)
@@ -93,6 +98,7 @@ class TradingEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.current_step = 0
         self.transman.clearAll()
+        # 最初の観測値を取得
         obs = self._get_observation()
         # 観測値と行動マスクを返す
         return obs, {"action_mask": self._get_action_mask()}
@@ -102,13 +108,17 @@ class TradingEnv(gym.Env):
         if self.current_step < self.period:
             action = ActionType.HOLD.value
 
-        done = False
-
+        # データフレームの指定行の時刻と株価を取得
         t = self.df.at[self.current_step, "Time"]
         price = self.df.at[self.current_step, "Price"]
+
+        # アクション（取引）に対する報酬
         reward = self.transman.setAction(action, t, price)
+        # 最初の観測値を取得
         obs = self._get_observation()
 
+        # 次のループへ進むか判定
+        done = False
         if self.current_step >= len(self.df) - 1:
             done = True
 
