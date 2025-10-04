@@ -30,14 +30,8 @@ class PPOAgent(QObject):
         env = TradingEnv(df)
         return env
 
-    def get_model_path(self, code: str, new=False) -> str:
-        model_path = os.path.join(self.res.dir_model, f"ppo_{code}.zip")
-        if new:
-            return model_path
-        elif os.path.exists(model_path):
-            return model_path
-        else:
-            raise FileNotFoundError(f"{model_path} not found!")
+    def get_model_path(self, code: str) -> str:
+        return os.path.join(self.res.dir_model, f"ppo_{code}.zip")
 
     def get_source_path(self, file: str) -> str:
         path_excel = str(Path(os.path.join(self.res.dir_collection, file)).resolve())
@@ -60,9 +54,9 @@ class PPOAgent(QObject):
         model.learn(total_timesteps=self.total_timesteps)
 
         # 6. モデルの保存
-        model_path = self.get_model_path(code, new=True)
+        model_path = self.get_model_path(code)
         model.save(model_path)
-        print(f"\nモデルを {model_path} に保存しました。")
+        print(f"モデルを {model_path} に保存しました。")
 
         # 学習環境の解放
         env.close()
@@ -78,6 +72,13 @@ class PPOAgent(QObject):
 
         # 学習済モデルを読み込む
         model_path = self.get_model_path(code)
+        if os.path.exists(model_path):
+            print(f"モデルを {model_path} を読み込みます。")
+        else:
+            print(f"モデルを {model_path} がありませんでした。")
+            self.finishedInferring.emit()
+            return
+
         model = PPO.load(model_path, env, verbose=True)
 
         # 推論の実行
