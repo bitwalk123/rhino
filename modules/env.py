@@ -111,9 +111,10 @@ class TradingEnv(gym.Env):
         # データフレームの指定行の時刻と株価を取得
         t = self.df.at[self.current_step, "Time"]
         price = self.df.at[self.current_step, "Price"]
+        volume = self.df.at[self.current_step, "Volume"]
 
         # アクション（取引）に対する報酬
-        reward = self.transman.setAction(action, t, price)
+        reward = self.transman.setAction(action, t, price, volume)
         # 最初の観測値を取得
         obs = self._get_observation()
 

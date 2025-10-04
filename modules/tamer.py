@@ -5,15 +5,16 @@ import numpy as np
 from structs.app_enum import ActionType, PositionType
 
 
-class TransactionManager:
+class Tamer:
     """
-    ナンピンをしない（建玉を１単位しか持たない）売買管理クラス
+    ナンピンをしない（建玉を１単位しか持たない）売買システムで
+    特徴量を算出して報酬を最大化する調教クラス
     """
 
     def __init__(self, code: str = '7011'):
         self.code: str = code  # 銘柄コード
         self.unit: int = 1  # 売買単位
-        self.tickprice: float = 1.0
+        self.tickprice: float = 1.0  # 呼び値
 
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
@@ -63,7 +64,7 @@ class TransactionManager:
                 # =============================================================
                 # 買建 (LONG)
                 # =============================================================
-                self.position = PositionType.LONG
+                self.position = PositionType.LONG  # ポジションを更新
                 self.price_entry = price  # 取得価格
                 self._add_transaction(t, "買建", price)
             elif action_type == ActionType.SELL:
@@ -72,7 +73,7 @@ class TransactionManager:
                 # =============================================================
                 # 売建 (SHORT)
                 # =============================================================
-                self.position = PositionType.SHORT
+                self.position = PositionType.SHORT  # ポジションを更新
                 self.price_entry = price  # 取得価格
                 self._add_transaction(t, "売建", price)
             elif action_type == ActionType.REPAY:
@@ -152,7 +153,7 @@ class TransactionManager:
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self._init_transaction()  # 取引明細
 
-    def setAction(self, action: int, t: float, price: float) -> float:
+    def setAction(self, action: int, t: float, price: float, volume: float) -> float:
         # 報酬の評価
         reward = self._eval_reward(action, t, price)
 
