@@ -1,5 +1,6 @@
 import pandas as pd
 
+from modules.obsman import ObservationManager
 from modules.transman import TransactionManager
 from structs.app_enum import ActionType, PositionType
 
@@ -12,26 +13,27 @@ class Tamer:
 
     def __init__(self, code: str):
         # 取引管理用インスタンス
-        self.transman = TransactionManager(code)
+        self.trans_man = TransactionManager(code)
+        self.obs_man = ObservationManager()
 
     def clearAll(self):
-        self.transman.clear()
+        self.trans_man.clear()
 
     @staticmethod
     def getActionSize() -> int:
         return len(ActionType)
 
     def getPnLTotal(self) -> float:
-        return self.transman.pnl_total
+        return self.trans_man.pnl_total
 
     def getPosition(self) -> PositionType:
-        return self.transman.position
+        return self.trans_man.position
 
     def getTransaction(self) -> pd.DataFrame:
-        return pd.DataFrame(self.transman.dict_transaction)
+        return pd.DataFrame(self.trans_man.dict_transaction)
 
     def setAction(self, action: int, t: float, price: float, volume: float) -> float:
         # 報酬の評価
-        reward = self.transman.eval_reward(action, t, price)
+        reward = self.trans_man.evalReward(action, t, price, self.getPosition())
 
         return reward

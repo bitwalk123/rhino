@@ -76,6 +76,7 @@ class TradingEnv(gym.Env):
     def _get_action_mask(self) -> np.ndarray:
         """
         行動マスク
+        [HOLD, BUY, SELL, REPAY]
         :return:
         """
         if self.step_current < self.period:
@@ -146,7 +147,7 @@ class TradingEnv(gym.Env):
             "pnl_total": self.tamer.getPnLTotal(),
             "action_mask": self._get_action_mask()
         }
-        # print(self.step_current, self.transman.action_pre, reward, done)
+        # print(self.step_current, self.trans_man.action_pre, reward, done)
         return obs, reward, done, False, info
 
     def getTransaction(self) -> pd.DataFrame:

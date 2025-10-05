@@ -46,7 +46,7 @@ class TransactionManager:
         self.count_violate_rule_transaction = 0
         return 0.0
 
-    def eval_reward(self, action: int, t: float, price: float) -> float:
+    def evalReward(self, action: int, t: float, price: float) -> float:
         action_type = ActionType(action)
         reward = 0.0
 
