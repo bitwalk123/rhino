@@ -34,6 +34,8 @@ class Tamer:
 
     def setAction(self, action: int, t: float, price: float, volume: float) -> float:
         # 報酬の評価
-        reward = self.trans_man.evalReward(action, t, price, self.getPosition())
+        reward = self.trans_man.evalReward(action, t, price)
+        # 観測（報酬の評価が先）
+        obs = self.obs_man.getObs(price, volume, self.getPosition())
 
         return reward

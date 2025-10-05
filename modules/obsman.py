@@ -37,6 +37,11 @@ class ObservationManager:
         self.volume_prev = volume
         return volume_delta
 
+    def getObsSize(self) -> int:
+        obs = self.getObs(1, 1, PositionType.NONE)
+        self.__init__()
+        return len(obs)
+
     def getObs(self, price: float, volume: float, position: PositionType) -> np.ndarray:
         features = list()
         features.append(self._get_price_ratio(price))  # PriceRatio
@@ -50,3 +55,7 @@ class ObservationManager:
         obs = np.concatenate([arr_feature, pos_onehot])
 
         return obs
+
+    def getObsReset(self) -> np.ndarray:
+        n = self.getObsSize()
+        return np.array([0] * n, dtype=np.float32)
