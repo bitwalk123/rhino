@@ -20,7 +20,7 @@ from widgets.containers import MainWindow, TabWidget
 
 class Rhino(MainWindow):
     __app_name__ = "Rhino"
-    __version__ = "0.1.0"
+    __version__ = "0.2.0"
     __author__ = "Fuhito Suguri"
     __license__ = "MIT"
     requestTraining = Signal(str, str)

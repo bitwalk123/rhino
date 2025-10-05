@@ -30,11 +30,11 @@ class TradingEnv(gym.Env):
         self.step_current = 0
 
         # 観測空間
-        n_features = len(self.cols_features) + 3
+        # n_features = len(self.cols_features) + 3
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(n_features,),
+            shape=(self.tamer.getObsSize(),),
             dtype=np.float32
         )
 
@@ -113,10 +113,10 @@ class TradingEnv(gym.Env):
         super().reset(seed=seed)
 
         self.step_current = 0
-        self.tamer.clearAll()
+        obs = self.tamer.clearAll()
 
         # 最初の観測値を取得
-        obs = self._get_observation()
+        # obs = self._get_observation()
 
         # 観測値と行動マスクを返す
         return obs, {"action_mask": self._get_action_mask()}
@@ -132,9 +132,9 @@ class TradingEnv(gym.Env):
         volume = self.df.at[self.step_current, "Volume"]
 
         # アクション（取引）に対する報酬
-        reward = self.tamer.setAction(action, t, price, volume)
-        # 最初の観測値を取得
-        obs = self._get_observation()
+        obs, reward = self.tamer.setAction(action, t, price, volume)
+        # 観測値を取得
+        # obs = self._get_observation()
 
         # 次のループへ進むか判定
         done = False
