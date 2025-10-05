@@ -101,7 +101,7 @@ class PPOAgent(QObject):
         env.close()
 
         print("取引明細")
-        print(pd.DataFrame(env.tamer.dict_transaction))
+        print(pd.DataFrame(env.getTransaction()))
 
         print(f"--- テスト結果 ---")
         # モデル報酬（総額）

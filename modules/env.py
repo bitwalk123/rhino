@@ -1,3 +1,5 @@
+from typing import Optional
+
 import gymnasium as gym
 import numpy as np
 import pandas as pd
@@ -11,15 +13,23 @@ class TradingEnv(gym.Env):
     def __init__(self, df: pd.DataFrame):
         super().__init__()
         self.df = df.reset_index(drop=True)  # Time, Price, Volume のみ
+
+        # 銘柄コード
+        code = "7011"
+
+        # 売買管理クラス
+        self.tamer = Tamer(code)
+
         # ウォームアップ期間
         self.period = 60
+
         # 特徴量の列名のリストが返る
         self.cols_features = self._add_features()
+
         # 現在の行位置
-        self.current_step = 0
-        # 売買管理クラス
-        self.tamer = Tamer()
-        # obs: len(self.cols_features) + one-hot(3)
+        self.step_current = 0
+
+        # 観測空間
         n_features = len(self.cols_features) + 3
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
@@ -27,7 +37,9 @@ class TradingEnv(gym.Env):
             shape=(n_features,),
             dtype=np.float32
         )
-        self.action_space = gym.spaces.Discrete(len(ActionType))
+
+        # アクション空間
+        self.action_space = gym.spaces.Discrete(self.tamer.getActionSize())
 
     def _add_features(self) -> list:
         """
@@ -66,10 +78,10 @@ class TradingEnv(gym.Env):
         行動マスク
         :return:
         """
-        if self.current_step < self.period:
+        if self.step_current < self.period:
             # ウォーミングアップ期間
             return np.array([1, 0, 0, 0], dtype=np.int8)  # 強制HOLD
-        if self.tamer.position == PositionType.NONE:
+        if self.tamer.getPosition() == PositionType.NONE:
             # 建玉なし
             return np.array([1, 1, 1, 0], dtype=np.int8)  # HOLD, BUY, SELL
         else:
@@ -77,8 +89,8 @@ class TradingEnv(gym.Env):
             return np.array([1, 0, 0, 1], dtype=np.int8)  # HOLD, REPAY
 
     def _get_observation(self):
-        if self.current_step >= self.period:
-            features = self.df.iloc[self.current_step][self.cols_features]
+        if self.step_current >= self.period:
+            features = self.df.iloc[self.step_current][self.cols_features]
         else:
             features = [0] * len(self.cols_features)
             """
@@ -90,28 +102,33 @@ class TradingEnv(gym.Env):
         obs = np.array(features, dtype=np.float32)
 
         # PositionType → one-hot
-        pos_onehot = np.eye(3)[self.tamer.position.value].astype(np.float32)
+        pos_onehot = np.eye(3)[self.tamer.getPosition().value].astype(np.float32)
         obs = np.concatenate([obs, pos_onehot])
 
         return obs
 
-    def reset(self, seed=None, options=None):
-        self.current_step = 0
+    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
+        # IMPORTANT: Must call this first to seed the random number generator
+        super().reset(seed=seed)
+
+        self.step_current = 0
         self.tamer.clearAll()
+
         # 最初の観測値を取得
         obs = self._get_observation()
+
         # 観測値と行動マスクを返す
         return obs, {"action_mask": self._get_action_mask()}
 
     def step(self, action: int):
         # --- ウォームアップ期間 (self.period) は強制 HOLD ---
-        if self.current_step < self.period:
+        if self.step_current < self.period:
             action = ActionType.HOLD.value
 
         # データフレームの指定行の時刻と株価を取得
-        t = self.df.at[self.current_step, "Time"]
-        price = self.df.at[self.current_step, "Price"]
-        volume = self.df.at[self.current_step, "Volume"]
+        t = self.df.at[self.step_current, "Time"]
+        price = self.df.at[self.step_current, "Price"]
+        volume = self.df.at[self.step_current, "Volume"]
 
         # アクション（取引）に対する報酬
         reward = self.tamer.setAction(action, t, price, volume)
@@ -120,14 +137,17 @@ class TradingEnv(gym.Env):
 
         # 次のループへ進むか判定
         done = False
-        if self.current_step >= len(self.df) - 1:
+        if self.step_current >= len(self.df) - 1:
             done = True
 
-        self.current_step += 1
+        self.step_current += 1
         # info 辞書に総PnLと行動マスク
         info = {
-            "pnl_total": self.tamer.pnl_total,
+            "pnl_total": self.tamer.getPnLTotal(),
             "action_mask": self._get_action_mask()
         }
-        # print(self.current_step, self.transman.action_pre, reward, done)
+        # print(self.step_current, self.transman.action_pre, reward, done)
         return obs, reward, done, False, info
+
+    def getTransaction(self) -> pd.DataFrame:
+        return self.tamer.getTransaction()
