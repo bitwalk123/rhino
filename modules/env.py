@@ -74,24 +74,25 @@ class TradingEnv(gym.Env):
         volume = self.df.at[self.step_current, "Volume"]
 
         # アクション（取引）に対する報酬と観測値
-        obs, reward = self.tamer.setAction(action, t, price, volume)
+        obs, reward, truncated = self.tamer.setAction(action, t, price, volume)
 
         # 次のループへ進むか判定
         terminated = False  # 環境の内部ルールで終了（＝失敗や成功）
-        truncated = False  # 外部的な制限で終了（＝時間切れやステップ上限）
-        if self.step_current >= len(self.df) - 1:
-            # 建玉を持っていれば強制返済
-            reward += self.tamer.forceRepay(t, price)
-            truncated = True
-
-        # データフレームを読み込む行を更新
-        self.step_current += 1
+        # truncated = False  # 外部的な制限で終了（＝時間切れやステップ上限）
+        if not truncated:
+            if self.step_current >= len(self.df) - 1:
+                # 建玉を持っていれば強制返済
+                reward += self.tamer.forceRepay(t, price)
+                truncated = True
+            # データフレームを読み込む行を更新
+            self.step_current += 1
 
         # info 辞書に総PnLと行動マスク
         info = {
             "pnl_total": self.tamer.getPnLTotal(),
             "action_mask": self._get_action_mask()
         }
+
         return obs, reward, terminated, truncated, info
 
     def getTransaction(self) -> pd.DataFrame:

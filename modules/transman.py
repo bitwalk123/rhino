@@ -166,6 +166,9 @@ class TransactionManager:
                 raise TypeError(f"Unknown ActionType: {action_type}")
         return reward
 
+    def getNumberOfTransactions(self) -> int:
+        return len(self.dict_transaction["注文日時"])
+
     def getProfit(self, price) -> float:
         if self.position == PositionType.LONG:
             # ---------------------------------------------------------
@@ -179,3 +182,4 @@ class TransactionManager:
             return self.price_entry - price + self.slippage
         else:
             return 0.0  # 実現損益
+

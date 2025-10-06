@@ -43,6 +43,7 @@ class ObservationManager:
             price: float,  # 株価
             volume: float,  # 出来高
             profit: float,  # 含み益
+            n_remain: int, # 残り取引回数
             position: PositionType  # ポジション
     ) -> np.ndarray:
         features = list()
@@ -50,6 +51,7 @@ class ObservationManager:
         features.append(self._get_price_delta(price))  # PriceDelta
         # features.append(self._get_volume_delta(volume))  # VolumeDelta
         features.append(profit)  # 含み益
+        features.append(n_remain)  # 残り取引回数
         arr_feature = np.array(features, dtype=np.float32)
 
         # PositionType → one-hot
@@ -63,5 +65,5 @@ class ObservationManager:
         return np.array([0] * n, dtype=np.float32)
 
     def getObsSize(self) -> int:
-        obs = self.getObs(0.0, 0.0, 0.0, PositionType.NONE)
+        obs = self.getObs(0.0, 0.0, 0.0,0, PositionType.NONE)
         return len(obs)

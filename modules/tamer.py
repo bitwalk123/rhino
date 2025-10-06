@@ -13,6 +13,9 @@ class Tamer:
     """
 
     def __init__(self, code: str):
+        # 取引回数の上限
+        self.n_transaction_max = 100
+
         # 取引管理用インスタンス
         self.trans_man = TransactionManager(code)
         self.obs_man = ObservationManager()
@@ -43,12 +46,17 @@ class Tamer:
     def setAction(self, action: int, t: float, price: float, volume: float) -> tuple:
         # 報酬の評価
         reward = self.trans_man.evalReward(action, t, price)
+        n_transactions = self.trans_man.getNumberOfTransactions()
         # 観測（報酬の評価が先）
         obs = self.obs_man.getObs(
             price,  # 株価
             volume,  # 出来高
             self.trans_man.getProfit(price),  # 含み益
+            self.n_transaction_max - n_transactions, # 残り取引回数
             self.getPosition()  # ポジション
         )
-
-        return obs, reward
+        if n_transactions >= self.n_transaction_max:
+            truncated = True
+        else:
+            truncated = False
+        return obs, reward, truncated
