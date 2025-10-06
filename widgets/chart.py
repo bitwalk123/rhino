@@ -29,8 +29,6 @@ class Chart(FigureCanvas):
 
         # Figure オブジェクト
         self.figure = Figure()
-        # 余白設定
-        self.figure.subplots_adjust(left=0.075, right=0.99, top=0.9, bottom=0.08)
         # 軸領域
         self.ax = self.figure.add_subplot(111)
 
@@ -44,6 +42,8 @@ class SimpleTrendChart(Chart):
 
     def __init__(self, res: AppRes):
         super().__init__(res)
+        # 余白設定
+        self.figure.subplots_adjust(left=0.1, right=0.99, top=0.99, bottom=0.15)
 
     def updateData(self, df: pd.DataFrame, dict_info: dict):
         # トレンドライン（株価）
@@ -52,6 +52,8 @@ class SimpleTrendChart(Chart):
         self.ax.cla()
         # プロット
         self.ax.plot(ser)
+        self.ax.set_xlabel(dict_info["xlabel"])
+        self.ax.set_ylabel(dict_info["ylabel"])
         self.ax.grid(True, lw=0.5)
         # 再描画
         self.draw()
@@ -64,6 +66,8 @@ class TickChart(Chart):
 
     def __init__(self, res: AppRes):
         super().__init__(res)
+        # 余白設定
+        self.figure.subplots_adjust(left=0.075, right=0.99, top=0.9, bottom=0.08)
         # タイムスタンプへ時差を加算用（Asia/Tokyo)
         self.tz = 9. * 60 * 60
 

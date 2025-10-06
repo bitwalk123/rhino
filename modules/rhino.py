@@ -154,14 +154,8 @@ class Rhino(MainWindow):
         if not os.path.exists(path_monitor):
             print(f"{file_csv} is not found in {self.res.dir_log}!")
             return
-        df_monitor = pd.read_csv(path_monitor, skiprows=[0])
-        # 報酬のプロット
-        plt.plot(df_monitor["r"])
-        plt.xlabel("episode")
-        plt.ylabel("reward")
-        plt.grid()
-        plt.tight_layout()
-        plt.show()
+        df = pd.read_csv(path_monitor, skiprows=[0])
+        self.add_chart_learning_curve(df)
 
     def on_pig(self):
         print("DEBUG!")

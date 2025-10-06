@@ -9,7 +9,7 @@ from widgets.statusbar import StatusBar
 
 
 class WinLearningCurve(MainWindow):
-    def __init__(self, res: AppRes, df:pd.DataFrame):
+    def __init__(self, res: AppRes, df: pd.DataFrame):
         super().__init__()
         self.logger = logging.getLogger(__name__)  # モジュール固有のロガーを取得
         self.res = res
@@ -18,7 +18,11 @@ class WinLearningCurve(MainWindow):
         # チャート
         # ---------------------------------------------------------------------
         self.chart = chart = SimpleTrendChart(res)
-        dict_info = {"coly": "r"}
+        dict_info = {
+            "coly": "r",
+            "xlabel": "Episode",
+            "ylabel": "Reward",
+        }
         chart.updateData(df, dict_info)
         self.setCentralWidget(chart)
 
@@ -30,4 +34,3 @@ class WinLearningCurve(MainWindow):
         navbar = ChartNavigation(chart)
         statusbar.addWidget(navbar)
         self.setStatusBar(statusbar)
-
