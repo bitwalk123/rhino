@@ -13,6 +13,7 @@ class TransactionManager:
         self.code: str = code  # 銘柄コード
         self.unit: int = 1  # 売買単位
         self.tickprice: float = 1.0  # 呼び値
+        self.slippage = self.tickprice # スリッページ
 
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
@@ -24,7 +25,7 @@ class TransactionManager:
         # ほんの僅かな HOLD ペナルティ
         self.penalty_hold_small = -0.000001
         # 取引ルール違反
-        self.penalty_rule_transaction = -1.0
+        self.penalty_rule_transaction = -0.1
         # 取引ルール違反カウンター
         self.count_violate_rule_transaction = 0
 
@@ -85,7 +86,7 @@ class TransactionManager:
                 # 買建 (LONG)
                 # =============================================================
                 self.position = PositionType.LONG  # ポジションを更新
-                self.price_entry = price  # 取得価格
+                self.price_entry = price + self.slippage # 取得価格
                 self._add_transaction(t, "買建", price)
             elif action_type == ActionType.SELL:
                 # 取引ルール適合
@@ -94,7 +95,7 @@ class TransactionManager:
                 # 売建 (SHORT)
                 # =============================================================
                 self.position = PositionType.SHORT  # ポジションを更新
-                self.price_entry = price  # 取得価格
+                self.price_entry = price - self.slippage # 取得価格
                 self._add_transaction(t, "売建", price)
             elif action_type == ActionType.REPAY:
                 # 取引ルール違反
@@ -124,13 +125,13 @@ class TransactionManager:
                     # ---------------------------------------------------------
                     # 返済: 買建 (LONG) → 売埋
                     # ---------------------------------------------------------
-                    profit = price - self.price_entry
+                    profit = price - self.price_entry - self.slippage
                     self._add_transaction(t, "売埋", price, profit)
                 elif self.position == PositionType.SHORT:
                     # ---------------------------------------------------------
                     # 返済: 売建 (SHORT) → 買埋
                     # ---------------------------------------------------------
-                    profit = self.price_entry - price
+                    profit = self.price_entry - price + self.slippage
                     self._add_transaction(t, "買埋", price, profit)
                 else:
                     raise TypeError(f"Unknown PositionType: {self.position}")
