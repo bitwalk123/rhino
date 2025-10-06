@@ -38,16 +38,18 @@ class ObservationManager:
         self.volume_prev = volume
         return volume_delta
 
-    def getObsSize(self) -> int:
-        obs = self.getObs(0.0, 0.0, PositionType.NONE)
-        return len(obs)
-
-    def getObs(self, price: float, volume: float, position: PositionType) -> np.ndarray:
+    def getObs(
+            self,
+            price: float,  # 株価
+            volume: float,  # 出来高
+            profit: float,  # 含み益
+            position: PositionType  # ポジション
+    ) -> np.ndarray:
         features = list()
         features.append(self._get_price_ratio(price))  # PriceRatio
         features.append(self._get_price_delta(price))  # PriceDelta
         # features.append(self._get_volume_delta(volume))  # VolumeDelta
-
+        features.append(profit)  # 含み益
         arr_feature = np.array(features, dtype=np.float32)
 
         # PositionType → one-hot
@@ -59,3 +61,7 @@ class ObservationManager:
     def getObsReset(self) -> np.ndarray:
         n = self.getObsSize()
         return np.array([0] * n, dtype=np.float32)
+
+    def getObsSize(self) -> int:
+        obs = self.getObs(0.0, 0.0, 0.0, PositionType.NONE)
+        return len(obs)

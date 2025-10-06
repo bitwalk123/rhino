@@ -41,6 +41,11 @@ class Tamer:
         # 報酬の評価
         reward = self.trans_man.evalReward(action, t, price)
         # 観測（報酬の評価が先）
-        obs = self.obs_man.getObs(price, volume, self.getPosition())
+        obs = self.obs_man.getObs(
+            price,  # 株価
+            volume,  # 出来高
+            self.trans_man.getProfit(price), # 含み益
+            self.getPosition()  # ポジション
+        )
 
         return obs, reward
