@@ -5,6 +5,6 @@ from widgets.chart import TickChart, ChartNavigation
 
 
 class StatusBar(QStatusBar):
-    def __init__(self, chart: TickChart):
+    def __init__(self):
         super().__init__()
         self.setContentsMargins(QMargins(0, 0, 0, 0))

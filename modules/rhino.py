@@ -101,16 +101,13 @@ class Rhino(MainWindow):
         self.thread.start()
 
     def add_chart_learning_curve(self, df: pd.DataFrame):
-        tab_text = "学習曲線"
+        label_tab = "学習曲線"
         for idx in list(reversed(range(self.tabbase.count()))):
-            if self.tabbase.tabText(idx) == tab_text:
+            if self.tabbase.tabText(idx) == label_tab:
                 self.tabbase.removeTab(idx)
-        win_lening_curve = WinLearningCurve(self.res)
-        self.tabbase.addTab(win_lening_curve, tab_text)
-        print(self.tabbase.count())
-        self.tabbase.setCurrentIndex(self.tabbase.count() - 1)
-
-        #print(df)
+        win_leaning_curve = WinLearningCurve(self.res, df)
+        self.tabbase.addTab(win_leaning_curve, label_tab)
+        self.tabbase.setCurrentWidget(win_leaning_curve)
 
     def closeEvent(self, event: QCloseEvent):
         """✕ボタンで安全にスレッド停止"""

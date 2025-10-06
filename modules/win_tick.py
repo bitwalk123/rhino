@@ -22,7 +22,7 @@ class WinTick(MainWindow):
         # ---------------------------------------------------------------------
         # ステータスバー
         # ---------------------------------------------------------------------
-        self.statusbar = statusbar = StatusBar(chart)
+        self.statusbar = statusbar = StatusBar()
         statusbar.setSizeGripEnabled(False)
         navbar = ChartNavigation(chart)
         statusbar.addWidget(navbar)

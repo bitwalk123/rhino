@@ -1,14 +1,15 @@
 import logging
 
-from funcs.ios import get_excel_sheet
+import pandas as pd
+
 from structs.res import AppRes
-from widgets.chart import TickChart, ChartNavigation
+from widgets.chart import ChartNavigation, SimpleTrendChart
 from widgets.containers import MainWindow
 from widgets.statusbar import StatusBar
 
 
 class WinLearningCurve(MainWindow):
-    def __init__(self, res: AppRes):
+    def __init__(self, res: AppRes, df:pd.DataFrame):
         super().__init__()
         self.logger = logging.getLogger(__name__)  # モジュール固有のロガーを取得
         self.res = res
@@ -16,15 +17,17 @@ class WinLearningCurve(MainWindow):
         # ---------------------------------------------------------------------
         # チャート
         # ---------------------------------------------------------------------
-        #self.chart = chart = TickChart(res)
-        #self.setCentralWidget(chart)
+        self.chart = chart = SimpleTrendChart(res)
+        dict_info = {"coly": "r"}
+        chart.updateData(df, dict_info)
+        self.setCentralWidget(chart)
 
         # ---------------------------------------------------------------------
         # ステータスバー
         # ---------------------------------------------------------------------
-        #self.statusbar = statusbar = StatusBar(chart)
-        #statusbar.setSizeGripEnabled(False)
-        #navbar = ChartNavigation(chart)
-        #statusbar.addWidget(navbar)
-        #self.setStatusBar(statusbar)
+        self.statusbar = statusbar = StatusBar()
+        statusbar.setSizeGripEnabled(False)
+        navbar = ChartNavigation(chart)
+        statusbar.addWidget(navbar)
+        self.setStatusBar(statusbar)
 

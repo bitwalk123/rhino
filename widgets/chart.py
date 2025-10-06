@@ -37,9 +37,29 @@ class Chart(FigureCanvas):
         super().__init__(self.figure)
 
 
+class SimpleTrendChart(Chart):
+    """
+    ティックチャート用
+    """
+
+    def __init__(self, res: AppRes):
+        super().__init__(res)
+
+    def updateData(self, df: pd.DataFrame, dict_info: dict):
+        # トレンドライン（株価）
+        ser = df[dict_info["coly"]]
+        # 消去
+        self.ax.cla()
+        # プロット
+        self.ax.plot(ser)
+        self.ax.grid(True, lw=0.5)
+        # 再描画
+        self.draw()
+
+
 class TickChart(Chart):
     """
-    リアルタイム用トレンドチャート
+    ティックチャート用
     """
 
     def __init__(self, res: AppRes):
