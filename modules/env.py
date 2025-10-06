@@ -68,10 +68,6 @@ class TradingEnv(gym.Env):
         return obs, {"action_mask": self._get_action_mask()}
 
     def step(self, action: int):
-        # --- ウォームアップ期間 (self.period) は強制 HOLD ---
-        #if self.step_current < self.period:
-        #    action = ActionType.HOLD.value
-
         # データフレームの指定行の時刻と株価を取得
         t = self.df.at[self.step_current, "Time"]
         price = self.df.at[self.step_current, "Price"]

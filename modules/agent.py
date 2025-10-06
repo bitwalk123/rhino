@@ -83,7 +83,7 @@ class PPOAgent(QObject):
 
         # 推論の実行
         episode_over = False
-        while episode_over:
+        while not episode_over:
             # モデルの推論
             arr_action, _states = model.predict(obs, deterministic=True)
             action = arr_action.item()

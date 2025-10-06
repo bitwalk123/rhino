@@ -9,9 +9,9 @@ class ObservationManager:
         self.factor_ticker = 10.0  # 調整因子（銘柄別）
         self.unit = 100.0  # 最小取引単位
 
-        self.price_init = 0
-        self.price_prev = 0
-        self.volume_prev = 0
+        self.price_init = 0.0
+        self.price_prev = 0.0
+        self.volume_prev = 0.0
 
     def _get_price_delta(self, price: float) -> float:
         if self.price_prev == 0:
@@ -30,22 +30,16 @@ class ObservationManager:
         return price_ratio
 
     def _get_volume_delta(self, volume: float):
-        if self.volume_prev == 0:
-            volume_delta = 0
+        if self.volume_prev == 0.0:
+            volume_delta = 0.0
         else:
-            # v = (volume - self.volume_prev) / self.unit
-            # if v <= -1:
-            #    print(v, volume, self.volume_prev)
             volume_delta = np.log1p((volume - self.volume_prev) / self.unit) / self.factor_ticker
 
         self.volume_prev = volume
         return volume_delta
 
     def getObsSize(self) -> int:
-        obs = self.getObs(0, 0, PositionType.NONE)
-        self.price_init = 0
-        self.price_prev = 0
-        self.volume_prev = 0
+        obs = self.getObs(0.0, 0.0, PositionType.NONE)
         return len(obs)
 
     def getObs(self, price: float, volume: float, position: PositionType) -> np.ndarray:
