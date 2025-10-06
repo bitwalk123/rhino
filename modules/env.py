@@ -23,9 +23,6 @@ class TradingEnv(gym.Env):
         # ウォームアップ期間
         self.period = 60
 
-        # 特徴量の列名のリストが返る
-        self.cols_features = self._add_features()
-
         # 現在の行位置
         self.step_current = 0
 
@@ -41,12 +38,8 @@ class TradingEnv(gym.Env):
         # アクション空間
         self.action_space = gym.spaces.Discrete(self.tamer.getActionSize())
 
+    """
     def _add_features(self) -> list:
-        """
-        特徴量の追加
-        :param period:
-        :return:
-        """
         list_features = list()
 
         # 調整用係数
@@ -72,6 +65,7 @@ class TradingEnv(gym.Env):
         list_features.append(colname)
 
         return list_features
+    """
 
     def _get_action_mask(self) -> np.ndarray:
         """
@@ -88,25 +82,6 @@ class TradingEnv(gym.Env):
         else:
             # 建玉あり
             return np.array([1, 0, 0, 1], dtype=np.int8)  # HOLD, REPAY
-
-    def _get_observation(self):
-        if self.step_current >= self.period:
-            features = self.df.iloc[self.step_current][self.cols_features]
-        else:
-            features = [0] * len(self.cols_features)
-            """
-            commented by GPT-5
-            → ここも [0,...] にしているので、序盤の数十ステップが「完全にフラットな状態」になります。
-            もし観測にノイズが少し欲しいなら、最初から EMA だけ計算して、差分系だけゼロにするなども検討できます
-            （ただしこれはお好み次第）。
-            """
-        obs = np.array(features, dtype=np.float32)
-
-        # PositionType → one-hot
-        pos_onehot = np.eye(3)[self.tamer.getPosition().value].astype(np.float32)
-        obs = np.concatenate([obs, pos_onehot])
-
-        return obs
 
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
         # IMPORTANT: Must call this first to seed the random number generator
