@@ -21,7 +21,7 @@ class TradingEnv(gym.Env):
         self.tamer = Tamer(code)
 
         # ウォームアップ期間
-        # self.period = 60
+        self.period = 60
 
         # 現在の行位置
         self.step_current = 0
@@ -69,15 +69,13 @@ class TradingEnv(gym.Env):
 
     def step(self, action: int):
         # --- ウォームアップ期間 (self.period) は強制 HOLD ---
-        # if self.step_current < self.period:
+        #if self.step_current < self.period:
         #    action = ActionType.HOLD.value
 
         # データフレームの指定行の時刻と株価を取得
         t = self.df.at[self.step_current, "Time"]
         price = self.df.at[self.step_current, "Price"]
         volume = self.df.at[self.step_current, "Volume"]
-        #if volume == 1:
-        #    print(f"############## {self.step_current}, {volume}")
 
         # アクション（取引）に対する報酬と観測値
         obs, reward = self.tamer.setAction(action, t, price, volume)
@@ -86,7 +84,7 @@ class TradingEnv(gym.Env):
         terminated = False  # 環境の内部ルールで終了（＝失敗や成功）
         truncated = False  # 外部的な制限で終了（＝時間切れやステップ上限）
         if self.step_current >= len(self.df) - 1:
-            terminated = True
+            truncated = True
 
         # データフレームを読み込む行を更新
         self.step_current += 1

@@ -33,8 +33,8 @@ class ObservationManager:
         if self.volume_prev == 0:
             volume_delta = 0
         else:
-            #v = (volume - self.volume_prev) / self.unit
-            #if v <= -1:
+            # v = (volume - self.volume_prev) / self.unit
+            # if v <= -1:
             #    print(v, volume, self.volume_prev)
             volume_delta = np.log1p((volume - self.volume_prev) / self.unit) / self.factor_ticker
 
@@ -52,7 +52,7 @@ class ObservationManager:
         features = list()
         features.append(self._get_price_ratio(price))  # PriceRatio
         features.append(self._get_price_delta(price))  # PriceDelta
-        features.append(self._get_volume_delta(volume))  # VolumeDelta
+        # features.append(self._get_volume_delta(volume))  # VolumeDelta
 
         arr_feature = np.array(features, dtype=np.float32)
 
