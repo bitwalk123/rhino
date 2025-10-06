@@ -13,6 +13,7 @@ from funcs.tse import get_jpx_ticker_list
 from modules.agent import PPOAgent
 from modules.dock import Dock
 from modules.toolbar import ToolBar
+from modules.win_learning_curve import WinLearningCurve
 from modules.win_tick import WinTick
 from structs.res import AppRes
 from widgets.containers import MainWindow, TabWidget
@@ -56,6 +57,7 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         self.toolbar = toolbar = ToolBar(res)
         toolbar.clickedPlay.connect(self.on_play)
+        toolbar.clickedPig.connect(self.on_pig)
         toolbar.codeChanged.connect(self.update_chart)
         self.addToolBar(toolbar)
 
@@ -70,11 +72,11 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # メイン・ウィンドウ
         # ---------------------------------------------------------------------
-        base = TabWidget()
-        self.setCentralWidget(base)
+        self.tabbase = tabbase = TabWidget()
+        self.setCentralWidget(tabbase)
         # タブオブジェクト
         self.win_tick = win_tick = WinTick(res)
-        base.addTab(win_tick, "ティックチャート")
+        tabbase.addTab(win_tick, "ティックチャート")
 
         # ---------------------------------------------------------------------
         # スレッド用インスタンス
@@ -97,6 +99,12 @@ class Rhino(MainWindow):
         # self.worker.finished.connect(self.thread.quit)
 
         self.thread.start()
+
+    def add_chart_learning_curve(self, df:pd.DataFrame):
+        win_lening_curve = WinLearningCurve(self.res)
+        self.tabbase.addTab(win_lening_curve, "学習曲線")
+
+        print(df)
 
     def closeEvent(self, event: QCloseEvent):
         """✕ボタンで安全にスレッド停止"""
@@ -151,6 +159,16 @@ class Rhino(MainWindow):
         plt.grid()
         plt.tight_layout()
         plt.show()
+
+    def on_pig(self):
+        print("DEBUG!")
+        file_csv = "monitor.csv"
+        path_monitor = os.path.join(self.res.dir_log, file_csv)
+        if not os.path.exists(path_monitor):
+            print(f"{file_csv} is not found in {self.res.dir_log}!")
+            return
+        df = pd.read_csv(path_monitor, skiprows=[0])
+        self.add_chart_learning_curve(df)
 
     def on_play(self):
         """

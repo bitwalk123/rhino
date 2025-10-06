@@ -4,9 +4,11 @@ from PySide6.QtWidgets import QComboBox, QToolBar
 
 from funcs.commons import get_icon
 from structs.res import AppRes
+from widgets.containers import PadH
 
 
 class ToolBar(QToolBar):
+    clickedPig = Signal()
     clickedPlay = Signal()
     codeChanged = Signal(str)
 
@@ -26,12 +28,22 @@ class ToolBar(QToolBar):
         action_play.triggered.connect(self.on_play)
         self.addAction(action_play)
 
+        hpad = PadH()
+        self.addWidget(hpad)
+
+        action_pig = QAction(get_icon(self.res, "pig.png"), "豚", self)
+        action_pig.triggered.connect(self.on_pig)
+        self.addAction(action_pig)
+
     def changed_code(self, idx: int):
         if idx >= 0:
             self.codeChanged.emit(self.getCurrentCode())
 
     def getCurrentCode(self) -> str:
         return self.combo_code.currentText()
+
+    def on_pig(self):
+        self.clickedPig.emit()
 
     def on_play(self):
         self.clickedPlay.emit()
