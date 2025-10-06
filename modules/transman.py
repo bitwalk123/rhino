@@ -24,6 +24,10 @@ class TransactionManager:
         self.reward_hold_small = +0.000001
         # ほんの僅かな HOLD ペナルティ
         self.penalty_hold_small = -0.000001
+        # 収益 0 の時の僅かなペナルティ
+        self.penalty_profit_zero = -0.01
+        # 収益がマイナスの時のペナルティ・レシオ（保留）
+        self.penalty_ratio_profit_minus = 1.0
         # 取引ルール違反
         self.penalty_rule_transaction = -0.1
         # 取引ルール違反カウンター
@@ -155,7 +159,15 @@ class TransactionManager:
                 # =============================================================
                 # 損益確定
                 # =============================================================
-                reward += profit / self.tickprice  # 呼び値で割って報酬を正規化
+                if profit > 0:
+                    # 呼び値で割って報酬を正規化
+                    reward += profit / self.tickprice
+                if profit < 0:
+                    # 収益がマイナスの時は、少し大きめに強調
+                    reward += profit / self.tickprice * self.penalty_ratio_profit_minus
+                else:
+                    # profit == 0 の時は僅かなペナルティ
+                    reward += self.penalty_profit_zero
                 self.pnl_total += profit
                 # =============================================================
                 # ポジション解消
@@ -182,4 +194,3 @@ class TransactionManager:
             return self.price_entry - price + self.slippage
         else:
             return 0.0  # 実現損益
-
