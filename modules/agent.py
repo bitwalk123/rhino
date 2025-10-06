@@ -19,7 +19,7 @@ class PPOAgent(QObject):
         super().__init__()
         self.res = res
         self._stopping = False
-        self.total_timesteps = 262144
+        self.total_timesteps = 524288
 
     def get_env(self, file: str, code: str) -> TradingEnv:
         # Excel ファイルをフルパスに
