@@ -38,35 +38,6 @@ class TradingEnv(gym.Env):
         # アクション空間
         self.action_space = gym.spaces.Discrete(self.tamer.getActionSize())
 
-    """
-    def _add_features(self) -> list:
-        list_features = list()
-
-        # 調整用係数
-        factor_ticker = 10  # 調整因子（銘柄別）
-        unit = 100  # 最小取引単位
-
-        # 最初の株価（株価比率の算出用）
-        price_start = self.df["Price"].iloc[0]
-
-        # 1. 株価差分
-        colname = "PriceDelta"
-        self.df[colname] = self.df["Price"].diff()
-        list_features.append(colname)
-
-        # 2. 株価比率
-        colname = "PriceRatio"
-        self.df[colname] = self.df["Price"] / price_start
-        list_features.append(colname)
-
-        # 3. 累計出来高差分 / 最小取引単位
-        colname = "dVol"
-        self.df[colname] = np.log1p(self.df["Volume"].diff() / unit) / factor_ticker
-        list_features.append(colname)
-
-        return list_features
-    """
-
     def _get_action_mask(self) -> np.ndarray:
         """
         行動マスク
