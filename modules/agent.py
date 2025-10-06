@@ -19,7 +19,7 @@ class PPOAgent(QObject):
         super().__init__()
         self.res = res
         self._stopping = False
-        self.total_timesteps = 1000000
+        self.total_timesteps = 262144
 
     def get_env(self, file: str, code: str) -> TradingEnv:
         # Excel ファイルをフルパスに
@@ -97,8 +97,6 @@ class PPOAgent(QObject):
             # エピソード完了
             episode_over = terminated or truncated
 
-        # 学習環境の解放
-        env.close()
 
         print("取引明細")
         print(env.getTransaction())
@@ -108,5 +106,8 @@ class PPOAgent(QObject):
         print(f"モデル報酬（総額）: {total_reward:.2f}")
         if "pnl_total" in info.keys():
             print(f"最終的な累積報酬（1 株利益）: {info['pnl_total']:.2f}")
+
+        # 学習環境の解放
+        env.close()
 
         self.finishedInferring.emit()
