@@ -80,6 +80,8 @@ class TradingEnv(gym.Env):
         terminated = False  # 環境の内部ルールで終了（＝失敗や成功）
         truncated = False  # 外部的な制限で終了（＝時間切れやステップ上限）
         if self.step_current >= len(self.df) - 1:
+            # 建玉を持っていれば強制返済
+            reward += self.tamer.forceRepay(t, price)
             truncated = True
 
         # データフレームを読み込む行を更新

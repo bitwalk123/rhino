@@ -21,6 +21,9 @@ class Tamer:
         self.trans_man.clear()
         return self.obs_man.getObsReset()
 
+    def forceRepay(self, t: float, price: float) -> float:
+        return self.trans_man.forceRepay(t, price)
+
     @staticmethod
     def getActionSize() -> int:
         return len(ActionType)
@@ -44,7 +47,7 @@ class Tamer:
         obs = self.obs_man.getObs(
             price,  # 株価
             volume,  # 出来高
-            self.trans_man.getProfit(price), # 含み益
+            self.trans_man.getProfit(price),  # 含み益
             self.getPosition()  # ポジション
         )
 

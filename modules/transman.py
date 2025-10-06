@@ -66,6 +66,29 @@ class TransactionManager:
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self._init_transaction()  # 取引明細
 
+    def forceRepay(self, t: float, price: float) -> float:
+        profit = self.getProfit(price)
+        if self.position == PositionType.LONG:
+            # 返済: 買建 (LONG) → 売埋
+            self._add_transaction(t, "売埋（強制返済）", price, profit)
+        elif self.position == PositionType.SHORT:
+            # 返済: 売建 (SHORT) → 買埋
+            self._add_transaction(t, "買埋（強制返済）", price, profit)
+        else:
+            pass
+        # =====================================================================
+        # 損益確定
+        # =====================================================================
+        reward = profit / self.tickprice  # 呼び値で割って報酬を正規化
+        self.pnl_total += profit
+        # =====================================================================
+        # ポジション解消
+        # =====================================================================
+        self.position = PositionType.NONE
+        self.price_entry = 0
+
+        return reward
+
     def evalReward(self, action: int, t: float, price: float) -> float:
         action_type = ActionType(action)
         reward = 0.0
