@@ -24,7 +24,7 @@ class TransactionManager:
         # ほんの僅かな HOLD ペナルティ
         self.penalty_hold_small = -0.000001
         # 取引ルール違反
-        self.penalty_rule_transaction = -0.1
+        self.penalty_rule_transaction = -1.0
         # 取引ルール違反カウンター
         self.count_violate_rule_transaction = 0
 

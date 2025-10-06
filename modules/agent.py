@@ -82,20 +82,20 @@ class PPOAgent(QObject):
         model = PPO.load(model_path, env, verbose=True)
 
         # 推論の実行
-        while True:
+        episode_over = False
+        while episode_over:
             # モデルの推論
             arr_action, _states = model.predict(obs, deterministic=True)
             action = arr_action.item()
 
             # 1ステップ実行
-            obs, reward, done, truncated, info = env.step(action)
+            obs, reward, terminated, truncated, info = env.step(action)
 
             # モデル報酬
             total_reward += reward
 
             # エピソード完了
-            if done:
-                break
+            episode_over = terminated or truncated
 
         # 学習環境の解放
         env.close()
