@@ -32,8 +32,18 @@ class ObservationManager:
     def _get_volume_delta(self, volume: float):
         if self.volume_prev == 0.0:
             volume_delta = 0.0
+        elif volume < self.volume_prev:
+            """
+            【稀に発生する警告】
+            RuntimeWarning: invalid value encountered in log1p
+            もしかするとリセットなどのタイミングで
+            volume < self.volume_prev
+            になるケースがあるかも！
+            """
+            volume_delta = 0.0
         else:
-            volume_delta = np.log1p((volume - self.volume_prev) / self.unit) / self.factor_ticker
+            x = (volume - self.volume_prev) / self.unit
+            volume_delta = np.log1p(x) / self.factor_ticker
 
         self.volume_prev = volume
         return volume_delta
@@ -43,7 +53,7 @@ class ObservationManager:
             price: float,  # 株価
             volume: float,  # 出来高
             profit: float,  # 含み益
-            n_remain: int, # 残り取引回数
+            n_remain: int,  # 残り取引回数
             position: PositionType  # ポジション
     ) -> np.ndarray:
         features = list()
@@ -51,10 +61,11 @@ class ObservationManager:
         features.append(self._get_price_ratio(price))
         # 2. PriceDelta
         features.append(self._get_price_delta(price))
-        # features.append(self._get_volume_delta(volume))  # VolumeDelta
-        # 3. 含み益
+        # 3. VolumeDelta
+        features.append(self._get_volume_delta(volume))
+        # 4. 含み益
         features.append(profit)
-        # 4. 残り取引回数
+        # 5. 残り取引回数
         features.append(n_remain)
         arr_feature = np.array(features, dtype=np.float32)
 
@@ -69,5 +80,11 @@ class ObservationManager:
         return np.array([0] * n, dtype=np.float32)
 
     def getObsSize(self) -> int:
-        obs = self.getObs(0.0, 0.0, 0.0,0, PositionType.NONE)
+        obs = self.getObs(
+            0.0,
+            0.0,
+            0.0,
+            0,
+            PositionType.NONE
+        )
         return len(obs)

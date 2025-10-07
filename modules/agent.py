@@ -20,6 +20,7 @@ class PPOAgent(QObject):
         self.res = res
         self._stopping = False
         self.total_timesteps = 393216
+        # self.total_timesteps = 18432
 
     def get_env(self, file: str, code: str) -> TradingEnv:
         # Excel ファイルをフルパスに
@@ -96,7 +97,6 @@ class PPOAgent(QObject):
 
             # エピソード完了
             episode_over = terminated or truncated
-
 
         print("取引明細")
         print(env.getTransaction())
