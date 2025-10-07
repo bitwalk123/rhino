@@ -47,11 +47,15 @@ class ObservationManager:
             position: PositionType  # ポジション
     ) -> np.ndarray:
         features = list()
-        features.append(self._get_price_ratio(price))  # PriceRatio
-        features.append(self._get_price_delta(price))  # PriceDelta
+        # 1. PriceRatio
+        features.append(self._get_price_ratio(price))
+        # 2. PriceDelta
+        features.append(self._get_price_delta(price))
         # features.append(self._get_volume_delta(volume))  # VolumeDelta
-        features.append(profit)  # 含み益
-        features.append(n_remain)  # 残り取引回数
+        # 3. 含み益
+        features.append(profit)
+        # 4. 残り取引回数
+        features.append(n_remain)
         arr_feature = np.array(features, dtype=np.float32)
 
         # PositionType → one-hot
