@@ -31,8 +31,8 @@ class Tamer:
     def getActionSize() -> int:
         return len(ActionType)
 
-    def getObsSize(self) -> int:
-        return self.obs_man.getObsSize()
+    def getObsDim(self) -> tuple[int, int]:
+        return self.obs_man.getObsDim()
 
     def getPnLTotal(self) -> float:
         return self.trans_man.pnl_total
@@ -52,7 +52,7 @@ class Tamer:
             price,  # 株価
             volume,  # 出来高
             self.trans_man.getProfit(price),  # 含み益
-            self.n_transaction_max - n_transactions, # 残り取引回数
+            self.n_transaction_max - n_transactions,  # 残り取引回数
             self.getPosition()  # ポジション
         )
         if n_transactions >= self.n_transaction_max:

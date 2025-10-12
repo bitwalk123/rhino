@@ -26,11 +26,11 @@ class TradingEnv(gym.Env):
         self.step_current = 0
 
         # 観測空間
-        n_obs = self.tamer.getObsSize()
+        n_history, n_features = self.tamer.getObsDim()
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(n_obs,),
+            shape=(n_history, n_features),
             dtype=np.float32
         )
 

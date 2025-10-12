@@ -1,9 +1,8 @@
 import os
 from pathlib import Path
 
-import pandas as pd
 from PySide6.QtCore import QObject, Signal
-from stable_baselines3 import PPO
+from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.monitor import Monitor
 
 from funcs.ios import get_excel_sheet
@@ -20,7 +19,7 @@ class PPOAgent(QObject):
         self.res = res
         self._stopping = False
         self.total_timesteps = 393216
-        # self.total_timesteps = 18432
+        # self.total_timesteps = 36864
 
     def get_env(self, file: str, code: str) -> TradingEnv:
         # Excel ファイルをフルパスに
@@ -49,7 +48,7 @@ class PPOAgent(QObject):
 
         # PPO モデルの生成
         # 多層パーセプトロン (MLP) ベースの方策と価値関数を使う MlpPolicy を指定
-        model = PPO("MlpPolicy", env, verbose=True)
+        model = RecurrentPPO("MlpLstmPolicy", env, verbose=True)
 
         # モデルの学習
         model.learn(total_timesteps=self.total_timesteps)
@@ -80,7 +79,7 @@ class PPOAgent(QObject):
             self.finishedInferring.emit()
             return
 
-        model = PPO.load(model_path, env, verbose=True)
+        model = RecurrentPPO.load(model_path, env, verbose=True)
 
         # 推論の実行
         episode_over = False

@@ -1,3 +1,5 @@
+from collections import deque
+
 import numpy as np
 
 from structs.app_enum import PositionType
@@ -9,9 +11,20 @@ class ObservationManager:
         self.factor_ticker = 10.0  # 調整因子（銘柄別）
         self.unit = 100.0  # 最小取引単位
 
-        self.price_init = 0.0
-        self.price_prev = 0.0
-        self.volume_prev = 0.0
+        # 特徴量算出のために保持する変数
+        self.price_init = 0.0  # ザラバの始値
+        self.price_prev = 0.0  # １つ前の株価
+        self.volume_prev = 0.0  # １つ前の出来高
+
+        # 時系列の履歴数
+        self.n_history = 60
+        # FIFO バッファ（キュー）を作成
+        self.deque_feature = deque(maxlen=self.n_history)
+        # self.deque_feature の初期化（ゼロ埋め）
+        self.initObs()
+        # 特徴量の数
+        self.n_features = len(self.deque_feature[-1])
+        print(self.n_history, self.n_features)
 
     def _get_price_delta(self, price: float) -> float:
         if self.price_prev == 0:
@@ -48,6 +61,10 @@ class ObservationManager:
         self.volume_prev = volume
         return volume_delta
 
+    def initObs(self):
+        for i in range(self.n_history):
+            self.getObs(0, 0, 0, 0, PositionType.NONE)
+
     def getObs(
             self,
             price: float,  # 株価
@@ -56,35 +73,38 @@ class ObservationManager:
             n_remain: int,  # 残り取引回数
             position: PositionType  # ポジション
     ) -> np.ndarray:
-        features = list()
+        list_feature = list()
+
         # 1. PriceRatio
-        features.append(self._get_price_ratio(price))
+        list_feature.append(self._get_price_ratio(price))
         # 2. PriceDelta
-        features.append(self._get_price_delta(price))
+        list_feature.append(self._get_price_delta(price))
         # 3. VolumeDelta
-        features.append(self._get_volume_delta(volume))
+        list_feature.append(self._get_volume_delta(volume))
         # 4. 含み益
-        features.append(profit)
+        list_feature.append(profit)
         # 5. 残り取引回数
-        features.append(n_remain)
-        arr_feature = np.array(features, dtype=np.float32)
+        list_feature.append(n_remain)
 
-        # PositionType → one-hot
+        # 一旦配列に変換
+        arr_feature = np.array(list_feature, dtype=np.float32)
+
+        # PositionType を単位行列へ変換
+        # PositionType → one-hot (3)
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
-        obs = np.concatenate([arr_feature, pos_onehot])
 
-        return obs
+        # arr_feature と pos_onehot を単純結合
+        features = np.concatenate([arr_feature, pos_onehot])
+
+        # 特徴量をキューへ追加
+        self.deque_feature.append(features)
+
+        # キュー全体を配列にして返す
+        return np.array(self.deque_feature, dtype=np.float32)
+
+    def getObsDim(self) -> tuple[int, int]:
+        return self.n_history, self.n_features
 
     def getObsReset(self) -> np.ndarray:
-        n = self.getObsSize()
-        return np.array([0] * n, dtype=np.float32)
-
-    def getObsSize(self) -> int:
-        obs = self.getObs(
-            0.0,
-            0.0,
-            0.0,
-            0,
-            PositionType.NONE
-        )
-        return len(obs)
+        self.initObs()
+        return np.array(self.deque_feature, dtype=np.float32)
