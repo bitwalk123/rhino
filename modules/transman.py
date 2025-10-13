@@ -20,12 +20,14 @@ class TransactionManager:
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self._init_transaction()  # 取引明細
 
+        # ほんの僅かなルール適合報酬
+        self.reward_comply_rule_small = +0.0001
         # ほんの僅かな HOLD 報酬
-        self.reward_hold_small = +0.0001
+        self.reward_hold_small = +0.00001
         # ほんの僅かな HOLD ペナルティ
-        self.penalty_hold_small = -0.0001
+        self.penalty_hold_small = -0.00001
         # 収益 0 の時の僅かなペナルティ
-        self.penalty_profit_zero = -0.01
+        self.penalty_profit_zero = -0.001
         # 収益がマイナスの時のペナルティ・レシオ（保留）
         self.penalty_ratio_profit_minus = 1.0
         # 取引ルール違反
@@ -43,7 +45,8 @@ class TransactionManager:
 
     def _comply_transaction_rule(self) -> float:
         self.count_violate_rule_transaction = 0
-        return 0.0
+        reward = self.reward_comply_rule_small
+        return reward
 
     @staticmethod
     def _get_datetime(t: float) -> str:
