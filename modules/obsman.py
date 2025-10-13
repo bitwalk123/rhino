@@ -23,8 +23,8 @@ class ObservationManager:
         # self.deque_feature の初期化（ゼロ埋め）
         self.initObs()
         # 特徴量の数
-        self.n_features = len(self.deque_feature[-1])
-        # print(self.n_history, self.n_features)
+        self.n_feature = len(self.deque_feature[-1])
+        # print(self.n_history, self.n_feature)
 
     def _get_price_delta(self, price: float) -> float:
         if self.price_prev == 0:
@@ -103,7 +103,7 @@ class ObservationManager:
         return np.array(self.deque_feature, dtype=np.float32)
 
     def getObsDim(self) -> tuple[int, int]:
-        return self.n_history, self.n_features
+        return self.n_history, self.n_feature
 
     def getObsReset(self) -> np.ndarray:
         self.initObs()
