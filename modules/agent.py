@@ -20,7 +20,7 @@ class PPOAgent(QObject):
         self._stopping = False
         # self.total_timesteps = 1572864
         self.total_timesteps = 393216
-        # self.total_timesteps = 36864
+        # self.total_timesteps = 18432
 
     def get_env(self, file: str, code: str) -> TradingEnv:
         # Excel ファイルをフルパスに
@@ -48,7 +48,7 @@ class PPOAgent(QObject):
         env = Monitor(env, self.res.dir_log)  # Monitorの利用
 
         # PPO モデルの生成
-        # 多層パーセプトロン (MLP) ベースの方策と価値関数を使う MlpPolicy を指定
+        # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
         model = RecurrentPPO("MlpLstmPolicy", env, verbose=True)
 
         # モデルの学習
@@ -69,6 +69,7 @@ class PPOAgent(QObject):
 
         # 学習環境のリセット
         obs, info = env.reset()
+        lstm_state = None
         total_reward = 0.0
 
         # 学習済モデルを読み込む
@@ -86,11 +87,10 @@ class PPOAgent(QObject):
         episode_over = False
         while not episode_over:
             # モデルの推論
-            arr_action, _states = model.predict(obs, deterministic=True)
-            action = arr_action.item()
+            action, lstm_state = model.predict(obs, state=lstm_state, deterministic=True)
 
             # 1ステップ実行
-            obs, reward, terminated, truncated, info = env.step(action)
+            obs, reward, terminated, truncated, info = env.step(int(action))
 
             # モデル報酬
             total_reward += reward

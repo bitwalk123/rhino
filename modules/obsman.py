@@ -24,7 +24,7 @@ class ObservationManager:
         self.initObs()
         # 特徴量の数
         self.n_features = len(self.deque_feature[-1])
-        print(self.n_history, self.n_features)
+        # print(self.n_history, self.n_features)
 
     def _get_price_delta(self, price: float) -> float:
         if self.price_prev == 0:
