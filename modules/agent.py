@@ -18,8 +18,8 @@ class PPOAgent(QObject):
         super().__init__()
         self.res = res
         self._stopping = False
-        # self.total_timesteps = 1572864
-        self.total_timesteps = 393216
+        self.total_timesteps = 1572864
+        # self.total_timesteps = 393216
         # self.total_timesteps = 18432
 
     def get_env(self, file: str, code: str) -> TradingEnv:
