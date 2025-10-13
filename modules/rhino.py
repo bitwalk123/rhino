@@ -3,7 +3,6 @@ import os
 import unicodedata
 
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QCloseEvent
