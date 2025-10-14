@@ -52,7 +52,7 @@ class Tamer:
             price,  # 株価
             volume,  # 出来高
             self.trans_man.getProfit(price),  # 含み益
-            self.n_transaction_max - n_transactions,  # 残り取引回数
+            self.n_transaction_max - n_transactions,  # 正規化した残り取引回数
             self.getPosition()  # ポジション
         )
         if n_transactions >= self.n_transaction_max:

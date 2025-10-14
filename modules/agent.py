@@ -4,6 +4,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal
 from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from funcs.ios import get_excel_sheet
 from modules.env import TradingEnv
@@ -18,9 +19,8 @@ class PPOAgent(QObject):
         super().__init__()
         self.res = res
         self._stopping = False
-        self.total_timesteps = 1572864
-        # self.total_timesteps = 393216
-        # self.total_timesteps = 18432
+        # self.total_timesteps = 1572864
+        self.total_timesteps = 200000
 
     def get_env(self, file: str, code: str) -> TradingEnv:
         # Excel ファイルをフルパスに
@@ -46,6 +46,8 @@ class PPOAgent(QObject):
         # 学習環境の取得
         env = self.get_env(file, code)
         env = Monitor(env, self.res.dir_log)  # Monitorの利用
+        env = DummyVecEnv([lambda: env])
+        env = VecNormalize(env, norm_obs=True, norm_reward=True)
 
         # PPO モデルの生成
         # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
@@ -65,12 +67,9 @@ class PPOAgent(QObject):
 
     def infer(self, file: str, code: str):
         # 学習環境の取得
-        env = self.get_env(file, code)
-
-        # 学習環境のリセット
-        obs, info = env.reset()
-        lstm_state = None
-        total_reward = 0.0
+        env0 = self.get_env(file, code)
+        env = DummyVecEnv([lambda: env0])
+        env = VecNormalize(env, norm_obs=True, norm_reward=True)
 
         # 学習済モデルを読み込む
         model_path = self.get_model_path(code)
@@ -80,8 +79,13 @@ class PPOAgent(QObject):
             print(f"モデルを {model_path} がありませんでした。")
             self.finishedInferring.emit()
             return
-
         model = RecurrentPPO.load(model_path, env, verbose=True)
+
+        # 学習環境のリセット
+        # obs, _ = env.reset()
+        obs = env.reset()
+        lstm_state = None
+        total_reward = 0.0
 
         # 推論の実行
         episode_over = False
@@ -90,22 +94,26 @@ class PPOAgent(QObject):
             action, lstm_state = model.predict(obs, state=lstm_state, deterministic=True)
 
             # 1ステップ実行
-            obs, reward, terminated, truncated, info = env.step(int(action))
+            # obs, reward, terminated, truncated, info = env.step(action)
+            obs, rewards, dones, infos = env.step(action)
 
             # モデル報酬
-            total_reward += reward
+            total_reward += rewards[0]
 
             # エピソード完了
-            episode_over = terminated or truncated
+            # episode_over = terminated or truncated
+            episode_over = dones[0]
 
         print("取引明細")
-        print(env.getTransaction())
+        print(env0.getTransaction())
 
+        '''
         print(f"--- テスト結果 ---")
         # モデル報酬（総額）
         print(f"モデル報酬（総額）: {total_reward:.2f}")
         if "pnl_total" in info.keys():
             print(f"最終的な累積報酬（1 株利益）: {info['pnl_total']:.2f}")
+        '''
 
         # 学習環境の解放
         env.close()

@@ -17,7 +17,7 @@ class ObservationManager:
         self.volume_prev = 0.0  # １つ前の出来高
 
         # 時系列の履歴数
-        self.n_history = 60
+        self.n_history = 30
         # FIFO バッファ（キュー）を作成
         self.deque_feature = deque(maxlen=self.n_history)
         # self.deque_feature の初期化（ゼロ埋め）
@@ -70,7 +70,7 @@ class ObservationManager:
             price: float,  # 株価
             volume: float,  # 出来高
             profit: float,  # 含み益
-            n_remain: int,  # 残り取引回数
+            n_remain: float,  # 残り取引回数
             position: PositionType  # ポジション
     ) -> np.ndarray:
         list_feature = list()
