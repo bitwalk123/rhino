@@ -35,7 +35,7 @@ class PPOAgent(QObject):
         else:
             env_vec = DummyVecEnv([lambda: env_raw])
 
-        env_normalize = VecNormalize(env_vec, norm_obs=False, norm_reward=True)
+        env_normalize = VecNormalize(env_vec, norm_obs=False, norm_reward=False)
 
         if not training:
             # 推論時は更新を止める（統計を固定）

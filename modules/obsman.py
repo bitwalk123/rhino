@@ -17,7 +17,7 @@ class ObservationManager:
         self.volume_prev = 0.0  # １つ前の出来高
 
         # 時系列の履歴数
-        self.n_history = 30
+        self.n_history = 60
         # FIFO バッファ（キュー）を作成
         self.deque_feature = deque(maxlen=self.n_history)
         # self.deque_feature の初期化（ゼロ埋め）
@@ -80,12 +80,12 @@ class ObservationManager:
         # 1. Price
         # list_feature.append(price)
         # 2. PriceDelta
-        # list_feature.append(self._get_price_delta(price))
-        # 2. VolumeDelta
+        list_feature.append(self._get_price_delta(price))
+        # 3. VolumeDelta
         list_feature.append(self._get_volume_delta(volume))
-        # 3. 含み益
+        # 4. 含み益
         list_feature.append(profit)
-        # 4. 残り取引回数
+        # 5. 残り取引回数
         list_feature.append(n_remain)
 
         # 一旦配列に変換
