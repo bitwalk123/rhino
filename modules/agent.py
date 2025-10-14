@@ -4,7 +4,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal
 from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 from funcs.ios import get_excel_sheet
 from modules.env import TradingEnv
@@ -20,29 +20,20 @@ class PPOAgent(QObject):
         self.res = res
         self._stopping = False
         # self.total_timesteps = 1572864
-        self.total_timesteps = 200000
+        self.total_timesteps = 100000
 
-    def get_env(self, file: str, code: str, training=True) -> VecNormalize:
+    def get_env(self, file: str, code: str) -> DummyVecEnv:
         # Excel ファイルをフルパスに
         path_excel = self.get_source_path(file)
         # Excel ファイルをデータフレームに読み込む
         df = get_excel_sheet(path_excel, code)
+
         # 環境のインスタンスを生成
         env_raw = TradingEnv(df)
-        if training:
-            env_monitor = Monitor(env_raw, self.res.dir_log)  # Monitorの利用
-            env_vec = DummyVecEnv([lambda: env_monitor])
-        else:
-            env_vec = DummyVecEnv([lambda: env_raw])
+        env_monitor = Monitor(env_raw, self.res.dir_log)  # Monitorの利用
+        env_vec = DummyVecEnv([lambda: env_monitor])
 
-        env_normalize = VecNormalize(env_vec, norm_obs=False, norm_reward=False)
-
-        if not training:
-            # 推論時は更新を止める（統計を固定）
-            env_normalize.training = False
-            env_normalize.norm_reward = False  # 報酬は推論では使わないことが多い
-
-        return env_normalize
+        return env_vec
 
     def get_model_path(self, code: str) -> str:
         return os.path.join(self.res.dir_model, f"ppo_{code}.zip")
@@ -71,7 +62,7 @@ class PPOAgent(QObject):
         model.save(model_path)
         print(f"モデルを {model_path} に保存しました。")
 
-        print(env.venv.envs[0].env.getTransaction())
+        print(env.envs[0].env.getTransaction())
 
         # 学習環境の解放
         env.close()
@@ -79,7 +70,7 @@ class PPOAgent(QObject):
 
     def infer(self, file: str, code: str):
         # 学習環境の取得
-        env = self.get_env(file, code, training=False)
+        env = self.get_env(file, code)
 
         # 学習済モデルを読み込む
         model_path = self.get_model_path(code)

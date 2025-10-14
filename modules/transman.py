@@ -20,24 +20,20 @@ class TransactionManager:
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self._init_transaction()  # 取引明細
 
-
-        # 僅かな取引ルール適合報酬
+        # 取引ルール適合時の僅かな報酬
         self.reward_comply_rule_small = +0.1
-        # 取引ルール違反
+        # 取引ルール違反時のペナルティ
         self.penalty_rule_transaction = -0.1
         # 取引ルール違反カウンター
-        self.count_violate_rule_transaction = 0
+        self.count_violate_rule_transaction: int = 0
 
-        # 僅かな HOLD 報酬
-        self.reward_hold_small = +0.001
+        # 建玉を持っている時の HOLD 報酬
+        self.reward_hold_small = +0.01
         # HOLD ペナルティ
-        self.penalty_hold_small = -0.01
+        self.penalty_hold_small = -0.001
 
-        # 収益 0 の時の僅かなペナルティ
-        self.penalty_profit_zero = -0.01
-        # 収益がマイナスの時のペナルティ・レシオ（保留）
-        self.penalty_ratio_profit_minus = 1.0
-
+        # 建玉返済時に損益 0 の場合のペナルティ
+        self.penalty_profit_zero = -0.5
 
     def _add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self._get_datetime(t))
@@ -121,6 +117,9 @@ class TransactionManager:
                 # =============================================================
                 self.position = PositionType.LONG  # ポジションを更新
                 self.price_entry = price + self.slippage  # 取得価格
+                # =============================================================
+                # 取引明細
+                # =============================================================
                 self._add_transaction(t, "買建", price)
             elif action_type == ActionType.SELL:
                 # 取引ルール適合
@@ -130,6 +129,9 @@ class TransactionManager:
                 # =============================================================
                 self.position = PositionType.SHORT  # ポジションを更新
                 self.price_entry = price - self.slippage  # 取得価格
+                # =============================================================
+                # 取引明細
+                # =============================================================
                 self._add_transaction(t, "売建", price)
             elif action_type == ActionType.REPAY:
                 # 取引ルール違反
@@ -141,9 +143,7 @@ class TransactionManager:
             # ポジションが有る場合に取りうるアクションは HOLD, REPAY
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                # 取引ルール適合
-                # reward += self._comply_transaction_rule()
-                # ほんの僅かな HOLD 報酬
+                # 僅かな HOLD 報酬
                 reward += self.reward_hold_small
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
@@ -154,7 +154,11 @@ class TransactionManager:
             elif action_type == ActionType.REPAY:
                 # 取引ルール適合
                 reward += self._comply_transaction_rule()
-                profit = self.getProfit(price)  # 実現損益
+                # 実現損益
+                profit = self.getProfit(price)
+                # =============================================================
+                # 取引明細
+                # =============================================================
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
                     self._add_transaction(t, "売埋", price, profit)
@@ -166,15 +170,12 @@ class TransactionManager:
                 # =============================================================
                 # 損益確定
                 # =============================================================
-                if profit > 0:
+                if profit == 0.0:
+                    # profit == 0（損益 0）の時は僅かなペナルティ
+                    reward += self.penalty_profit_zero
+                else:
                     # 呼び値で割って報酬を正規化
                     reward += profit / self.tickprice
-                if profit < 0:
-                    # 収益がマイナスの時は、少し大きめに強調
-                    reward += profit / self.tickprice * self.penalty_ratio_profit_minus
-                else:
-                    # profit == 0 の時は僅かなペナルティ
-                    reward += self.penalty_profit_zero
                 self.pnl_total += profit
                 # =============================================================
                 # ポジション解消
