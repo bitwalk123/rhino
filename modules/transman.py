@@ -24,14 +24,14 @@ class TransactionManager:
         # 僅かな取引ルール適合報酬
         self.reward_comply_rule_small = +0.1
         # 取引ルール違反
-        self.penalty_rule_transaction = -1.0
+        self.penalty_rule_transaction = -0.1
         # 取引ルール違反カウンター
         self.count_violate_rule_transaction = 0
 
         # 僅かな HOLD 報酬
         self.reward_hold_small = +0.001
         # HOLD ペナルティ
-        self.penalty_hold_small = -0.1
+        self.penalty_hold_small = -0.01
 
         # 収益 0 の時の僅かなペナルティ
         self.penalty_profit_zero = -0.01

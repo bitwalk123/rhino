@@ -20,7 +20,7 @@ class PPOAgent(QObject):
         self.res = res
         self._stopping = False
         # self.total_timesteps = 1572864
-        self.total_timesteps = 100000
+        self.total_timesteps = 200000
 
     def get_env(self, file: str, code: str, training=True) -> VecNormalize:
         # Excel ファイルをフルパスに
