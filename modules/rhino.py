@@ -141,13 +141,12 @@ class Rhino(MainWindow):
 
     def on_finished_training(self):
         print("finished training!")
+        """
         file = self.get_selected_files()
         code = self.toolbar.getCurrentCode()
         self.requestInferring.emit(file, code)
         print("start inferring as test!")
-
-    def on_finished_inferring(self):
-        print("finished inferring!")
+        """
         file_csv = "monitor.csv"
         path_monitor = os.path.join(self.res.dir_log, file_csv)
         if not os.path.exists(path_monitor):
@@ -155,6 +154,9 @@ class Rhino(MainWindow):
             return
         df = pd.read_csv(path_monitor, skiprows=[0])
         self.add_chart_learning_curve(df)
+
+    def on_finished_inferring(self):
+        print("finished inferring!")
 
     def on_pig(self):
         print("DEBUG!")

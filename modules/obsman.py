@@ -24,7 +24,7 @@ class ObservationManager:
         self.initObs()
         # 特徴量の数
         self.n_feature = len(self.deque_feature[-1])
-        # print(self.n_history, self.n_feature)
+        print(f"(n_history, n_feature) = ({self.n_history}, {self.n_feature})")
 
     def _get_price_delta(self, price: float) -> float:
         if self.price_prev == 0:
@@ -76,14 +76,16 @@ class ObservationManager:
         list_feature = list()
 
         # 1. PriceRatio
-        list_feature.append(self._get_price_ratio(price))
+        # list_feature.append(self._get_price_ratio(price))
+        # 1. Price
+        list_feature.append(price)
         # 2. PriceDelta
-        list_feature.append(self._get_price_delta(price))
-        # 3. VolumeDelta
+        # list_feature.append(self._get_price_delta(price))
+        # 2. VolumeDelta
         list_feature.append(self._get_volume_delta(volume))
-        # 4. 含み益
+        # 3. 含み益
         list_feature.append(profit)
-        # 5. 残り取引回数
+        # 4. 残り取引回数
         list_feature.append(n_remain)
 
         # 一旦配列に変換
