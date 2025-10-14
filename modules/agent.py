@@ -71,6 +71,8 @@ class PPOAgent(QObject):
         model.save(model_path)
         print(f"モデルを {model_path} に保存しました。")
 
+        print(env.venv.envs[0].env.getTransaction())
+
         # 学習環境の解放
         env.close()
         self.finishedTraining.emit()
