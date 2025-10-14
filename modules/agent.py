@@ -3,12 +3,42 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal
 from sb3_contrib import RecurrentPPO
+from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from funcs.ios import get_excel_sheet
 from modules.env import TradingEnv
 from structs.res import AppRes
+
+
+class SaveBestModelCallback(BaseCallback):
+    def __init__(self, save_path: str, reward_path: str, verbose: int = 1):
+        super().__init__(verbose)
+        self.save_path = save_path
+        self.reward_path = reward_path
+        self.best_mean_reward = self._load_best_reward()
+
+    def _load_best_reward(self):
+        if os.path.exists(self.reward_path):
+            with open(self.reward_path, "r") as f:
+                return float(f.read())
+        return -float("inf")
+
+    def _save_best_reward(self, reward: float):
+        with open(self.reward_path, "w") as f:
+            f.write(str(reward))
+
+    def _on_step(self) -> bool:
+        if "episode" in self.locals["infos"][0]:
+            ep_reward = self.locals["infos"][0]["episode"]["r"]
+            if ep_reward > self.best_mean_reward:
+                self.best_mean_reward = ep_reward
+                self.model.save(self.save_path)
+                self._save_best_reward(ep_reward)
+                if self.verbose > 0:
+                    print(f"✅ New best reward: {ep_reward:.2f} → Model saved.")
+        return True
 
 
 class PPOAgent(QObject):
@@ -35,8 +65,10 @@ class PPOAgent(QObject):
 
         return env_vec
 
-    def get_model_path(self, code: str) -> str:
-        return os.path.join(self.res.dir_model, f"ppo_{code}.zip")
+    def get_model_path(self, code: str) -> tuple[str, str]:
+        model_path = os.path.join(self.res.dir_model, f"ppo_{code}.zip")
+        reward_path = os.path.join(self.res.dir_model, f"best_reward_{code}.txt")
+        return model_path, reward_path
 
     def get_source_path(self, file: str) -> str:
         path_excel = str(Path(os.path.join(self.res.dir_collection, file)).resolve())
@@ -55,12 +87,9 @@ class PPOAgent(QObject):
         model = RecurrentPPO("MlpLstmPolicy", env, verbose=True)
 
         # モデルの学習
-        model.learn(total_timesteps=self.total_timesteps)
-
-        # モデルの保存
-        model_path = self.get_model_path(code)
-        model.save(model_path)
-        print(f"モデルを {model_path} に保存しました。")
+        model_path, reward_path = self.get_model_path(code)
+        callback = SaveBestModelCallback(save_path=model_path, reward_path=reward_path)
+        model.learn(total_timesteps=self.total_timesteps, callback=callback)
 
         print(env.envs[0].env.getTransaction())
 
@@ -73,7 +102,7 @@ class PPOAgent(QObject):
         env = self.get_env(file, code)
 
         # 学習済モデルを読み込む
-        model_path = self.get_model_path(code)
+        model_path, reward_path = self.get_model_path(code)
         if os.path.exists(model_path):
             print(f"モデル {model_path} を読み込みます。")
         else:
