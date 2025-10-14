@@ -14,7 +14,7 @@ class Tamer:
 
     def __init__(self, code: str):
         # 取引回数の上限
-        self.n_transaction_max = 200
+        self.n_transaction_max = 1000
 
         # 取引管理用インスタンス
         self.trans_man = TransactionManager(code)

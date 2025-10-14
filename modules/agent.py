@@ -27,20 +27,22 @@ class PPOAgent(QObject):
         path_excel = self.get_source_path(file)
         # Excel ファイルをデータフレームに読み込む
         df = get_excel_sheet(path_excel, code)
-        # 学習環境のインスタンスを生成
-        env = TradingEnv(df)
+        # 環境のインスタンスを生成
+        env_raw = TradingEnv(df)
         if training:
-            env = Monitor(env, self.res.dir_log)  # Monitorの利用
+            env_monitor = Monitor(env_raw, self.res.dir_log)  # Monitorの利用
+            env_vec = DummyVecEnv([lambda: env_monitor])
+        else:
+            env_vec = DummyVecEnv([lambda: env_raw])
 
-        env = DummyVecEnv([lambda: env])
-        env = VecNormalize(env, norm_obs=False, norm_reward=True)
+        env_normalize = VecNormalize(env_vec, norm_obs=False, norm_reward=True)
 
         if not training:
             # 推論時は更新を止める（統計を固定）
-            env.training = False
-            env.norm_reward = False  # 報酬は推論では使わないことが多い
+            env_normalize.training = False
+            env_normalize.norm_reward = False  # 報酬は推論では使わないことが多い
 
-        return env
+        return env_normalize
 
     def get_model_path(self, code: str) -> str:
         return os.path.join(self.res.dir_model, f"ppo_{code}.zip")
