@@ -160,7 +160,7 @@ class Rhino(MainWindow):
 
     def on_pig(self):
         print("DEBUG!")
-        file_csv = "monitor.csv"
+        file_csv = "training.csv"
         path_monitor = os.path.join(self.res.dir_log, file_csv)
         if not os.path.exists(path_monitor):
             print(f"{file_csv} is not found in {self.res.dir_log}!")

@@ -76,9 +76,9 @@ class ObservationManager:
         list_feature = list()
 
         # 1. PriceRatio
-        # list_feature.append(self._get_price_ratio(price))
+        list_feature.append(self._get_price_ratio(price))
         # 1. Price
-        list_feature.append(price)
+        # list_feature.append(price)
         # 2. PriceDelta
         # list_feature.append(self._get_price_delta(price))
         # 2. VolumeDelta

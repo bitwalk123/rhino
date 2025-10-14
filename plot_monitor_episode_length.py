@@ -3,9 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-    # monitor.csv の読み込み
+    # training.csv の読み込み
     dir_log = "./logs"
-    name_log = "monitor.csv"
+    name_log = "training.csv"
     # 最初の行の読み込みを除外
     df = pd.read_csv(os.path.join(dir_log, name_log), skiprows=[0])
 

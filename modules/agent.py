@@ -22,13 +22,24 @@ class PPOAgent(QObject):
         # self.total_timesteps = 1572864
         self.total_timesteps = 100000
 
-    def get_env(self, file: str, code: str) -> TradingEnv:
+    def get_env(self, file: str, code: str, training=True) -> VecNormalize:
         # Excel ファイルをフルパスに
         path_excel = self.get_source_path(file)
         # Excel ファイルをデータフレームに読み込む
         df = get_excel_sheet(path_excel, code)
         # 学習環境のインスタンスを生成
         env = TradingEnv(df)
+        if training:
+            env = Monitor(env, self.res.dir_log)  # Monitorの利用
+
+        env = DummyVecEnv([lambda: env])
+        env = VecNormalize(env, norm_obs=False, norm_reward=True)
+
+        if not training:
+            # 推論時は更新を止める（統計を固定）
+            env.training = False
+            env.norm_reward = False  # 報酬は推論では使わないことが多い
+
         return env
 
     def get_model_path(self, code: str) -> str:
@@ -45,9 +56,6 @@ class PPOAgent(QObject):
     def train(self, file: str, code: str):
         # 学習環境の取得
         env = self.get_env(file, code)
-        env = Monitor(env, self.res.dir_log)  # Monitorの利用
-        env = DummyVecEnv([lambda: env])
-        env = VecNormalize(env, norm_obs=True, norm_reward=True)
 
         # PPO モデルの生成
         # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
@@ -67,9 +75,7 @@ class PPOAgent(QObject):
 
     def infer(self, file: str, code: str):
         # 学習環境の取得
-        env0 = self.get_env(file, code)
-        env = DummyVecEnv([lambda: env0])
-        env = VecNormalize(env, norm_obs=True, norm_reward=True)
+        env = self.get_env(file, code, training=False)
 
         # 学習済モデルを読み込む
         model_path = self.get_model_path(code)
@@ -104,17 +110,6 @@ class PPOAgent(QObject):
             # エピソード完了
             # episode_over = terminated or truncated
             episode_over = dones[0]
-
-        print("取引明細")
-        print(env0.getTransaction())
-
-        '''
-        print(f"--- テスト結果 ---")
-        # モデル報酬（総額）
-        print(f"モデル報酬（総額）: {total_reward:.2f}")
-        if "pnl_total" in info.keys():
-            print(f"最終的な累積報酬（1 株利益）: {info['pnl_total']:.2f}")
-        '''
 
         # 学習環境の解放
         env.close()
