@@ -21,15 +21,15 @@ class TransactionManager:
         self.dict_transaction = self._init_transaction()  # 取引明細
 
         # ほんの僅かなルール適合報酬
-        self.reward_comply_rule_small = +0.01
+        self.reward_comply_rule_small = +0.001
 
         # 僅かな HOLD 報酬
         self.reward_hold_small = +0.001
 
-        # 僅かな HOLD ペナルティ
-        self.penalty_hold_small = -0.001
+        # HOLD ペナルティ
+        self.penalty_hold_small = -0.01
         # 収益 0 の時の僅かなペナルティ
-        self.penalty_profit_zero = -0.001
+        self.penalty_profit_zero = -0.01
         # 収益がマイナスの時のペナルティ・レシオ（保留）
         self.penalty_ratio_profit_minus = 1.0
 

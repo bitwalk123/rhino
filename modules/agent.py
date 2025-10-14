@@ -20,7 +20,7 @@ class PPOAgent(QObject):
         self.res = res
         self._stopping = False
         # self.total_timesteps = 1572864
-        self.total_timesteps = 200000
+        self.total_timesteps = 100000
 
     def get_env(self, file: str, code: str) -> TradingEnv:
         # Excel ファイルをフルパスに
@@ -92,6 +92,7 @@ class PPOAgent(QObject):
         while not episode_over:
             # モデルの推論
             action, lstm_state = model.predict(obs, state=lstm_state, deterministic=True)
+            print(action)
 
             # 1ステップ実行
             # obs, reward, terminated, truncated, info = env.step(action)
