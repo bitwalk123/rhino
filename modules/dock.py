@@ -19,7 +19,6 @@ from widgets.views import ListView
 
 
 class Dock(DockWidget):
-    #listedSheets = Signal(list)
     selectionChanged = Signal(str, list)
 
     def __init__(self, res: AppRes):
@@ -40,7 +39,6 @@ class Dock(DockWidget):
         self.lv = lv = ListView()
         # lv.setMinimumWidth(200)
         lv.clicked.connect(self.on_clicked)
-        #lv.clickedOutsideCheckBox.connect(self.on_clicked)
         layout.addWidget(lv)
 
         model = QStandardItemModel(lv)
@@ -53,11 +51,7 @@ class Dock(DockWidget):
             model.appendRow(item)
 
     def getCurrentFile(self) -> str:
-        #idx = self.lv.selectedIndexes()
-        #print(idx)
-        #return
         idx = self.lv.currentIndex().row()
-        print(f"現在のインデックス: {idx}")
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.item(idx)
         try:
@@ -79,11 +73,11 @@ class Dock(DockWidget):
         return list_file
 
     def on_clicked(self, midx: QModelIndex):
+        #print("ファイルが選択（クリック）されました。")
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.itemFromIndex(midx)
         file: str = item.text()
         path_excel = os.path.join(self.res.dir_collection, file)
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
-            # self.listedSheets.emit(list_sheet)
             self.selectionChanged.emit(path_excel, list_sheet)

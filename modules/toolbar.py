@@ -49,8 +49,10 @@ class ToolBar(QToolBar):
         self.clickedPlay.emit()
 
     def updateCodeList(self, list_code: list):
+        self.combo_code.currentIndexChanged.disconnect(self.changed_code)
         self.combo_code.clear()
         self.combo_code.addItems(list_code)
+        self.combo_code.currentIndexChanged.connect(self.changed_code)
         # デフォルトの銘柄コードがリストにあれば表示
         if self.code_default in list_code:
             self.combo_code.setCurrentIndex(list_code.index(self.code_default))
