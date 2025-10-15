@@ -37,18 +37,6 @@ class TraningEnv(TradingEnv):
         n_history, n_feature = self.tamer.getObsDim()
         super().__init__(n_history, n_feature)
 
-        """
-        self.observation_space = gym.spaces.Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=(n_history, n_feature),
-            dtype=np.float32
-        )
-
-        # アクション空間
-        self.action_space = gym.spaces.Discrete(self.tamer.getActionSize())
-        """
-
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
         # IMPORTANT: Must call this first to seed the random number generator
         super().reset(seed=seed)
