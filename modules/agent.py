@@ -42,7 +42,7 @@ class SaveBestModelCallback(BaseCallback):
 
 
 class PPOAgent(QObject):
-    finishedTraining = Signal()
+    finishedTraining = Signal(str)
     finishedInferring = Signal()
 
     def __init__(self, res: AppRes):
@@ -50,7 +50,8 @@ class PPOAgent(QObject):
         self.res = res
         self._stopping = False
         # self.total_timesteps = 1572864
-        self.total_timesteps = 100000
+        # self.total_timesteps = 100000
+        self.total_timesteps = 20000
 
     def get_env(self, file: str, code: str) -> DummyVecEnv:
         # Excel ファイルをフルパスに
@@ -91,11 +92,14 @@ class PPOAgent(QObject):
         callback = SaveBestModelCallback(save_path=model_path, reward_path=reward_path)
         model.learn(total_timesteps=self.total_timesteps, callback=callback)
 
-        print(env.envs[0].env.getTransaction())
+        # 最後の取引履歴
+        df_transaction = env.envs[0].env.getTransaction()
+        print(df_transaction)
+        print(f"損益: {df_transaction["損益"].sum():.1f} 円")
 
         # 学習環境の解放
         env.close()
-        self.finishedTraining.emit()
+        self.finishedTraining.emit(file)
 
     def infer(self, file: str, code: str):
         # 学習環境の取得

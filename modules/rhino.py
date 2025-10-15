@@ -99,12 +99,12 @@ class Rhino(MainWindow):
 
         self.thread.start()
 
-    def add_chart_learning_curve(self, df: pd.DataFrame):
+    def add_chart_learning_curve(self, df: pd.DataFrame, file_path: str):
         label_tab = "学習曲線"
         for idx in list(reversed(range(self.tabbase.count()))):
             if self.tabbase.tabText(idx) == label_tab:
                 self.tabbase.removeTab(idx)
-        win_leaning_curve = WinLearningCurve(self.res, df)
+        win_leaning_curve = WinLearningCurve(self.res, df, file_path)
         self.tabbase.addTab(win_leaning_curve, label_tab)
         self.tabbase.setCurrentWidget(win_leaning_curve)
 
@@ -139,21 +139,15 @@ class Rhino(MainWindow):
             file = list_file[0]
         return file
 
-    def on_finished_training(self):
+    def on_finished_training(self, file_train: str):
         print("finished training!")
-        """
-        file = self.get_selected_files()
-        code = self.toolbar.getCurrentCode()
-        self.requestInferring.emit(file, code)
-        print("start inferring as test!")
-        """
         file_csv = "monitor.csv"
         path_monitor = os.path.join(self.res.dir_log, file_csv)
         if not os.path.exists(path_monitor):
             print(f"{file_csv} is not found in {self.res.dir_log}!")
             return
         df = pd.read_csv(path_monitor, skiprows=[0])
-        self.add_chart_learning_curve(df)
+        self.add_chart_learning_curve(df, file_train)
 
     def on_finished_inferring(self):
         print("finished inferring!")

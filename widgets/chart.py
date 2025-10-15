@@ -43,7 +43,7 @@ class SimpleTrendChart(Chart):
     def __init__(self, res: AppRes):
         super().__init__(res)
         # 余白設定
-        self.figure.subplots_adjust(left=0.1, right=0.99, top=0.99, bottom=0.15)
+        self.figure.subplots_adjust(left=0.1, right=0.99, top=0.90, bottom=0.15)
 
     def updateData(self, df: pd.DataFrame, dict_info: dict):
         # トレンドライン（株価）
@@ -52,6 +52,7 @@ class SimpleTrendChart(Chart):
         self.ax.cla()
         # プロット
         self.ax.plot(ser)
+        self.ax.set_title(dict_info["title"])
         self.ax.set_xlabel(dict_info["xlabel"])
         self.ax.set_ylabel(dict_info["ylabel"])
         self.ax.grid(True, lw=0.5)
