@@ -119,16 +119,10 @@ class Rhino(MainWindow):
         self.logger.info(f"{__name__} Thread safely stopped. Exiting.")
         event.accept()
 
+    """
     def code_list_updated(self, list_code):
-        """
-        銘柄コードのリストをツールバーのコンボボックスへ反映
-        Args:
-            list_code: 銘柄コードのリスト（Excel ファイルのシート名）
-
-        Returns:
-
-        """
         self.toolbar.updateCodeList(list_code)
+    """
 
     def file_selection_changed(self, path_excel: str, list_code: list):
         print(f"{path_excel} が選択されました。")
@@ -190,6 +184,7 @@ class Rhino(MainWindow):
         """
         # 現在選択されている Excel ファイル名の取得
         file = self.dock.getCurrentFile()
+        print(f"現在選択されているファイルは {file} です。")
         if file == "":
             # file が空だったら処理終了
             return

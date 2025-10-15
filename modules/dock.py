@@ -39,8 +39,8 @@ class Dock(DockWidget):
 
         self.lv = lv = ListView()
         # lv.setMinimumWidth(200)
-        # lv.clicked.connect(self.on_clicked)
-        lv.clickedOutsideCheckBox.connect(self.on_clicked)
+        lv.clicked.connect(self.on_clicked)
+        #lv.clickedOutsideCheckBox.connect(self.on_clicked)
         layout.addWidget(lv)
 
         model = QStandardItemModel(lv)
@@ -53,7 +53,11 @@ class Dock(DockWidget):
             model.appendRow(item)
 
     def getCurrentFile(self) -> str:
+        #idx = self.lv.selectedIndexes()
+        #print(idx)
+        #return
         idx = self.lv.currentIndex().row()
+        print(f"現在のインデックス: {idx}")
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.item(idx)
         try:
