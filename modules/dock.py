@@ -19,8 +19,8 @@ from widgets.views import ListView
 
 
 class Dock(DockWidget):
-    listedSheets = Signal(list)
-    selectionChanged = Signal(str)
+    #listedSheets = Signal(list)
+    selectionChanged = Signal(str, list)
 
     def __init__(self, res: AppRes):
         super().__init__()
@@ -81,5 +81,5 @@ class Dock(DockWidget):
         path_excel = os.path.join(self.res.dir_collection, file)
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
-            self.listedSheets.emit(list_sheet)
-            self.selectionChanged.emit(path_excel)
+            # self.listedSheets.emit(list_sheet)
+            self.selectionChanged.emit(path_excel, list_sheet)

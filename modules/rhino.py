@@ -64,7 +64,7 @@ class Rhino(MainWindow):
         # 右側のドック
         # ---------------------------------------------------------------------
         self.dock = dock = Dock(res)
-        dock.listedSheets.connect(self.code_list_updated)
+        # dock.listedSheets.connect(self.code_list_updated)
         dock.selectionChanged.connect(self.file_selection_changed)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
@@ -130,8 +130,9 @@ class Rhino(MainWindow):
         """
         self.toolbar.updateCodeList(list_code)
 
-    def file_selection_changed(self, path_excel: str):
+    def file_selection_changed(self, path_excel: str, list_code: list):
         print(f"{path_excel} が選択されました。")
+        self.toolbar.updateCodeList(list_code)
         # self.win_tick のタブを表示
         self.tabbase.setCurrentWidget(self.win_tick)
 
