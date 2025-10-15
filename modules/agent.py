@@ -100,12 +100,12 @@ class PPOAgent(QObject):
         model_path, _ = self.get_model_path(code)
         if os.path.exists(model_path):
             print(f"モデル {model_path} を読み込みます。")
-            model = RecurrentPPO.load(model_path, env, verbose=True)
+            model = RecurrentPPO.load(model_path, env, verbose=1)
         else:
             print(f"新規モデルを作成します。")
             # PPO モデルの生成
             # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
-            model = RecurrentPPO("MlpLstmPolicy", env, verbose=True)
+            model = RecurrentPPO("MlpLstmPolicy", env, verbose=1)
 
         # モデルの学習
         model.learn(total_timesteps=self.total_timesteps)
@@ -128,7 +128,7 @@ class PPOAgent(QObject):
 
         # PPO モデルの生成
         # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
-        model = RecurrentPPO("MlpLstmPolicy", env, verbose=True)
+        model = RecurrentPPO("MlpLstmPolicy", env, verbose=1)
 
         # モデルの学習
         model_path, reward_path = self.get_model_path(code)
@@ -163,11 +163,10 @@ class PPOAgent(QObject):
             print(f"モデルを {model_path} がありませんでした。")
             self.finishedInferring.emit()
             return
-        model = RecurrentPPO.load(model_path, env, verbose=True)
+        model = RecurrentPPO.load(model_path, env, verbose=1)
 
         # 学習環境のリセット
-        # obs, _ = env.reset()
-        obs = env.reset()
+        obs, _ = env.reset()
         lstm_state = None
         total_reward = 0.0
 
