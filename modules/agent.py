@@ -102,6 +102,9 @@ class PPOAgent(QObject):
         self.finishedTraining.emit(file)
 
     def infer(self, file: str, code: str):
+        pass
+        """
+        # 推論専用のプログラム作成まで保留
         # 学習環境の取得
         env = self.get_env(file, code)
 
@@ -143,3 +146,4 @@ class PPOAgent(QObject):
         env.close()
 
         self.finishedInferring.emit()
+        """

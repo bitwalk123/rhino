@@ -78,7 +78,7 @@ class Rhino(MainWindow):
         tabbase.addTab(win_tick, "ティックチャート")
 
         # ---------------------------------------------------------------------
-        # スレッド用インスタンス
+        # スレッド用インスタンス (PPOAgent)
         # ---------------------------------------------------------------------
         # スレッドとワーカー準備
         self.thread = QThread()
@@ -106,6 +106,7 @@ class Rhino(MainWindow):
                 self.tabbase.removeTab(idx)
         win_leaning_curve = WinLearningCurve(self.res, df, file_path)
         self.tabbase.addTab(win_leaning_curve, label_tab)
+        # win_leaning_curve のタブを表示
         self.tabbase.setCurrentWidget(win_leaning_curve)
 
     def closeEvent(self, event: QCloseEvent):
@@ -131,6 +132,7 @@ class Rhino(MainWindow):
 
     def file_selection_changed(self, path_excel: str):
         print(f"{path_excel} が選択されました。")
+        # self.win_tick のタブを表示
         self.tabbase.setCurrentWidget(self.win_tick)
 
     def get_selected_files(self) -> str:
