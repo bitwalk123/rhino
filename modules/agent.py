@@ -46,6 +46,7 @@ class SaveBestModelCallback(BaseCallback):
             ep_reward = self.locals["infos"][0]["episode"]["r"]
             if ep_reward > self.best_mean_reward:
                 self.best_mean_reward = ep_reward
+                # ■■■ self.model はどこで定義されている？ ■■■
                 self.model.save(self.save_path)
                 self._save_best_reward(ep_reward)
                 if self.verbose > 0:
@@ -92,6 +93,36 @@ class PPOAgent(QObject):
         self._stopping = True
 
     def train(self, file: str, code: str):
+        # 学習環境の取得
+        env = self.get_env(file, code)
+
+        # 学習済モデルを読み込む
+        model_path, _ = self.get_model_path(code)
+        if os.path.exists(model_path):
+            print(f"モデル {model_path} を読み込みます。")
+            model = RecurrentPPO.load(model_path, env, verbose=True)
+        else:
+            print(f"新規モデルを作成します。")
+            # PPO モデルの生成
+            # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
+            model = RecurrentPPO("MlpLstmPolicy", env, verbose=True)
+
+        # モデルの学習
+        model.learn(total_timesteps=self.total_timesteps)
+
+        print(f"モデルを {model_path} に保存します。")
+        model.save(model_path)
+
+        # 最後の取引履歴
+        df_transaction = env.envs[0].env.getTransaction()
+        print(df_transaction)
+        print(f"損益: {df_transaction["損益"].sum():.1f} 円")
+
+        # 学習環境の解放
+        env.close()
+        self.finishedTraining.emit(file)
+
+    def train_cherry_pick(self, file: str, code: str):
         # 学習環境の取得
         env = self.get_env(file, code)
 
