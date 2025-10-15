@@ -5,28 +5,39 @@ import numpy as np
 import pandas as pd
 
 from modules.tamer import Tamer
+from structs.app_enum import ActionType
 
 
 class TradingEnv(gym.Env):
+    def __init__(self, n_history: int, n_feature: int):
+        super().__init__()
+        self.observation_space = gym.spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=(n_history, n_feature),
+            dtype=np.float32
+        )
+
+        # アクション空間
+        self.action_space = gym.spaces.Discrete(len(ActionType))
+
+
+class TraningEnv(TradingEnv):
     # 環境クラス
     def __init__(self, df: pd.DataFrame):
-        super().__init__()
         self.df = df.reset_index(drop=True)  # Time, Price, Volume のみ
-
         # 銘柄コード
         code = "7011"  # 現在のところは固定で良い
-
         # 売買管理＆特徴量生成クラス
         self.tamer = Tamer(code)
-
-        # ウォームアップ期間
-        # self.period = 60
-
         # 現在の行位置
         self.step_current = 0
 
         # 観測空間
         n_history, n_feature = self.tamer.getObsDim()
+        super().__init__(n_history, n_feature)
+
+        """
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
@@ -36,6 +47,7 @@ class TradingEnv(gym.Env):
 
         # アクション空間
         self.action_space = gym.spaces.Discrete(self.tamer.getActionSize())
+        """
 
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
         # IMPORTANT: Must call this first to seed the random number generator
