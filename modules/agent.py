@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Callable
 
 from PySide6.QtCore import QObject, Signal
 from sb3_contrib import RecurrentPPO
@@ -13,11 +14,18 @@ from structs.res import AppRes
 
 
 class SaveBestModelCallback(BaseCallback):
-    def __init__(self, save_path: str, reward_path: str, verbose: int = 1):
+    def __init__(
+            self,
+            save_path: str,
+            reward_path: str,
+            should_stop: Callable[[], bool],
+            verbose=1
+    ):
         super().__init__(verbose)
         self.save_path = save_path
         self.reward_path = reward_path
         self.best_mean_reward = self._load_best_reward()
+        self.should_stop = should_stop
 
     def _load_best_reward(self):
         if os.path.exists(self.reward_path):
@@ -30,6 +38,10 @@ class SaveBestModelCallback(BaseCallback):
             f.write(str(reward))
 
     def _on_step(self) -> bool:
+        if self.should_stop():
+            print("🛑 Training interrupted by user.")
+            return False  # 学習を中断
+
         if "episode" in self.locals["infos"][0]:
             ep_reward = self.locals["infos"][0]["episode"]["r"]
             if ep_reward > self.best_mean_reward:
@@ -89,7 +101,11 @@ class PPOAgent(QObject):
 
         # モデルの学習
         model_path, reward_path = self.get_model_path(code)
-        callback = SaveBestModelCallback(save_path=model_path, reward_path=reward_path)
+        callback = SaveBestModelCallback(
+            save_path=model_path,
+            reward_path=reward_path,
+            should_stop=lambda: self._stopping
+        )
         model.learn(total_timesteps=self.total_timesteps, callback=callback)
 
         # 最後の取引履歴
