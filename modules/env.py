@@ -11,6 +11,7 @@ from structs.app_enum import ActionType
 class TradingEnv(gym.Env):
     def __init__(self, n_history: int, n_feature: int):
         super().__init__()
+        self._external_obs = None
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
@@ -21,8 +22,18 @@ class TradingEnv(gym.Env):
         # アクション空間
         self.action_space = gym.spaces.Discrete(len(ActionType))
 
+    def setExternalObservation(self, obs: np.ndarray):
+        self._external_obs = obs
 
-class TraningEnv(TradingEnv):
+    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None) -> tuple[np.ndarray, dict]:
+        super().reset(seed=seed)
+        return self._external_obs, {}
+
+    def step(self, action):
+        return self._external_obs, 0.0, False, True, {}
+
+
+class TrainingEnv(TradingEnv):
     # 環境クラス
     def __init__(self, df: pd.DataFrame):
         self.df = df.reset_index(drop=True)  # Time, Price, Volume のみ
@@ -37,7 +48,7 @@ class TraningEnv(TradingEnv):
         n_history, n_feature = self.tamer.getObsDim()
         super().__init__(n_history, n_feature)
 
-    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
+    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         # IMPORTANT: Must call this first to seed the random number generator
         super().reset(seed=seed)
 

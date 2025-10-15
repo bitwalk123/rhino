@@ -8,7 +8,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from funcs.ios import get_excel_sheet
-from modules.env import TraningEnv
+from modules.env import TrainingEnv
 from structs.res import AppRes
 
 
@@ -59,7 +59,7 @@ class PPOAgent(QObject):
         df = get_excel_sheet(path_excel, code)
 
         # 環境のインスタンスを生成
-        env_raw = TraningEnv(df)
+        env_raw = TrainingEnv(df)
         env_monitor = Monitor(env_raw, self.res.dir_log)  # Monitorの利用
         env_vec = DummyVecEnv([lambda: env_monitor])
 
