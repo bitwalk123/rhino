@@ -122,7 +122,10 @@ class PPOAgent(QObject):
 
         # モデルの学習
         # model.learn(total_timesteps=self.total_timesteps)
-        model.learn(total_timesteps=int(1e8), callback=EpisodeLimitCallback(max_episodes=10))
+        model.learn(
+            total_timesteps=int(1e8),
+            callback=EpisodeLimitCallback(max_episodes=10)
+        )
 
         print(f"モデルを {model_path} に保存します。")
         model.save(model_path)
