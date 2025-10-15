@@ -38,8 +38,9 @@ class Dock(DockWidget):
         base.setLayout(layout)
 
         self.lv = lv = ListView()
-        #lv.setMinimumWidth(200)
-        lv.clicked.connect(self.on_clicked)
+        # lv.setMinimumWidth(200)
+        # lv.clicked.connect(self.on_clicked)
+        lv.clickedOutsideCheckBox.connect(self.on_clicked)
         layout.addWidget(lv)
 
         model = QStandardItemModel(lv)
@@ -58,7 +59,7 @@ class Dock(DockWidget):
         try:
             file: str = item.text()
         except AttributeError:
-            file:str = ""
+            file: str = ""
 
         return file
 
