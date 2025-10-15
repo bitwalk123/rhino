@@ -13,6 +13,19 @@ from modules.env import TrainingEnv
 from structs.res import AppRes
 
 
+class EpisodeLimitCallback(BaseCallback):
+    def __init__(self, max_episodes, verbose=0):
+        super().__init__(verbose)
+        self.max_episodes = max_episodes
+        self.episode_count = 0
+
+    def _on_step(self) -> bool:
+        # `done` フラグが True のとき、エピソード終了
+        if self.locals.get("dones") is not None:
+            self.episode_count += sum(self.locals["dones"])
+        return self.episode_count < self.max_episodes
+
+
 class SaveBestModelCallback(BaseCallback):
     def __init__(
             self,
@@ -108,7 +121,8 @@ class PPOAgent(QObject):
             model = RecurrentPPO("MlpLstmPolicy", env, verbose=1)
 
         # モデルの学習
-        model.learn(total_timesteps=self.total_timesteps)
+        # model.learn(total_timesteps=self.total_timesteps)
+        model.learn(total_timesteps=int(1e8), callback=EpisodeLimitCallback(max_episodes=10))
 
         print(f"モデルを {model_path} に保存します。")
         model.save(model_path)
