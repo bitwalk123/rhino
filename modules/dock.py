@@ -2,9 +2,9 @@ import logging
 import os
 
 from PySide6.QtCore import (
+    QAbstractItemModel,
     QMargins,
     QModelIndex,
-    QAbstractItemModel,
     Qt,
     Signal,
 )

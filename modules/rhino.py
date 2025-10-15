@@ -129,6 +129,10 @@ class Rhino(MainWindow):
         """
         self.toolbar.updateCodeList(list_code)
 
+    def file_selection_changed(self, path_excel: str):
+        print(f"{path_excel} が選択されました。")
+        self.tabbase.setCurrentWidget(self.win_tick)
+
     def get_selected_files(self) -> str:
         # チェックされているファイルをリストで取得
         list_file = self.dock.getItemsSelected()
@@ -171,10 +175,6 @@ class Rhino(MainWindow):
         file = self.get_selected_files()
         code = self.toolbar.getCurrentCode()
         self.requestTraining.emit(file, code)
-
-    def file_selection_changed(self, path_excel: str):
-        pass
-        # print(path_excel)
 
     def update_chart(self, code: str):
         """
