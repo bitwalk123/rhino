@@ -38,7 +38,8 @@ class Dock(DockWidget):
 
         self.lv = lv = ListView()
         # lv.setMinimumWidth(200)
-        lv.clicked.connect(self.on_clicked)
+        # lv.clicked.connect(self.on_clicked)
+        lv.clickedOutsideCheckBox.connect(self.on_clicked)
         layout.addWidget(lv)
 
         model = QStandardItemModel(lv)
@@ -73,10 +74,10 @@ class Dock(DockWidget):
         return list_file
 
     def on_clicked(self, midx: QModelIndex):
-        #print("ファイルが選択（クリック）されました。")
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.itemFromIndex(midx)
-        file: str = item.text()
+        file = item.text()
+        print(f"ファイル {file} が選択（クリック）されました。")
         path_excel = os.path.join(self.res.dir_collection, file)
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
