@@ -21,14 +21,14 @@ class TransactionManager:
         self.dict_transaction = self._init_transaction()  # 取引明細
 
         # 取引ルール適合時の僅かな報酬
-        self.reward_comply_rule_small = +0.1
+        self.reward_comply_rule_small = +0.01
         # 取引ルール違反時のペナルティ
-        self.penalty_rule_transaction = -0.1
+        self.penalty_rule_transaction = -0.01
         # 取引ルール違反カウンター
         self.count_violate_rule_transaction: int = 0
 
         # 建玉を持っている時の HOLD 報酬
-        self.reward_hold_small = +0.01
+        self.reward_hold_small = +0.001
         # HOLD ペナルティ
         self.penalty_hold_small = -0.001
 
