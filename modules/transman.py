@@ -30,7 +30,7 @@ class TransactionManager:
         # 建玉を持っている時の HOLD 報酬
         self.reward_hold_small = +0.0001
         # HOLD ペナルティ
-        self.penalty_hold = -0.1
+        self.penalty_hold = -0.001
 
         # 建玉返済時に損益 0 の場合のペナルティ
         self.penalty_profit_zero = -0.2
