@@ -1,6 +1,7 @@
 import logging
 import os
 import unicodedata
+from collections import deque
 
 import pandas as pd
 
@@ -80,6 +81,9 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # スレッド用インスタンス (PPOAgent)
         # ---------------------------------------------------------------------
+        # ワーカー (PPOAgent) へ渡すファイル名のキュー
+        self.deque_file = deque()
+        self.code: str = ""  # 銘柄コード
         # スレッドとワーカー準備
         self.thread = QThread()
         self.worker = PPOAgent(res)
@@ -130,18 +134,14 @@ class Rhino(MainWindow):
         # self.win_tick のタブを表示
         self.tabbase.setCurrentWidget(self.win_tick)
 
-    def get_selected_files(self) -> str:
+    def get_checked_files(self) -> list:
         # チェックされているファイルをリストで取得
-        list_file = self.dock.getItemsSelected()
-        if len(list_file) == 0:
-            print("選択されたファイルはありません。")
-            file = ""
-        else:
-            file = list_file[0]
-        return file
+        return self.dock.getItemsSelected()
 
     def on_finished_training(self, file_train: str):
-        print("finished training!")
+        # ---------------------------------------------------------------------
+        # 報酬の学習曲線をタブに表示
+        # ---------------------------------------------------------------------
         file_csv = "monitor.csv"
         path_monitor = os.path.join(self.res.dir_log, file_csv)
         if not os.path.exists(path_monitor):
@@ -149,6 +149,10 @@ class Rhino(MainWindow):
             return
         df = pd.read_csv(path_monitor, skiprows=[0])
         self.add_chart_learning_curve(df, file_train)
+        # ---------------------------------------------------------------------
+        # 次の学習
+        # ---------------------------------------------------------------------
+        self.training()
 
     def on_finished_inferring(self):
         print("finished inferring!")
@@ -161,13 +165,27 @@ class Rhino(MainWindow):
         学習モデルのトレーニング
         Returns:
         """
-        file = self.get_selected_files()
-        code = self.toolbar.getCurrentCode()
-        self.requestTraining.emit(file, code)
+        list_file = self.get_checked_files()
+        if len(list_file) == 0:
+            print("チェックされたファイルはありません。")
+            return
+        # トレーニングするティックデータのファイルリストをキューイング
+        self.deque_file = deque(list_file)
+        # 銘柄コードの取得
+        self.code = self.toolbar.getCurrentCode()
+        # ---------------------------------------------------------------------
+        # 最初の学習
+        # ---------------------------------------------------------------------
+        print("***  Training Loop  ***")
+        self.training()
 
-    def update_chart_prep(self):
-        # GUI をリフレッシュする効果
-        QTimer.singleShot(0, self.update_chart)
+    def training(self):
+        if len(self.deque_file) > 0:
+            file = self.deque_file.popleft()
+            print(f"start training with {self.code} in {file}.")
+            self.requestTraining.emit(file, self.code)
+        else:
+            print("finished training(s)!")
 
     def update_chart(self):
         """
@@ -193,3 +211,7 @@ class Rhino(MainWindow):
         path_excel = os.path.join(self.res.dir_collection, file)
         # チャートの更新
         self.win_tick.updateChart(path_excel, code, title)
+
+    def update_chart_prep(self):
+        # GUI をリフレッシュする効果
+        QTimer.singleShot(0, self.update_chart)
