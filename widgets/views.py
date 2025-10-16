@@ -14,12 +14,11 @@ class ListView(QListView):
         self.setContentsMargins(QMargins(0, 0, 0, 0))
 
     def mousePressEvent(self, event: QMouseEvent):
-        mindex = self.indexAt(event.position().toPoint())
-        # print("internal-1:", mindex.row())
-        if not mindex.isValid():
+        midx = self.indexAt(event.position().toPoint())
+        if not midx.isValid():
             return super().mousePressEvent(event)
 
-        rect = self.visualRect(mindex)
+        rect = self.visualRect(midx)
         option = QStyleOptionViewItem()
         option.initFrom(self)
         option.rect = rect
@@ -38,6 +37,5 @@ class ListView(QListView):
         if check_rect.contains(event.position().toPoint()):
             return super().mousePressEvent(event)
         else:
-            print("internal-2:", mindex.row())
-            self.clickedOutsideCheckBox.emit(mindex)
+            self.clickedOutsideCheckBox.emit(midx)
             return super().mousePressEvent(event)

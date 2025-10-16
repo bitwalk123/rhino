@@ -31,6 +31,7 @@ class ToolBar(QToolBar):
         hpad = PadH()
         self.addWidget(hpad)
 
+        # 機能確認やデバッグ用に使用
         action_pig = QAction(get_icon(self.res, "pig.png"), "豚", self)
         action_pig.triggered.connect(self.on_pig)
         self.addAction(action_pig)

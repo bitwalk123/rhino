@@ -126,7 +126,6 @@ class Rhino(MainWindow):
         event.accept()
 
     def file_selection_changed(self, path_excel: str, list_code: list):
-        print(f"{path_excel} が選択されました。")
         self.toolbar.updateCodeList(list_code)
         # self.win_tick のタブを表示
         self.tabbase.setCurrentWidget(self.win_tick)
@@ -155,26 +154,19 @@ class Rhino(MainWindow):
         print("finished inferring!")
 
     def on_pig(self):
-        print("DEBUG!")
-        file_csv = "training.csv"
-        path_monitor = os.path.join(self.res.dir_log, file_csv)
-        if not os.path.exists(path_monitor):
-            print(f"{file_csv} is not found in {self.res.dir_log}!")
-            return
-        df = pd.read_csv(path_monitor, skiprows=[0])
-        self.add_chart_learning_curve(df, "")
+        print("for DEBUG!")
 
     def on_play(self):
         """
         学習モデルのトレーニング
         Returns:
-
         """
         file = self.get_selected_files()
         code = self.toolbar.getCurrentCode()
         self.requestTraining.emit(file, code)
 
     def update_chart_prep(self):
+        # GUI をリフレッシュする効果
         QTimer.singleShot(0, self.update_chart)
 
     def update_chart(self):
@@ -184,7 +176,6 @@ class Rhino(MainWindow):
             code: 銘柄コード
 
         Returns:
-
         """
         # 現在選択されている Excel ファイル名の取得
         file = self.dock.getCurrentFile()

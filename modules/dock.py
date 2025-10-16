@@ -6,7 +6,7 @@ from PySide6.QtCore import (
     QMargins,
     QModelIndex,
     Qt,
-    Signal, QItemSelectionModel,
+    Signal,
 )
 from PySide6.QtGui import QStandardItem, QStandardItemModel, QColor
 
@@ -37,8 +37,6 @@ class Dock(DockWidget):
         base.setLayout(layout)
 
         self.lv = lv = ListView()
-        # lv.setMinimumWidth(200)
-        # lv.clicked.connect(self.on_clicked)
         lv.clickedOutsideCheckBox.connect(self.on_clicked)
         layout.addWidget(lv)
 
@@ -47,8 +45,6 @@ class Dock(DockWidget):
 
     def getCurrentFile(self) -> str:
         idx = self.lv.currentIndex().row()
-        print("lv のインデックス", idx)
-        # model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = self.model.item(idx)
         try:
             file: str = item.text()
@@ -72,7 +68,7 @@ class Dock(DockWidget):
         model: QStandardItemModel | QAbstractItemModel = self.lv.model()
         item: QStandardItem = model.itemFromIndex(midx)
         file = item.text()
-        print(f"ファイル {file} が選択（クリック）されました。")
+        # print(f"ファイル {file} が選択（クリック）されました。")
         path_excel = os.path.join(self.res.dir_collection, file)
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
@@ -89,9 +85,3 @@ class Dock(DockWidget):
             else:
                 item.setBackground(QColor("#ffffff"))  # 白
             self.model.appendRow(item)
-        """
-        midx = self.model.index(0, 0)
-        self.lv.selectionModel().select(midx, QItemSelectionModel.SelectionFlag.Select)
-        self.lv.setCurrentIndex(midx)  # 表示上も選択状態にする
-        self.on_clicked(midx)
-        """
