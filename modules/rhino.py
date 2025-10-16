@@ -153,6 +153,7 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # 次の学習
         # ---------------------------------------------------------------------
+        print("%%% インターバル休憩 %%%")
         QTimer.singleShot(self.time_sleep, self.training)
 
     def on_finished_inferring(self):
@@ -187,10 +188,10 @@ class Rhino(MainWindow):
     def training(self):
         if len(self.deque_file) > 0:
             file = self.deque_file.popleft()
-            print(f"start training with {self.code} in {file}.")
+            print(f"%%% start training with {self.code} in {file}. %%%")
             self.requestTraining.emit(file, self.code)
         else:
-            print("finished training(s)!")
+            print("%%% finished training(s)! %%%")
 
     def update_chart(self):
         """
