@@ -97,7 +97,14 @@ class Rhino(MainWindow):
         # 終了シグナルでスレッド停止
         # self.worker.finished.connect(self.thread.quit)
 
+        # スレッド開始
         self.thread.start()
+
+        # ---------------------------------------------------------------------
+        # ドックにティックファイル一覧を表示
+        # ---------------------------------------------------------------------
+        self.dock.setTickFiles()
+
 
     def add_chart_learning_curve(self, df: pd.DataFrame, file_path: str):
         label_tab = "学習曲線"

@@ -6,7 +6,7 @@ from PySide6.QtCore import (
     QMargins,
     QModelIndex,
     Qt,
-    Signal,
+    Signal, QItemSelectionModel,
 )
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
@@ -42,19 +42,14 @@ class Dock(DockWidget):
         lv.clickedOutsideCheckBox.connect(self.on_clicked)
         layout.addWidget(lv)
 
-        model = QStandardItemModel(lv)
+        self.model = model = QStandardItemModel(lv)
         lv.setModel(model)
-
-        files = sorted(os.listdir(res.dir_collection))
-        for file in files:
-            item = QStandardItem(file)
-            item.setCheckable(True)
-            model.appendRow(item)
 
     def getCurrentFile(self) -> str:
         idx = self.lv.currentIndex().row()
-        model: QStandardItemModel | QAbstractItemModel = self.lv.model()
-        item: QStandardItem = model.item(idx)
+        print("lv のインデックス", idx)
+        # model: QStandardItemModel | QAbstractItemModel = self.lv.model()
+        item: QStandardItem = self.model.item(idx)
         try:
             file: str = item.text()
         except AttributeError:
@@ -82,3 +77,17 @@ class Dock(DockWidget):
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
             self.selectionChanged.emit(path_excel, list_sheet)
+
+    def setTickFiles(self):
+        files = sorted(os.listdir(self.res.dir_collection))
+        for file in files:
+            item = QStandardItem(file)
+            item.setCheckable(True)
+            self.model.appendRow(item)
+        """
+        midx = self.model.index(0, 0)
+        print(midx, type(midx))
+        self.lv.selectionModel().select(midx, QItemSelectionModel.SelectionFlag.Select)
+        self.lv.setCurrentIndex(midx)  # 表示上も選択状態にする
+        self.on_clicked(midx)
+        """

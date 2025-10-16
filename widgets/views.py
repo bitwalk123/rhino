@@ -6,18 +6,9 @@ from PySide6.QtWidgets import QListView, QStyleOptionViewItem, QStyle
 class ListView(QListView):
     clickedOutsideCheckBox = Signal(QModelIndex)
 
-    def __init__(self):
-        super().__init__()
-        self.setContentsMargins(QMargins(0, 0, 0, 0))
-        self.setStyleSheet("""
-            QListView {
-                font-family: monospace;
-                font-size: 10pt;
-            }
-        """)
-
     def mousePressEvent(self, event: QMouseEvent):
         mindex = self.indexAt(event.position().toPoint())
+        #print("internal-1:", mindex.row())
         if not mindex.isValid():
             return super().mousePressEvent(event)
 
@@ -40,5 +31,6 @@ class ListView(QListView):
         if check_rect.contains(event.position().toPoint()):
             return super().mousePressEvent(event)
         else:
+            print("internal-2:", mindex.row())
             self.clickedOutsideCheckBox.emit(mindex)
             return super().mousePressEvent(event)
