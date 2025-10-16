@@ -38,8 +38,8 @@ class Dock(DockWidget):
 
         self.lv = lv = ListView()
         # lv.setMinimumWidth(200)
-        # lv.clicked.connect(self.on_clicked)
-        lv.clickedOutsideCheckBox.connect(self.on_clicked)
+        lv.clicked.connect(self.on_clicked)
+        # lv.clickedOutsideCheckBox.connect(self.on_clicked)
         layout.addWidget(lv)
 
         self.model = model = QStandardItemModel(lv)
@@ -84,10 +84,7 @@ class Dock(DockWidget):
             item = QStandardItem(file)
             item.setCheckable(True)
             self.model.appendRow(item)
-        """
         midx = self.model.index(0, 0)
-        print(midx, type(midx))
         self.lv.selectionModel().select(midx, QItemSelectionModel.SelectionFlag.Select)
         self.lv.setCurrentIndex(midx)  # 表示上も選択状態にする
         self.on_clicked(midx)
-        """
