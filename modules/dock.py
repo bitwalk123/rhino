@@ -8,7 +8,7 @@ from PySide6.QtCore import (
     Qt,
     Signal, QItemSelectionModel,
 )
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtGui import QStandardItem, QStandardItemModel, QColor
 
 from funcs.ios import get_excel_sheet_list
 from structs.res import AppRes
@@ -80,9 +80,14 @@ class Dock(DockWidget):
 
     def setTickFiles(self):
         files = sorted(os.listdir(self.res.dir_collection))
-        for file in files:
+        for i, file in enumerate(files):
             item = QStandardItem(file)
             item.setCheckable(True)
+            # 偶数行と奇数行で色を変える
+            if i % 2 == 0:
+                item.setBackground(QColor("#f0f0f0"))  # 明るめグレー
+            else:
+                item.setBackground(QColor("#ffffff"))  # 白
             self.model.appendRow(item)
         midx = self.model.index(0, 0)
         self.lv.selectionModel().select(midx, QItemSelectionModel.SelectionFlag.Select)
