@@ -84,6 +84,7 @@ class Rhino(MainWindow):
         # ワーカー (PPOAgent) へ渡すファイル名のキュー
         self.deque_file = deque()
         self.code: str = ""  # 銘柄コード
+        self.time_sleep: int = 180000
         # スレッドとワーカー準備
         self.thread = QThread()
         self.worker = PPOAgent(res)
@@ -152,7 +153,7 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # 次の学習
         # ---------------------------------------------------------------------
-        self.training()
+        QTimer.singleShot(self.time_sleep, self.training)
 
     def on_finished_inferring(self):
         print("finished inferring!")
@@ -169,14 +170,18 @@ class Rhino(MainWindow):
         if len(list_file) == 0:
             print("チェックされたファイルはありません。")
             return
+        # ---------------------------------------------------------------------
+        # 最初の学習
+        # ---------------------------------------------------------------------
+        print("\n***  Training Loop  ***")
+        for file in list_file:
+            print(file)
+        print("***********************")
         # トレーニングするティックデータのファイルリストをキューイング
         self.deque_file = deque(list_file)
         # 銘柄コードの取得
         self.code = self.toolbar.getCurrentCode()
-        # ---------------------------------------------------------------------
-        # 最初の学習
-        # ---------------------------------------------------------------------
-        print("***  Training Loop  ***")
+        # 学習の開始
         self.training()
 
     def training(self):
