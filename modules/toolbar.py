@@ -49,10 +49,15 @@ class ToolBar(QToolBar):
         self.clickedPlay.emit()
 
     def updateCodeList(self, list_code: list):
+        # 一旦、スロットを削除
         self.combo_code.currentIndexChanged.disconnect(self.changed_code)
+        # ComboBox のリストをクリア
         self.combo_code.clear()
+        # list_code を ComboBox のリストへ反映
         self.combo_code.addItems(list_code)
+        # スロットを再定義
         self.combo_code.currentIndexChanged.connect(self.changed_code)
         # デフォルトの銘柄コードがリストにあれば表示
+        # ■■■ なかった場合は？ ■■■
         if self.code_default in list_code:
             self.combo_code.setCurrentIndex(list_code.index(self.code_default))
