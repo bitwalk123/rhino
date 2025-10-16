@@ -23,18 +23,19 @@ class TransactionManager:
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 報酬設計
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        # ***** 取引ルール関係 *****
         # 取引ルール適合時の僅かな報酬
         self.reward_comply_rule_small = +0.1
         # 取引ルール違反時のペナルティ
         self.penalty_rule_transaction = -0.1
         # 取引ルール違反カウンター
         self.count_violate_rule_transaction: int = 0
-
+        # ***** HOLD 関係 *****
         # 建玉を持っている時の HOLD 報酬
         self.reward_hold_small = +0.0001
-        # HOLD ペナルティ
+        # 建玉を持っていない時の HOLD ペナルティ
         self.penalty_hold = -0.0001
-
+        # ***** 損益関係 *****
         # 建玉返済時に損益 0 の場合のペナルティ
         self.penalty_profit_zero = -0.1
 
