@@ -20,6 +20,9 @@ class TransactionManager:
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self._init_transaction()  # 取引明細
 
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        # 報酬設計
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 取引ルール適合時の僅かな報酬
         self.reward_comply_rule_small = +0.1
         # 取引ルール違反時のペナルティ
@@ -30,10 +33,10 @@ class TransactionManager:
         # 建玉を持っている時の HOLD 報酬
         self.reward_hold_small = +0.0001
         # HOLD ペナルティ
-        self.penalty_hold = -0.001
+        self.penalty_hold = -0.0001
 
         # 建玉返済時に損益 0 の場合のペナルティ
-        self.penalty_profit_zero = -0.2
+        self.penalty_profit_zero = -0.1
 
     def _add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self._get_datetime(t))
