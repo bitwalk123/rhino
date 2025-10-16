@@ -21,19 +21,19 @@ class TransactionManager:
         self.dict_transaction = self._init_transaction()  # 取引明細
 
         # 取引ルール適合時の僅かな報酬
-        self.reward_comply_rule_small = +0.01
+        self.reward_comply_rule_small = +0.1
         # 取引ルール違反時のペナルティ
-        self.penalty_rule_transaction = -0.01
+        self.penalty_rule_transaction = -0.1
         # 取引ルール違反カウンター
         self.count_violate_rule_transaction: int = 0
 
         # 建玉を持っている時の HOLD 報酬
-        self.reward_hold_small = +0.001
+        self.reward_hold_small = +0.0001
         # HOLD ペナルティ
-        self.penalty_hold_small = -0.05
+        self.penalty_hold = -0.1
 
         # 建玉返済時に損益 0 の場合のペナルティ
-        self.penalty_profit_zero = -0.5
+        self.penalty_profit_zero = -0.2
 
     def _add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self._get_datetime(t))
@@ -108,7 +108,7 @@ class TransactionManager:
                 # 取引ルール適合
                 # reward += self._comply_transaction_rule()
                 # ほんの僅かな HOLD ペナルティ
-                reward += self.penalty_hold_small
+                reward += self.penalty_hold
             elif action_type == ActionType.BUY:
                 # 取引ルール適合
                 reward += self._comply_transaction_rule()

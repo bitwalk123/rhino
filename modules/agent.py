@@ -130,10 +130,12 @@ class PPOAgent(QObject):
         print(f"モデルを {model_path} に保存します。")
         model.save(model_path)
 
+        """
         # 最後の取引履歴
         df_transaction = env.envs[0].env.getTransaction()
         print(df_transaction)
         print(f"損益: {df_transaction["損益"].sum():.1f} 円")
+        """
 
         # 学習環境の解放
         env.close()
