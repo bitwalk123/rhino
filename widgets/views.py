@@ -4,16 +4,14 @@ from PySide6.QtWidgets import QListView, QStyleOptionViewItem, QStyle
 
 
 class ListView(QListView):
+    clickedOutsideCheckBox = Signal(QModelIndex)
+
     def __init__(self, *args):
         super().__init__(*args)
         self.setStyleSheet("""
             QListView {font-family: monospace;}
         """)
         self.setContentsMargins(QMargins(0, 0, 0, 0))
-
-
-class ListView2(QListView):
-    clickedOutsideCheckBox = Signal(QModelIndex)
 
     def mousePressEvent(self, event: QMouseEvent):
         mindex = self.indexAt(event.position().toPoint())

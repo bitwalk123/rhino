@@ -4,7 +4,7 @@ import unicodedata
 
 import pandas as pd
 
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QCloseEvent
 
 from funcs.commons import get_date_str_from_filename
@@ -57,7 +57,7 @@ class Rhino(MainWindow):
         self.toolbar = toolbar = ToolBar(res)
         toolbar.clickedPlay.connect(self.on_play)
         toolbar.clickedPig.connect(self.on_pig)
-        toolbar.codeChanged.connect(self.update_chart)
+        toolbar.codeChanged.connect(self.update_chart_prep)
         self.addToolBar(toolbar)
 
         # ---------------------------------------------------------------------
@@ -104,7 +104,6 @@ class Rhino(MainWindow):
         # ドックにティックファイル一覧を表示
         # ---------------------------------------------------------------------
         self.dock.setTickFiles()
-
 
     def add_chart_learning_curve(self, df: pd.DataFrame, file_path: str):
         label_tab = "学習曲線"
@@ -175,7 +174,10 @@ class Rhino(MainWindow):
         code = self.toolbar.getCurrentCode()
         self.requestTraining.emit(file, code)
 
-    def update_chart(self, code: str):
+    def update_chart_prep(self):
+        QTimer.singleShot(0, self.update_chart)
+
+    def update_chart(self):
         """
         チャートの更新
         Args:
@@ -186,6 +188,7 @@ class Rhino(MainWindow):
         """
         # 現在選択されている Excel ファイル名の取得
         file = self.dock.getCurrentFile()
+        code = self.toolbar.getCurrentCode()
         print(f"現在選択されているファイルは {file} です。銘柄コードは {code} です。")
         if file == "":
             # file が空だったら処理終了

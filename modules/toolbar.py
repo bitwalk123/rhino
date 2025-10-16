@@ -10,7 +10,7 @@ from widgets.containers import PadH
 class ToolBar(QToolBar):
     clickedPig = Signal()
     clickedPlay = Signal()
-    codeChanged = Signal(str)
+    codeChanged = Signal()
 
     def __init__(self, res: AppRes):
         super().__init__()
@@ -37,7 +37,7 @@ class ToolBar(QToolBar):
 
     def changed_code(self, idx: int):
         if idx >= 0:
-            self.codeChanged.emit(self.getCurrentCode())
+            self.codeChanged.emit()
 
     def getCurrentCode(self) -> str:
         return self.combo_code.currentText()
