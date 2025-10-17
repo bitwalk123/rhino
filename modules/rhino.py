@@ -108,7 +108,7 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # ドックにティックファイル一覧を表示
         # ---------------------------------------------------------------------
-        self.dock.setTickFiles()
+        self.dock.tick_files.setTickFiles()
 
     def add_chart_learning_curve(self, df: pd.DataFrame, file_path: str):
         label_tab = "学習曲線"
@@ -137,7 +137,7 @@ class Rhino(MainWindow):
 
     def get_checked_files(self) -> list:
         # チェックされているファイルをリストで取得
-        return self.dock.getItemsSelected()
+        return self.dock.tick_files.getItemsSelected()
 
     def on_finished_training(self, file_train: str):
         # ---------------------------------------------------------------------
@@ -153,8 +153,11 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # 次の学習
         # ---------------------------------------------------------------------
-        print("%%% インターバル休憩 %%%")
-        QTimer.singleShot(self.time_sleep, self.training)
+        if len(self.deque_file) > 0:
+            print("%%% インターバル休憩 %%%")
+            QTimer.singleShot(self.time_sleep, self.training)
+        else:
+            print("%%% finished training(s)! %%%")
 
     def on_finished_inferring(self):
         print("finished inferring!")
@@ -191,7 +194,7 @@ class Rhino(MainWindow):
             print(f"%%% start training with {self.code} in {file}. %%%")
             self.requestTraining.emit(file, self.code)
         else:
-            print("%%% finished training(s)! %%%")
+            print("%%% no tick file for training! %%%")
 
     def update_chart(self):
         """
@@ -202,7 +205,7 @@ class Rhino(MainWindow):
         Returns:
         """
         # 現在選択されている Excel ファイル名の取得
-        file = self.dock.getCurrentFile()
+        file = self.dock.tick_files.getCurrentFile()
         code = self.toolbar.getCurrentCode()
         print(f"現在選択されているファイルは {file} です。銘柄コードは {code} です。")
         if file == "":
