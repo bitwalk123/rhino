@@ -1,6 +1,6 @@
 from PySide6.QtCore import QMargins, Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QLabel, QFrame
 
 
 class LabelLeft(QLabel):
@@ -20,3 +20,10 @@ class LabelLeftSmall(LabelLeft):
         font.setStyleHint(QFont.StyleHint.Monospace)
         font.setPointSize(7)
         self.setFont(font)
+
+
+class LabelStatus(QLabel):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken)
+        self.setLineWidth(2)

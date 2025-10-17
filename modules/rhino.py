@@ -17,6 +17,8 @@ from modules.win_learning_curve import WinLearningCurve
 from modules.win_tick import WinTick
 from structs.res import AppRes
 from widgets.containers import MainWindow, TabWidget
+from widgets.labels import LabelStatus
+from widgets.statusbar import StatusBar
 
 
 class Rhino(MainWindow):
@@ -45,7 +47,7 @@ class Rhino(MainWindow):
         # UI
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # ウィンドウサイズ
-        self.setMinimumWidth(1000)
+        self.setMinimumWidth(1200)
         self.setFixedHeight(400)
 
         # ウィンドウタイトル
@@ -70,9 +72,18 @@ class Rhino(MainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
         # ---------------------------------------------------------------------
+        # ステータスバー
+        # ---------------------------------------------------------------------
+        self.statusbar = statusbar = StatusBar(res)
+        self.msg = msg = LabelStatus()
+        self.statusbar.addWidget(msg, stretch=1)
+        self.setStatusBar(statusbar)
+
+        # ---------------------------------------------------------------------
         # メイン・ウィンドウ
         # ---------------------------------------------------------------------
-        self.tabbase = tabbase = TabWidget()
+        self.tab_base = tabbase = TabWidget()
+        self.tab_base.setTabPosition(TabWidget.TabPosition.South)
         self.setCentralWidget(tabbase)
         # タブオブジェクト
         self.win_tick = win_tick = WinTick(res)
@@ -112,13 +123,13 @@ class Rhino(MainWindow):
 
     def add_chart_learning_curve(self, df: pd.DataFrame, file_path: str):
         label_tab = "学習曲線"
-        for idx in list(reversed(range(self.tabbase.count()))):
-            if self.tabbase.tabText(idx) == label_tab:
-                self.tabbase.removeTab(idx)
+        for idx in list(reversed(range(self.tab_base.count()))):
+            if self.tab_base.tabText(idx) == label_tab:
+                self.tab_base.removeTab(idx)
         win_leaning_curve = WinLearningCurve(self.res, df, file_path)
-        self.tabbase.addTab(win_leaning_curve, label_tab)
+        self.tab_base.addTab(win_leaning_curve, label_tab)
         # win_leaning_curve のタブを表示
-        self.tabbase.setCurrentWidget(win_leaning_curve)
+        self.tab_base.setCurrentWidget(win_leaning_curve)
 
     def closeEvent(self, event: QCloseEvent):
         """✕ボタンで安全にスレッド停止"""
@@ -133,7 +144,7 @@ class Rhino(MainWindow):
     def file_selection_changed(self, path_excel: str, list_code: list):
         self.toolbar.updateCodeList(list_code)
         # self.win_tick のタブを表示
-        self.tabbase.setCurrentWidget(self.win_tick)
+        self.tab_base.setCurrentWidget(self.win_tick)
 
     def get_checked_files(self) -> list:
         # チェックされているファイルをリストで取得

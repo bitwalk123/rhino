@@ -17,7 +17,7 @@ from PySide6.QtWidgets import QWidget
 from funcs.ios import get_excel_sheet_list
 from modules.win_tick_files import WinTickFiles
 from structs.res import AppRes
-from widgets.containers import Widget
+from widgets.containers import Widget, TabWidget
 from widgets.dockwidgets import DockWidget
 from widgets.layouts import VBoxLayout
 from widgets.views import ListView
@@ -33,6 +33,11 @@ class Dock(DockWidget):
 
         self.setTitleBarWidget(QWidget(None))
 
+        self.tab_base = tabbase = TabWidget()
+        self.tab_base.setTabPosition(TabWidget.TabPosition.East)
+        self.setWidget(tabbase)
+
+        # タブオブジェクト
         self.tick_files = tick_files = WinTickFiles(res)
         tick_files.selectionChanged.connect(self.fileSelectionChanged.emit)
-        self.setWidget(tick_files)
+        tabbase.addTab(tick_files, "ティックファイル")
