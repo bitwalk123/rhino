@@ -66,7 +66,7 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         self.dock = dock = Dock(res)
         # dock.listedSheets.connect(self.code_list_updated)
-        dock.selectionChanged.connect(self.file_selection_changed)
+        dock.fileSelectionChanged.connect(self.file_selection_changed)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
         # ---------------------------------------------------------------------

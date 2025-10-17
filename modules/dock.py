@@ -17,13 +17,13 @@ from PySide6.QtWidgets import QWidget
 from funcs.ios import get_excel_sheet_list
 from structs.res import AppRes
 from widgets.containers import Widget
-from widgets.docks import DockWidget, DockTitle
+from widgets.dockwidgets import DockWidget
 from widgets.layouts import VBoxLayout
 from widgets.views import ListView
 
 
 class Dock(DockWidget):
-    selectionChanged = Signal(str, list)
+    fileSelectionChanged = Signal(str, list)
 
     def __init__(self, res: AppRes):
         super().__init__()
@@ -74,7 +74,7 @@ class Dock(DockWidget):
         path_excel = os.path.join(self.res.dir_collection, file)
         list_sheet = get_excel_sheet_list(path_excel)
         if len(list_sheet) > 0:
-            self.selectionChanged.emit(path_excel, list_sheet)
+            self.fileSelectionChanged.emit(path_excel, list_sheet)
 
     def setTickFiles(self):
         files = sorted(os.listdir(self.res.dir_collection))
