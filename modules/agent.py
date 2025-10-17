@@ -97,6 +97,12 @@ class PPOAgent(QObject):
         reward_path = os.path.join(self.res.dir_model, f"best_reward_{code}.txt")
         return model_path, reward_path
 
+    def get_model_new(self, env: DummyVecEnv) -> RecurrentPPO:
+        # PPO モデルの生成
+        # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
+        model = RecurrentPPO("MlpLstmPolicy", env, verbose=1)
+        return model
+
     def get_source_path(self, file: str) -> str:
         path_excel = str(Path(os.path.join(self.res.dir_collection, file)).resolve())
         return path_excel
@@ -113,12 +119,14 @@ class PPOAgent(QObject):
         model_path, _ = self.get_model_path(code)
         if os.path.exists(model_path):
             print(f"モデル {model_path} を読み込みます。")
-            model = RecurrentPPO.load(model_path, env, verbose=1)
+            try:
+                model = RecurrentPPO.load(model_path, env, verbose=1)
+            except ValueError:
+                print("読み込み時、例外 ValueError が発生したので新規にモデルを作成します。")
+                model = self.get_model_new(env)
         else:
-            print(f"新規モデルを作成します。")
-            # PPO モデルの生成
-            # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
-            model = RecurrentPPO("MlpLstmPolicy", env, verbose=1)
+            print(f"新規にモデルを作成します。")
+            model = self.get_model_new(env)
 
         # モデルの学習
         # model.learn(total_timesteps=self.total_timesteps)
@@ -141,13 +149,12 @@ class PPOAgent(QObject):
         env.close()
         self.finishedTraining.emit(file)
 
+
     def train_cherry_pick(self, file: str, code: str):
         # 学習環境の取得
         env = self.get_env(file, code)
 
-        # PPO モデルの生成
-        # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
-        model = RecurrentPPO("MlpLstmPolicy", env, verbose=1)
+        model = self.get_model_new(env)
 
         # モデルの学習
         model_path, reward_path = self.get_model_path(code)
