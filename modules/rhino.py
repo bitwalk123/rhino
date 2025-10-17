@@ -45,7 +45,7 @@ class Rhino(MainWindow):
         # UI
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # ウィンドウサイズ
-        self.setMinimumWidth(1500)
+        self.setMinimumWidth(1000)
         self.setFixedHeight(400)
 
         # ウィンドウタイトル

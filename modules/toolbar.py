@@ -1,9 +1,10 @@
 from PySide6.QtCore import QMargins, Signal
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QComboBox, QToolBar
+from PySide6.QtWidgets import QToolBar
 
 from funcs.commons import get_icon
 from structs.res import AppRes
+from widgets.combos import ComboBox
 from widgets.containers import PadH
 
 
@@ -19,8 +20,7 @@ class ToolBar(QToolBar):
 
         self.setContentsMargins(QMargins(0, 0, 0, 0))
 
-        self.combo_code = combo_code = QComboBox()
-        combo_code.setContentsMargins(QMargins(0, 0, 0, 0))
+        self.combo_code = combo_code = ComboBox()
         combo_code.currentIndexChanged.connect(self.changed_code)
         self.addWidget(combo_code)
 
