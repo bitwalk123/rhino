@@ -48,7 +48,7 @@ class Rhino(MainWindow):
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # ウィンドウサイズ
         self.setMinimumWidth(1200)
-        self.setFixedHeight(400)
+        self.setFixedHeight(500)
 
         # ウィンドウタイトル
         title_win = f"{self.__app_name__} - {self.__version__}"

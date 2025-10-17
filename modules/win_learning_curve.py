@@ -31,7 +31,7 @@ class WinLearningCurve(MainWindow):
         # ---------------------------------------------------------------------
         # ステータスバー
         # ---------------------------------------------------------------------
-        self.statusbar = statusbar = StatusBar()
+        self.statusbar = statusbar = StatusBar(res)
         statusbar.setSizeGripEnabled(False)
         navbar = ChartNavigation(chart)
         statusbar.addWidget(navbar)
