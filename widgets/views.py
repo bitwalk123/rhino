@@ -9,7 +9,7 @@ class ListView(QListView):
     def __init__(self, *args):
         super().__init__(*args)
         self.setStyleSheet("""
-            QListView {font-family: monospace;}
+            QListView {font-family: monospace; font-size: 9pt;}
         """)
         self.setContentsMargins(QMargins(0, 0, 0, 0))
 

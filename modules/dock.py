@@ -14,7 +14,7 @@ class Dock(DockWidget):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.res = res
-
+        self.setFixedWidth(200)
         self.setTitleBarWidget(QWidget(None))
 
         self.tab_base = tabbase = TabWidget()
