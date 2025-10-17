@@ -23,12 +23,13 @@ class IndicatorBuySell(QFrame):
             QSizePolicy.Policy.Minimum
         )
         palette = self.palette()
-        self.background_default = palette.color(QPalette.ColorRole.Window)
-        # print(f"Default background color (RGB): {self.background_default.getRgb()}")
+        bg_default = palette.color(QPalette.ColorRole.Window)
+        r, g, b, _ = bg_default.getRgb()
+        self.bg_default_color = f"#{format(r, 'x')}{format(g, 'x')}{format(b, 'x')}"
 
     def setDefault(self):
-        self.setStyleSheet("")
-        self.setPalette(self.background_default)
+        self.setStyleSheet("QFrame{background-color: %s;}" % self.bg_default_color)
+        # self.setPalette(self.bg_default)
 
     def setBuy(self):
         self.setStyleSheet("QFrame{background-color: magenta;}")
