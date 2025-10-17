@@ -65,9 +65,4 @@ class WinTickFiles(Widget):
         for i, file in enumerate(files):
             item = QStandardItem(file)
             item.setCheckable(True)
-            # 偶数行と奇数行で色を変える
-            if i % 2 == 0:
-                item.setBackground(QColor("#f0f0f0"))  # 明るめグレー
-            else:
-                item.setBackground(QColor("#ffffff"))  # 白
             self.model.appendRow(item)
