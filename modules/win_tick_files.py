@@ -19,6 +19,9 @@ class WinTickFiles(Widget):
         self.logger = logging.getLogger(__name__)
         self.res = res
 
+        # False: 通常のチェックボックス, True: ラジオボタン風排他的選択
+        self.exclusive_check_mode = False
+
         self.layout = layout = VBoxLayout()
         self.setLayout(layout)
 
@@ -27,17 +30,8 @@ class WinTickFiles(Widget):
         layout.addWidget(lv)
 
         self.model = model = QStandardItemModel(lv)
+        model.itemChanged.connect(self.on_item_changed)
         lv.setModel(model)
-
-    def on_clicked(self, midx: QModelIndex):
-        model: QStandardItemModel | QAbstractItemModel = self.lv.model()
-        item: QStandardItem = model.itemFromIndex(midx)
-        file = item.text()
-        # print(f"ファイル {file} が選択（クリック）されました。")
-        path_excel = os.path.join(self.res.dir_collection, file)
-        list_sheet = get_excel_sheet_list(path_excel)
-        if len(list_sheet) > 0:
-            self.selectionChanged.emit(path_excel, list_sheet)
 
     def getCurrentFile(self) -> str:
         idx = self.lv.currentIndex().row()
@@ -49,16 +43,43 @@ class WinTickFiles(Widget):
 
         return file
 
-    def getItemsSelected(self) -> list:
+    def getItemsChecked(self) -> list:
+        """
         list_file = list()
-        model: QStandardItemModel | QAbstractItemModel = self.lv.model()
-        for idx in range(model.rowCount()):
-            item: QStandardItem = model.item(idx)
+        # model: QStandardItemModel | QAbstractItemModel = self.lv.model()
+        for idx in range(self.model.rowCount()):
+            item: QStandardItem = self.model.item(idx)
             file: str = item.text()
             state: Qt.CheckState = item.checkState()
             if state == Qt.CheckState.Checked:
                 list_file.append(file)
         return list_file
+        """
+        return [
+            item.text()
+            for item in (self.model.item(i) for i in range(self.model.rowCount()))
+            if item.checkState() == Qt.CheckState.Checked
+        ]
+
+    def on_clicked(self, midx: QModelIndex):
+        # model: QStandardItemModel | QAbstractItemModel = self.lv.model()
+        item: QStandardItem = self.model.itemFromIndex(midx)
+        file = item.text()
+        # print(f"ファイル {file} が選択（クリック）されました。")
+        path_excel = os.path.join(self.res.dir_collection, file)
+        list_sheet = get_excel_sheet_list(path_excel)
+        if len(list_sheet) > 0:
+            self.selectionChanged.emit(path_excel, list_sheet)
+
+    def on_item_changed(self, changed_item: QStandardItem):
+        if self.exclusive_check_mode and changed_item.checkState() == Qt.CheckState.Checked:
+            for i in range(self.model.rowCount()):
+                item = self.model.item(i)
+                if item is not changed_item:
+                    item.setCheckState(Qt.CheckState.Unchecked)
+
+    def setExclusiveCheckMode(self, enabled: bool):
+        self.exclusive_check_mode = enabled
 
     def setTickFiles(self):
         files = sorted(os.listdir(self.res.dir_collection))

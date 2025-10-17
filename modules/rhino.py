@@ -149,7 +149,7 @@ class Rhino(MainWindow):
 
     def get_checked_files(self) -> list:
         # チェックされているファイルをリストで取得
-        return self.dock.tick_files.getItemsSelected()
+        return self.dock.tick_files.getItemsChecked()
 
     def on_finished_training(self, file_train: str):
         # ---------------------------------------------------------------------
