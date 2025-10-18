@@ -100,25 +100,27 @@ class Rhino(MainWindow):
         self.deque_file = deque()
         self.code: str = ""  # 銘柄コード
         self.time_sleep: int = 180000
+        # ---------------------------------------------------------------------
         # スレッドとワーカー準備
-        self.thread = QThread()
-        self.worker = PPOAgent(res)
-        self.worker.moveToThread(self.thread)
+        # ---------------------------------------------------------------------
+        self.thread = thread = QThread()
+        self.worker = worker = PPOAgent(res)
+        worker.moveToThread(thread)
 
         # GUI → ワーカー
-        self.requestTraining.connect(self.worker.train)
-        self.requestInferring.connect(self.worker.infer)
+        self.requestTraining.connect(worker.train)
+        self.requestInferring.connect(worker.infer)
 
         # ワーカー → GUI
-        # self.worker.progress.connect(self.on_progress)
-        self.worker.finishedTraining.connect(self.on_finished_training)
-        self.worker.finishedInferring.connect(self.on_finished_inferring)
+        # worker.progress.connect(self.on_progress)
+        worker.finishedTraining.connect(self.on_finished_training)
+        worker.finishedInferring.connect(self.on_finished_inferring)
 
         # 終了シグナルでスレッド停止
-        # self.worker.finished.connect(self.thread.quit)
+        # worker.finished.connect(thread.quit)
 
         # スレッド開始
-        self.thread.start()
+        thread.start()
 
         # =====================================================================
         # ドックにティックファイル一覧を表示
