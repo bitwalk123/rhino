@@ -106,19 +106,15 @@ class Rhino(MainWindow):
         self.thread = thread = QThread()
         self.worker = worker = PPOAgent(res)
         worker.moveToThread(thread)
-
         # GUI → ワーカー
         self.requestTraining.connect(worker.train)
         self.requestInferring.connect(worker.infer)
-
         # ワーカー → GUI
         # worker.progress.connect(self.on_progress)
         worker.finishedTraining.connect(self.on_finished_training)
         worker.finishedInferring.connect(self.on_finished_inferring)
-
         # 終了シグナルでスレッド停止
         # worker.finished.connect(thread.quit)
-
         # スレッド開始
         thread.start()
 
