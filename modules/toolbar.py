@@ -76,7 +76,7 @@ class ToolBar(QToolBar):
     def on_play(self):
         self.clickedPlay.emit()
 
-    def resetNetModelStatus(self):
+    def resetNewModelStatus(self):
         """
         「新しいモデルを生成するか？」の
         チェックボックスの選択状態をリセット

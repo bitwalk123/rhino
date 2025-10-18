@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QCloseEvent
 
 from funcs.commons import get_date_str_from_filename
+from funcs.models import get_ppo_model_path
 from funcs.tse import get_jpx_ticker_list
 from modules.agent import PPOAgent
 from modules.dock import Dock
@@ -226,7 +227,16 @@ class Rhino(MainWindow):
         # トレーニングするティックデータのファイルリストをキューイング
         self.deque_file = deque(list_file)
         # 銘柄コードの取得
-        self.code = self.toolbar.getCurrentCode()
+        self.code = code = self.toolbar.getCurrentCode()
+        # 新規モデルにするか判定
+        if self.toolbar.needNewModel():
+            # モデルパスの取得
+            model_path, _ = get_ppo_model_path(self.res, code)
+            # パスが存在すれば削除
+            if os.path.exists(model_path):
+                os.remove(model_path)
+            # モデルの選択状態をリセット
+            self.toolbar.resetNewModelStatus()
         # 学習の開始
         self.training()
 
