@@ -2,7 +2,7 @@ import logging
 
 from PySide6.QtCore import Signal
 
-from modules.panel import PanelTrading
+from modules.panel_trading import PanelTrading
 from structs.res import AppRes
 from widgets.containers import Widget
 from widgets.labels import LCDValueWithTitle

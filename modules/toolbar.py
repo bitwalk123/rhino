@@ -3,6 +3,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QToolBar
 
 from funcs.commons import get_icon
+from modules.panel_switch import PanelSwitch
 from structs.res import AppRes
 from widgets.combos import ComboBox
 from widgets.containers import PadH
@@ -19,6 +20,11 @@ class ToolBar(QToolBar):
         self.code_default = "7011"
 
         self.setContentsMargins(QMargins(0, 0, 0, 0))
+
+        self.swicth = switch = PanelSwitch()
+        self.addWidget(switch)
+
+        self.addSeparator()
 
         self.combo_code = combo_code = ComboBox()
         combo_code.currentIndexChanged.connect(self.changed_code)

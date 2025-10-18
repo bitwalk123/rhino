@@ -9,6 +9,19 @@ from PySide6.QtWidgets import (
 )
 
 
+class Frame(QFrame):
+    def __init__(self):
+        super().__init__()
+        self.setContentsMargins(QMargins(0, 0, 0, 0))
+        self.setFrameStyle(
+            QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken
+        )
+        self.setLineWidth(1)
+        self.setStyleSheet("""
+            QFrame {padding-left: 10px; padding-right: 10px;}
+        """)
+
+
 class IndicatorBuySell(QFrame):
     def __init__(self):
         super().__init__()
