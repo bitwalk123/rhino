@@ -3,6 +3,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QToolBar
 
 from funcs.commons import get_icon
+from modules.panel_new import PanelNew
 from modules.panel_switch import PanelSwitch
 from structs.res import AppRes
 from widgets.combos import ComboBox
@@ -33,6 +34,11 @@ class ToolBar(QToolBar):
         action_play = QAction(get_icon(self.res, "play.png"), "開始", self)
         action_play.triggered.connect(self.on_play)
         self.addAction(action_play)
+
+        self.addSeparator()
+
+        chk_new = PanelNew()
+        self.addWidget(chk_new)
 
         hpad = PadH()
         self.addWidget(hpad)
