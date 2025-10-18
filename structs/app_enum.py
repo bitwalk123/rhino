@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class ActionType(Enum):
@@ -6,6 +6,11 @@ class ActionType(Enum):
     BUY = 1
     SELL = 2
     REPAY = 3
+
+
+class AppMode(Enum):
+    TRAIN = auto()
+    INFER = auto()
 
 
 class PositionType(Enum):

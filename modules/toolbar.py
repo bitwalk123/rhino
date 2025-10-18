@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QToolBar
 from funcs.commons import get_icon
 from modules.panel_new import PanelNew
 from modules.panel_switch import PanelSwitch
+from structs.app_enum import AppMode
 from structs.res import AppRes
 from widgets.combos import ComboBox
 from widgets.containers import PadH
@@ -14,6 +15,8 @@ class ToolBar(QToolBar):
     clickedPig = Signal()
     clickedPlay = Signal()
     codeChanged = Signal()
+    modeChanged = Signal(AppMode)
+
 
     def __init__(self, res: AppRes):
         super().__init__()
@@ -23,6 +26,7 @@ class ToolBar(QToolBar):
         self.setContentsMargins(QMargins(0, 0, 0, 0))
 
         self.swicth = switch = PanelSwitch()
+        switch.selectionChanged.connect(self.changed_mode)
         self.addWidget(switch)
 
         self.addSeparator()
@@ -37,7 +41,7 @@ class ToolBar(QToolBar):
 
         self.addSeparator()
 
-        chk_new = PanelNew()
+        self.chk_new = chk_new = PanelNew()
         self.addWidget(chk_new)
 
         hpad = PadH()
@@ -52,6 +56,12 @@ class ToolBar(QToolBar):
         if idx >= 0:
             self.codeChanged.emit()
 
+    def changed_mode(self, mode: AppMode):
+        if mode == AppMode.TRAIN:
+            self.set_mode_train()
+        else:
+            self.set_mode_infer()
+
     def getCurrentCode(self) -> str:
         return self.combo_code.currentText()
 
@@ -60,6 +70,14 @@ class ToolBar(QToolBar):
 
     def on_play(self):
         self.clickedPlay.emit()
+
+    def set_mode_infer(self):
+        self.chk_new.setEnabled(False)
+        self.modeChanged.emit(AppMode.INFER)
+
+    def set_mode_train(self):
+        self.chk_new.setEnabled(True)
+        self.modeChanged.emit(AppMode.TRAIN)
 
     def updateCodeList(self, list_code: list):
         # 一旦、スロットを削除

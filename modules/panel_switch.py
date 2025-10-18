@@ -1,5 +1,7 @@
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QRadioButton, QButtonGroup
 
+from structs.app_enum import AppMode
 from widgets.buttons import RadioButton
 from widgets.containers import Frame
 from widgets.layouts import HBoxLayout
@@ -9,6 +11,7 @@ class PanelSwitch(Frame):
     """
     学習・推論の切替用パネル
     """
+    selectionChanged = Signal(AppMode)
 
     def __init__(self):
         super().__init__()
@@ -30,5 +33,7 @@ class PanelSwitch(Frame):
 
     def selection_changed(self, rb: QRadioButton, state: bool):
         if state:
-            print(f"「{rb.text()}」をオンにしました。")
-
+            if rb.text() == "train":
+                self.selectionChanged.emit(AppMode.TRAIN)
+            else:
+                self.selectionChanged.emit(AppMode.INFER)

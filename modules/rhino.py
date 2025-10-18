@@ -15,6 +15,7 @@ from modules.dock import Dock
 from modules.toolbar import ToolBar
 from modules.win_learning_curve import WinLearningCurve
 from modules.win_tick import WinTick
+from structs.app_enum import AppMode
 from structs.res import AppRes
 from widgets.containers import MainWindow, TabWidget
 from widgets.labels import LabelStatus
@@ -33,6 +34,7 @@ class Rhino(MainWindow):
         super().__init__()
         self.logger = logging.getLogger(__name__)  # モジュール固有のロガーを取得
         self.res = res = AppRes()
+        self.mode = AppMode.TRAIN
 
         # =====================================================================
         # 銘柄コード、銘柄名の辞書を保持
@@ -61,6 +63,7 @@ class Rhino(MainWindow):
         toolbar.clickedPlay.connect(self.on_play)
         toolbar.clickedPig.connect(self.on_pig)
         toolbar.codeChanged.connect(self.update_chart_prep)
+        toolbar.modeChanged.connect(self.set_mode)
         self.addToolBar(toolbar)
 
         # =====================================================================
@@ -182,6 +185,34 @@ class Rhino(MainWindow):
         学習モデルのトレーニング
         Returns:
         """
+        if self.mode == AppMode.TRAIN:
+            self.training_prep()
+        else:
+            pass
+
+    def set_mode(self, mode: AppMode):
+        print(mode)
+        self.mode = mode
+        if mode == AppMode.TRAIN:
+            self.mode_train()
+        else:
+            self.mode_infer()
+
+    def mode_infer(self):
+        pass
+
+    def mode_train(self):
+        pass
+
+    def training(self):
+        if len(self.deque_file) > 0:
+            file = self.deque_file.popleft()
+            print(f"%%% start training with {self.code} in {file}. %%%")
+            self.requestTraining.emit(file, self.code)
+        else:
+            print("%%% no tick file for training! %%%")
+
+    def training_prep(self):
         list_file = self.get_checked_files()
         if len(list_file) == 0:
             print("チェックされたファイルはありません。")
@@ -199,14 +230,6 @@ class Rhino(MainWindow):
         self.code = self.toolbar.getCurrentCode()
         # 学習の開始
         self.training()
-
-    def training(self):
-        if len(self.deque_file) > 0:
-            file = self.deque_file.popleft()
-            print(f"%%% start training with {self.code} in {file}. %%%")
-            self.requestTraining.emit(file, self.code)
-        else:
-            print("%%% no tick file for training! %%%")
 
     def update_chart(self):
         """
