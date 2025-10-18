@@ -1,6 +1,7 @@
 import datetime
 import os
 import re
+from pathlib import Path
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QStyle
@@ -11,6 +12,11 @@ from structs.res import AppRes
 def get_builtin_icon(parent: QWidget, name: str) -> QIcon:
     pixmap_icon = getattr(QStyle.StandardPixmap, 'SP_%s' % name)
     return parent.style().standardIcon(pixmap_icon)
+
+
+def get_collection_path(res: AppRes, file: str) -> str:
+    path_excel = str(Path(os.path.join(res.dir_collection, file)).resolve())
+    return path_excel
 
 
 def get_date_str_from_filename(path: str) -> str:
