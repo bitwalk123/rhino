@@ -18,5 +18,8 @@ class PanelNew(Frame):
         self.chk_new = chk_new = QCheckBox("新規モデル")
         hbox.addWidget(chk_new)
 
+    def clearCheckStatus(self):
+        self.chk_new.setChecked(False)
+
     def isChecked(self) -> bool:
         return self.chk_new.isChecked()

@@ -17,7 +17,6 @@ class ToolBar(QToolBar):
     codeChanged = Signal()
     modeChanged = Signal(AppMode)
 
-
     def __init__(self, res: AppRes):
         super().__init__()
         self.res = res
@@ -65,17 +64,36 @@ class ToolBar(QToolBar):
     def getCurrentCode(self) -> str:
         return self.combo_code.currentText()
 
+    def needNewModel(self) -> bool:
+        """
+        （古いモデルを消して）新しいモデルを生成するか？
+        """
+        return self.chk_new.isChecked()
+
     def on_pig(self):
         self.clickedPig.emit()
 
     def on_play(self):
         self.clickedPlay.emit()
 
+    def resetNetModelStatus(self):
+        """
+        「新しいモデルを生成するか？」の
+        チェックボックスの選択状態をリセット
+        """
+        self.chk_new.clearCheckStatus()
+
     def set_mode_infer(self):
+        """
+        推論モード
+        """
         self.chk_new.setEnabled(False)
         self.modeChanged.emit(AppMode.INFER)
 
     def set_mode_train(self):
+        """
+        学習モード
+        """
         self.chk_new.setEnabled(True)
         self.modeChanged.emit(AppMode.TRAIN)
 
