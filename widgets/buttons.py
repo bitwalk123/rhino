@@ -1,6 +1,17 @@
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QPushButton, QSizePolicy
+from PySide6.QtWidgets import (
+    QPushButton,
+    QRadioButton,
+    QSizePolicy,
+)
 
+
+class RadioButton(QRadioButton):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.setStyleSheet("""
+            QRadioButton {font-family: monospace;}
+        """)
 
 class TradeButton(QPushButton):
     def __init__(self, act: str):

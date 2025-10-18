@@ -1,6 +1,6 @@
-from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import QRadioButton, QButtonGroup
 
+from widgets.buttons import RadioButton
 from widgets.containers import Frame
 from widgets.layouts import HBoxLayout
 
@@ -16,11 +16,11 @@ class PanelSwitch(Frame):
         hbox.setSpacing(5)
         self.setLayout(hbox)
 
-        rb_train = QRadioButton("学習")
+        rb_train = RadioButton("train")
         hbox.addWidget(rb_train)
         rb_train.toggle()
 
-        rb_infer = QRadioButton("推論")
+        rb_infer = RadioButton("infer")
         hbox.addWidget(rb_infer)
 
         self.but_group = but_group = QButtonGroup()
@@ -28,10 +28,7 @@ class PanelSwitch(Frame):
         but_group.addButton(rb_infer)
         but_group.buttonToggled.connect(self.selection_changed)
 
-    def selection_changed(self, button, state):
+    def selection_changed(self, rb: QRadioButton, state: bool):
         if state:
-            status = 'オン'
-        else:
-            status = 'オフ'
+            print(f"「{rb.text()}」をオンにしました。")
 
-        print('「%s」を%sにしました。' % (button.text(), status))
