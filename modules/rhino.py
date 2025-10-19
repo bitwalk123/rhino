@@ -190,8 +190,10 @@ class Rhino(MainWindow):
             pass
 
     def set_mode(self, mode: AppMode):
-        print(mode)
         self.mode = mode
+        # ドックのファイル選択モードを切り替える
+        self.dock.setSelectionMode(mode)
+        # 学習 / 推論モードの切り替え
         if mode == AppMode.TRAIN:
             self.mode_train()
         else:

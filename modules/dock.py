@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget
 
 from modules.panel_tick_files import PanelTickFiles
 from modules.panel_transaction import PanelTransaction
+from structs.app_enum import AppMode
 from structs.res import AppRes
 from widgets.containers import TabWidget
 from widgets.dockwidgets import DockWidget
@@ -28,3 +29,10 @@ class Dock(DockWidget):
         tabbase.addTab(tick_files, "ティックファイル")
         self.transaction = transaction = PanelTransaction(res)
         tabbase.addTab(transaction, "取引シミュレータ")
+
+    def setSelectionMode(self, mode: AppMode):
+        if mode == AppMode.TRAIN:
+            self.tick_files.exclusive_check_mode = False
+        else:
+            self.tick_files.clearCheckAll()
+            self.tick_files.exclusive_check_mode = True

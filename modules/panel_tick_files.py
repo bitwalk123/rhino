@@ -33,6 +33,11 @@ class PanelTickFiles(Widget):
         model.itemChanged.connect(self.on_item_changed)
         lv.setModel(model)
 
+    def clearCheckAll(self):
+        for i in range(self.model.rowCount()):
+            item = self.model.item(i)
+            item.setCheckState(Qt.CheckState.Unchecked)
+
     def getCurrentFile(self) -> str:
         idx = self.lv.currentIndex().row()
         item: QStandardItem = self.model.item(idx)
@@ -75,3 +80,4 @@ class PanelTickFiles(Widget):
             item = QStandardItem(file)
             item.setCheckable(True)
             self.model.appendRow(item)
+
