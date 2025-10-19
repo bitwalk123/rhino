@@ -95,7 +95,7 @@ class Rhino(MainWindow):
         tabbase.addTab(win_tick, "ティックチャート")
 
         # =====================================================================
-        # スレッド用インスタンス (PPOAgent)
+        # PPOAgent スレッド用インスタンス
         # =====================================================================
         # ワーカー (PPOAgent) へ渡すファイル名のキュー
         self.deque_file = deque()
@@ -104,20 +104,20 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # スレッドとワーカー準備
         # ---------------------------------------------------------------------
-        self.thread = thread = QThread()
-        self.worker = worker = PPOAgent(res)
-        worker.moveToThread(thread)
+        self.thread_1 = thread_1 = QThread()
+        self.worker_1 = worker_1 = PPOAgent(res)
+        worker_1.moveToThread(thread_1)
         # GUI → ワーカー
-        self.requestTraining.connect(worker.train)
-        self.requestInferring.connect(worker.infer)
+        self.requestTraining.connect(worker_1.train)
+        self.requestInferring.connect(worker_1.infer)
         # ワーカー → GUI
-        # worker.progress.connect(self.on_progress)
-        worker.finishedTraining.connect(self.on_finished_training)
-        worker.finishedInferring.connect(self.on_finished_inferring)
+        # worker_1.progress.connect(self.on_progress)
+        worker_1.finishedTraining.connect(self.on_finished_training)
+        worker_1.finishedInferring.connect(self.on_finished_inferring)
         # 終了シグナルでスレッド停止
-        # worker.finished.connect(thread.quit)
+        # worker_1.finished.connect(thread_1.quit)
         # スレッド開始
-        thread.start()
+        thread_1.start()
 
         # =====================================================================
         # ドックにティックファイル一覧を表示
@@ -137,10 +137,10 @@ class Rhino(MainWindow):
     def closeEvent(self, event: QCloseEvent):
         """✕ボタンで安全にスレッド停止"""
         self.logger.info(f"{__name__} MainWindow closing...")
-        if self.thread.isRunning():
-            self.worker.stop()
-            self.thread.quit()
-            self.thread.wait()
+        if self.thread_1.isRunning():
+            self.worker_1.stop()
+            self.thread_1.quit()
+            self.thread_1.wait()
         self.logger.info(f"{__name__} Thread safely stopped. Exiting.")
         event.accept()
 
