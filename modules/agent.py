@@ -124,10 +124,10 @@ class PPOAgent(QObject):
         # 推論の実行
         episode_over = False
         while not episode_over:
-            #print(obs)
+            # print(obs)
             # モデルの推論
             action, lstm_state = model.predict(obs, state=lstm_state, deterministic=True)
-            print(action)
+            print(action, end="")
 
             # 1ステップ実行
             # obs, reward, terminated, truncated, info = env.step(action)
@@ -139,6 +139,8 @@ class PPOAgent(QObject):
             # エピソード完了
             # episode_over = terminated or truncated
             episode_over = dones[0]
+
+        print()
 
         # 最後の取引履歴
         df_transaction = env.envs[0].env.getTransaction()
