@@ -143,6 +143,7 @@ class Rhino(MainWindow):
     def add_plot_data(self, ts, price):
         # print(ts, price)
         self.win_tick.addData(ts, price)
+        self.dock.transaction.setPrice(price)
         #QTimer.singleShot(0, self.win_tick.reDraw)
 
     def closeEvent(self, event: QCloseEvent):
@@ -186,12 +187,13 @@ class Rhino(MainWindow):
         print("****************************************")
         # プロットの消去
         self.win_tick.clearPlot()
-        # ザラ場の開始時間などのタイムスタンプ取得（本日分）
+        # ザラ場の開始時間などのタイムスタンプ取得
         dict_ts = get_intraday_timestamp(file)
+        # x 軸の時間軸を固定
         self.win_tick.setTimeAxisRange(dict_ts["start"], dict_ts["end"])
         self.win_tick.reDraw()
 
-        self.requestInferringTest.emit(file, code)
+        self.requestInferring.emit(file, code)
 
     def on_finished_training(self, file_train: str):
         # ---------------------------------------------------------------------

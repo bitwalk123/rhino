@@ -9,9 +9,10 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 
 from funcs.commons import get_collection_path
 from funcs.ios import get_excel_sheet
-from funcs.models import get_ppo_model_new, get_ppo_model_path
+from funcs.models import get_ppo_model_new, get_ppo_model_path, get_trained_ppo_model_path
 from modules.agent_auxiliary import EpisodeLimitCallback, SaveBestModelCallback
 from modules.env import TrainingEnv
+from modules.obsman import ObservationManager
 from structs.res import AppRes
 
 
@@ -100,14 +101,12 @@ class PPOAgent(QObject):
         self.finishedTraining.emit(file)
 
     def infer(self, file: str, code: str):
-        pass
-        """
         # 推論専用のプログラム作成まで保留
         # 学習環境の取得
         env = self.get_env(file, code)
 
         # 学習済モデルを読み込む
-        model_path, reward_path = self.get_model_path(self.res, code)
+        model_path = get_trained_ppo_model_path(self.res, code)
         if os.path.exists(model_path):
             print(f"モデル {model_path} を読み込みます。")
         else:
@@ -117,13 +116,15 @@ class PPOAgent(QObject):
         model = RecurrentPPO.load(model_path, env, verbose=1)
 
         # 学習環境のリセット
-        obs, _ = env.reset()
+        # obs, _ = env.reset()
+        obs = env.reset()
         lstm_state = None
         total_reward = 0.0
 
         # 推論の実行
         episode_over = False
         while not episode_over:
+            #print(obs)
             # モデルの推論
             action, lstm_state = model.predict(obs, state=lstm_state, deterministic=True)
             print(action)
@@ -139,18 +140,23 @@ class PPOAgent(QObject):
             # episode_over = terminated or truncated
             episode_over = dones[0]
 
+        # 最後の取引履歴
+        df_transaction = env.envs[0].env.getTransaction()
+        print(df_transaction)
+        print(f"損益: {df_transaction["損益"].sum():.1f} 円")
+
         # 学習環境の解放
         env.close()
-
         self.finishedInferring.emit()
-        """
 
     def infer_test(self, file: str, code: str):
+        self.obs_man = ObservationManager()
+
         file_path = os.path.join(self.res.dir_collection, file)
         df = get_excel_sheet(file_path, code)
         ser_ts = df["Time"]
         ser_price = df["Price"]
         ser_volume = df["Volume"]
         for ts, price, volume in zip(ser_ts, ser_price, ser_volume):
-            time.sleep(.1)
+            time.sleep(.01)
             self.notifyPlotData.emit(ts, price)
