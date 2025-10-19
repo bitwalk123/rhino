@@ -153,6 +153,24 @@ class Rhino(MainWindow):
         # チェックされているファイルをリストで取得
         return self.dock.tick_files.getItemsChecked()
 
+    def inferring(self):
+        list_file = self.get_checked_files()
+        if len(list_file) == 0:
+            print("チェックされたファイルはありません。")
+            return
+        if len(list_file) > 1:
+            print("なぜか複数の不ティックファイルが選択されています！")
+            return
+
+        # ---------------------------------------------------------------------
+        # 推論するティックファイル
+        # ---------------------------------------------------------------------
+        # 推論するファイルを出力
+        print("\n***  Inferring  *******")
+        file = list_file[0]
+        print(file)
+        print("***********************")
+
     def on_finished_training(self, file_train: str):
         # ---------------------------------------------------------------------
         # 報酬の学習曲線をタブに表示
@@ -187,7 +205,7 @@ class Rhino(MainWindow):
         if self.mode == AppMode.TRAIN:
             self.training_prep()
         else:
-            pass
+            self.inferring()
 
     def set_mode(self, mode: AppMode):
         self.mode = mode
