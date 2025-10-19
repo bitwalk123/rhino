@@ -3,7 +3,7 @@ import logging
 from PySide6.QtWidgets import QWidget
 
 from modules.panel_tick_files import PanelTickFiles
-from modules.win_transaction import WinTransaction
+from modules.panel_transaction import PanelTransaction
 from structs.res import AppRes
 from widgets.containers import TabWidget
 from widgets.dockwidgets import DockWidget
@@ -26,5 +26,5 @@ class Dock(DockWidget):
         # ---------------------------------------------------------------------
         self.tick_files = tick_files = PanelTickFiles(res)
         tabbase.addTab(tick_files, "ティックファイル")
-        self.transaction = transaction = WinTransaction(res)
+        self.transaction = transaction = PanelTransaction(res)
         tabbase.addTab(transaction, "取引シミュレータ")

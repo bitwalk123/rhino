@@ -9,7 +9,7 @@ from widgets.labels import LCDValueWithTitle
 from widgets.layouts import VBoxLayout
 
 
-class WinTransaction(Widget):
+class PanelTransaction(Widget):
     clickedBuy = Signal(str, float, str)
     clickedSell = Signal(str, float, str)
     clickedRepay = Signal(str, float, str)
