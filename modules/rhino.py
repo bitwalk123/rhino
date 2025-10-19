@@ -9,7 +9,9 @@ from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QCloseEvent, QIcon
 
 from funcs.commons import get_date_str_from_filename
+from funcs.ios import get_excel_sheet
 from funcs.models import get_ppo_model_path
+from funcs.tide import get_intraday_timestamp
 from funcs.tse import get_jpx_ticker_list
 from modules.agent import PPOAgent
 from modules.dock import Dock
@@ -30,6 +32,7 @@ class Rhino(MainWindow):
     __license__ = "MIT"
     requestTraining = Signal(str, str)
     requestInferring = Signal(str, str)
+    requestInferringTest = Signal(str, str)
 
     def __init__(self):
         super().__init__()
@@ -105,20 +108,22 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # スレッドとワーカー準備
         # ---------------------------------------------------------------------
-        self.thread_1 = thread_1 = QThread()
-        self.worker_1 = worker_1 = PPOAgent(res)
-        worker_1.moveToThread(thread_1)
+        self.thread = thread = QThread()
+        self.worker = worker = PPOAgent(res)
+        worker.moveToThread(thread)
         # GUI → ワーカー
-        self.requestTraining.connect(worker_1.train)
-        self.requestInferring.connect(worker_1.infer)
+        self.requestTraining.connect(worker.train)
+        self.requestInferring.connect(worker.infer)
+        self.requestInferringTest.connect(worker.infer_test)
         # ワーカー → GUI
-        # worker_1.progress.connect(self.on_progress)
-        worker_1.finishedTraining.connect(self.on_finished_training)
-        worker_1.finishedInferring.connect(self.on_finished_inferring)
+        # worker.progress.connect(self.on_progress)
+        worker.finishedTraining.connect(self.on_finished_training)
+        worker.finishedInferring.connect(self.on_finished_inferring)
+        worker.notifyPlotData.connect(self.add_plot_data)
         # 終了シグナルでスレッド停止
-        # worker_1.finished.connect(thread_1.quit)
+        # worker.finished.connect(thread.quit)
         # スレッド開始
-        thread_1.start()
+        thread.start()
 
         # =====================================================================
         # ドックにティックファイル一覧を表示
@@ -135,13 +140,18 @@ class Rhino(MainWindow):
         # win_leaning_curve のタブを表示
         self.tab_base.setCurrentWidget(win_leaning_curve)
 
+    def add_plot_data(self, ts, price):
+        # print(ts, price)
+        self.win_tick.addData(ts, price)
+        #QTimer.singleShot(0, self.win_tick.reDraw)
+
     def closeEvent(self, event: QCloseEvent):
         """✕ボタンで安全にスレッド停止"""
         self.logger.info(f"{__name__} MainWindow closing...")
-        if self.thread_1.isRunning():
-            self.worker_1.stop()
-            self.thread_1.quit()
-            self.thread_1.wait()
+        if self.thread.isRunning():
+            self.worker.stop()
+            self.thread.quit()
+            self.thread.wait()
         self.logger.info(f"{__name__} Thread safely stopped. Exiting.")
         event.accept()
 
@@ -165,11 +175,23 @@ class Rhino(MainWindow):
         # ---------------------------------------------------------------------
         # 推論するティックファイル
         # ---------------------------------------------------------------------
+
         # 推論するファイルを出力
-        print("\n***  Inferring  *******")
+        print("\n***  Inferring  ************************")
+        # 銘柄コードの取得
+        code = self.toolbar.getCurrentCode()
+        # リストの要素はひとつのみの前提
         file = list_file[0]
-        print(file)
-        print("***********************")
+        print(f"{code} in {file}")
+        print("****************************************")
+        # プロットの消去
+        self.win_tick.clearPlot()
+        # ザラ場の開始時間などのタイムスタンプ取得（本日分）
+        dict_ts = get_intraday_timestamp(file)
+        self.win_tick.setTimeAxisRange(dict_ts["start"], dict_ts["end"])
+        self.win_tick.reDraw()
+
+        self.requestInferringTest.emit(file, code)
 
     def on_finished_training(self, file_train: str):
         # ---------------------------------------------------------------------

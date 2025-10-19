@@ -1,5 +1,7 @@
 import os
+import time
 
+import pandas as pd
 from PySide6.QtCore import QObject, Signal
 from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.monitor import Monitor
@@ -16,6 +18,7 @@ from structs.res import AppRes
 class PPOAgent(QObject):
     finishedTraining = Signal(str)
     finishedInferring = Signal()
+    notifyPlotData = Signal(float, float)
 
     def __init__(self, res: AppRes):
         super().__init__()
@@ -141,3 +144,13 @@ class PPOAgent(QObject):
 
         self.finishedInferring.emit()
         """
+
+    def infer_test(self, file: str, code: str):
+        file_path = os.path.join(self.res.dir_collection, file)
+        df = get_excel_sheet(file_path, code)
+        ser_ts = df["Time"]
+        ser_price = df["Price"]
+        ser_volume = df["Volume"]
+        for ts, price, volume in zip(ser_ts, ser_price, ser_volume):
+            time.sleep(.1)
+            self.notifyPlotData.emit(ts, price)
