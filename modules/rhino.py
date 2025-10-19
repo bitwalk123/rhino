@@ -6,7 +6,7 @@ from collections import deque
 import pandas as pd
 
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QIcon
 
 from funcs.commons import get_date_str_from_filename
 from funcs.models import get_ppo_model_path
@@ -53,7 +53,8 @@ class Rhino(MainWindow):
         self.setMinimumWidth(1200)
         self.setFixedHeight(500)
 
-        # ウィンドウタイトル
+        # ウィンドウアイコンとタイトルを設定
+        self.setWindowIcon(QIcon(os.path.join(res.dir_image, "rl.png")))
         title_win = f"{self.__app_name__} - {self.__version__}"
         self.setWindowTitle(title_win)
 
