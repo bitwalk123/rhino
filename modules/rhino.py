@@ -27,7 +27,7 @@ from widgets.statusbar import StatusBar
 
 class Rhino(MainWindow):
     __app_name__ = "Rhino"
-    __version__ = "0.3.0"
+    __version__ = "0.4.0"
     __author__ = "Fuhito Suguri"
     __license__ = "MIT"
     requestTraining = Signal(str, str)
