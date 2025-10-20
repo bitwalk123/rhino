@@ -18,6 +18,6 @@ def get_ppo_model_path(res: AppRes, code: str) -> tuple[str, str]:
     return model_path, reward_path
 
 
-def get_trained_ppo_model_path(res: AppRes, code: str) -> str:
-    model_path = os.path.join(res.dir_model, "trained", f"ppo_{code}.zip")
+def get_trained_ppo_model_path(res: AppRes, code: str, ext="pth") -> str:
+    model_path = os.path.join(res.dir_model, "trained", f"ppo_{code}.{ext}")
     return model_path

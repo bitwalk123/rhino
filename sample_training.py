@@ -4,6 +4,7 @@ import torch
 from torch import optim
 
 from funcs.ios import get_excel_sheet
+from funcs.models import get_trained_ppo_model_path
 from modules.agent_mask import PolicyNetwork, ValueNetwork, compute_ppo_loss, select_action
 from modules.env_mask import TradingEnv
 from structs.res import AppRes
@@ -75,3 +76,14 @@ if __name__ == "__main__":
         optimizer.step()
 
         print(f"Epoch {epoch + 1}: Loss = {loss.item():.4f}")
+
+    # 学習モデルの保存
+    # https://docs.pytorch.org/docs/stable/generated/torch.save.html
+    model_path = get_trained_ppo_model_path(res, code)
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    obj = {
+        "policy_state_dict": policy_net.state_dict(),
+        "value_state_dict": value_net.state_dict()
+    }
+    torch.save(obj, model_path)
+    print(f"✅ モデルを保存しました: {model_path}")
