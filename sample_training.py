@@ -101,10 +101,10 @@ if __name__ == "__main__":
         # これは「実際に得られた報酬の累積」であり、
         # 価値ネットワークとの比較に使う
         return_batch = torch.stack(returns)
-        # 状態ベクトル obs_batch を価値ネットワークに通して、
-        # 各ステップの状態価値 𝑉(𝑠_𝑡) を取得
+        # 状態ベクトル obs_batch を価値ネットワークに通して、各ステップの状態価値 𝑉(𝑠_𝑡) を取得
         # .squeeze() によって [T, 1] → [T] に変形（損失計算のため）
-        value_batch = value_net(obs_batch).squeeze()
+        # value_batch = value_net(obs_batch).squeeze()
+        value_batch = value_net(obs_batch).squeeze(-1)  # 最後の次元だけを潰す
         # Advantage（利得）の計算
         # 𝐴_𝑡 = 𝐺_𝑡 − 𝑉(𝑠_𝑡)
         # detach() によって、価値ネットワークの勾配計算を切り離す。
