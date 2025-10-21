@@ -1,4 +1,6 @@
 import os
+
+import pandas as pd
 import torch
 from funcs.ios import get_excel_sheet
 from funcs.models import get_trained_ppo_model_path
@@ -39,3 +41,7 @@ if __name__ == "__main__":
             print(f"✅ 行動: {action}, Mask: {mask_tensor.tolist()}")
 
         obs, reward, done, _, info = env.step(action)
+
+    df_transaction = pd.DataFrame(env.transman.dict_transaction)
+    print(df_transaction)
+    print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
