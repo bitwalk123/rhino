@@ -41,8 +41,7 @@ if __name__ == "__main__":
             obs_tensor = torch.tensor(obs, dtype=torch.float32)
             # 行動マスク（action_mask）をテンソルに変換
             mask_tensor = torch.tensor(info["action_mask"], dtype=torch.float32)
-            # マスク付きで行動分布を生成し、サンプリング
-            # log_prob はPPOの損失計算に必要
+            # マスク付きで行動分布を生成し、サンプリング、log_prob はPPOの損失計算に必要
             action, log_prob = select_action(policy_net, obs_tensor, mask_tensor)
 
             """
