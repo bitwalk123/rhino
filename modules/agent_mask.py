@@ -3,7 +3,16 @@ import torch.nn as nn
 from torch.distributions import Categorical
 
 
-def compute_ppo_loss(policy_net, value_net, obs, actions, old_log_probs, returns, advantages, action_masks):
+def compute_ppo_loss(
+        policy_net,
+        value_net,
+        obs, actions,
+        old_log_probs,
+        returns,
+        advantages,
+        action_masks
+):
+    # 📦 PPO損失関数（Clip付き）
     logits = policy_net(obs, action_masks)
     dist = Categorical(logits=logits)
     new_log_probs = dist.log_prob(actions)
@@ -19,6 +28,7 @@ def compute_ppo_loss(policy_net, value_net, obs, actions, old_log_probs, returns
 
 
 def select_action(policy_net, obs, action_mask):
+    # 🧮 行動選択関数
     logits = policy_net(obs, action_mask)
     dist = Categorical(logits=logits)
     action = dist.sample()
@@ -27,6 +37,7 @@ def select_action(policy_net, obs, action_mask):
 
 
 class PolicyNetwork(nn.Module):
+    # 🎯 方策ネットワーク（マスク対応）
     def __init__(self, obs_dim: int, act_dim: int):
         super().__init__()
         self.net = nn.Sequential(
@@ -43,6 +54,7 @@ class PolicyNetwork(nn.Module):
 
 
 class ValueNetwork(nn.Module):
+    # 🧠 ValueNetwork の基本構造
     def __init__(self, obs_dim):
         super().__init__()
         self.net = nn.Sequential(
