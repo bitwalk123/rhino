@@ -20,9 +20,15 @@ if __name__ == "__main__":
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.n
 
-    # ネットワークとオプティマイザの初期化
+    """
+    ネットワークとオプティマイザの初期化
+    """
+    # 行動分布を出力する方策ネットワーク
     policy_net = PolicyNetwork(obs_dim, act_dim)
+    # 状態価値を推定するネットワーク
+    # ValueNetwork は 学習時のAdvantage計算専用
     value_net = ValueNetwork(obs_dim)
+    # 両ネットワークのパラメータを同時に更新
     optimizer = optim.Adam(list(policy_net.parameters()) + list(value_net.parameters()), lr=3e-4)
 
     num_epochs = 3
