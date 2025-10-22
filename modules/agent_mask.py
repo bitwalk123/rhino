@@ -25,7 +25,7 @@ class PolicyNetwork(nn.Module):
 
 
 class ValueNetwork(nn.Module):
-    # 🧠 ValueNetwork の基本構造
+    # 💰 ValueNetwork の基本構造
     def __init__(self, obs_dim):
         super().__init__()
         self.net = nn.Sequential(
@@ -44,10 +44,13 @@ class PPOAgent:
         self.policy_net = None  # 方策ネットワーク
         self.value_net = None  # 状態価値を推定するネットワーク
         self.optimizer = None  # 両ネットワークのパラメータを同時に更新するオプティマイザ
+        # ---------------------------------------------------------------------
         # ハイパーパラメータ
+        # ---------------------------------------------------------------------
+        self.clip_epsilon = 0.2  # PPOクリップ係数 (Clip Epsilon (ε))
         self.gamma = 0.99  # 割引率（discount factor）
-        self.clip_epsilon = 0.2  # クリップ範囲（ε）
-        self.value_coef = 0.5  # 価値損失の影響度を調整する係数
+        self.lr = 3e-4  # 学習率 (Learning Rate)
+        self.value_coef = 0.5  # 価値損失係数 (Value Loss Coefficient)
 
     def compute_ppo_loss(
             self,
@@ -166,17 +169,16 @@ class PPOAgent:
         # 両ネットワークのパラメータを同時に更新
         self.optimizer = optim.Adam(
             list(self.policy_net.parameters()) + list(self.value_net.parameters()),
-            lr=3e-4
+            self.lr
         )
 
-    def train(self, df: pd.DataFrame, model_path: str):
+    def train(self, df: pd.DataFrame, model_path: str, num_epochs: int = 3):
         # 環境は学習と推論で異なる可能性があるので、ここで定義する
         self.env = TradingEnv(df)
         obs_dim, act_dim = self.get_dim()
         # ネットワークとオプティマイザの初期化
         self.initialize_networks(obs_dim, act_dim)
 
-        num_epochs = 3
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 学習ループ
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
@@ -221,7 +223,6 @@ class PPOAgent:
             logprob_list.append(log_prob)
             # 行動マスクを保存
             mask_list.append(mask_tensor)
-
             # 状態遷移と報酬取得
             obs, reward, done, _, info = self.env.step(action)
             reward_list.append(torch.tensor(reward, dtype=torch.float32))
@@ -246,7 +247,6 @@ class PPOAgent:
         adv_batch = return_batch - value_batch.detach()
         # 各ステップの行動マスクをまとめる
         mask_batch = torch.stack(mask_list)
-
         """
         PPOの損失関数を計算（方策・価値・エントロピー項を含む）
         """
