@@ -123,6 +123,10 @@ class PPOAgent:
         return pd.DataFrame(self.env.transman.dict_transaction)
 
     def infer(self, df: pd.DataFrame, model_path: str):
+        """
+        過去のティックデータから学習済モデルで推論
+        リアルタイム推論用は別途用意する
+        """
         self.env = TradingEnv(df)
         obs_dim, act_dim = self.get_dim()
 
@@ -152,8 +156,7 @@ class PPOAgent:
 
             """
             選択された行動がマスクで禁止されていないかを確認
-            mask_tensor[action] == 0 の場合は違反行動（設計ミスやバグの検出に有効）
-            select_action() 内部でマスクが正しく適用されていれば、通常は違反は起きない
+            今のところ、違反行動の検出だけで十分。
             """
             if mask_tensor[action] == 0:
                 print(f"❌ 違反行動: {action}, Mask: {mask_tensor.tolist()}")
@@ -161,10 +164,13 @@ class PPOAgent:
             obs, reward, done, _, info = self.env.step(action)
 
     def initialize_networks(self, obs_dim: int, act_dim: int):
+        """
+        ネットワークの初期化
+        """
         # 行動分布を出力する方策ネットワーク
         self.policy_net = PolicyNetwork(obs_dim, act_dim)
         # 状態価値を推定するネットワーク
-        # ValueNetwork は 学習時のAdvantage計算専用
+        # ValueNetwork は 学習時の Advantage 計算専用
         self.value_net = ValueNetwork(obs_dim)
         # 両ネットワークのパラメータを同時に更新
         self.optimizer = optim.Adam(
@@ -172,11 +178,34 @@ class PPOAgent:
             self.lr
         )
 
+    def select_action(self, obs: Tensor, action_mask: Tensor):
+        """
+        🚦 行動選択関数
+        現在の状態 obs と行動マスク action_mask を使って、方策ネットワークから行動をサンプリングする
+        PPOでは、確率的方策に基づいて行動を選び、その確率（log_prob）も記録する必要があります
+        """
+        # 方策ネットワークに状態とマスクを渡して、行動のロジット（未正規化スコア）を取得
+        logits = self.policy_net(obs, action_mask)
+        # Categorical 分布を使って、ロジットから確率分布を構築
+        dist = Categorical(logits=logits)
+        # 分布 dist から 確率的に行動をサンプリング
+        action = dist.sample()
+        # 選択した行動の対数確率（log_prob）を取得
+        log_prob = dist.log_prob(action)
+        # action.item() によって、テンソルからPythonの整数に変換
+        # log_prob はそのままテンソルとして返す（後で loss.backward() に使うため）
+        return action.item(), log_prob
+
     def train(self, df: pd.DataFrame, model_path: str, num_epochs: int = 3):
+        """
+        過去のティックデータを利用したモデルの学習
+        """
         # 環境は学習と推論で異なる可能性があるので、ここで定義する
         self.env = TradingEnv(df)
         obs_dim, act_dim = self.get_dim()
+
         # ネットワークとオプティマイザの初期化
+        # TODO: おそらくここか？学習済みモデルが既にあれば読込処理を追加する必要あり
         self.initialize_networks(obs_dim, act_dim)
 
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
@@ -213,7 +242,7 @@ class PPOAgent:
 
             """
             1エピソード分の履歴を後でバッチ化して、PPOの損失関数に渡す
-            このようにするとエピソード全体を1つのテンソルバッチとして扱えるようになります。
+            このようにするとエピソード全体を1つのテンソルバッチとして扱えるようになる。
             """
             # 現在の観測（状態）を保存
             obs_list.append(obs_tensor)
@@ -266,20 +295,3 @@ class PPOAgent:
         self.optimizer.step()
         return loss
 
-    def select_action(self, obs: Tensor, action_mask: Tensor):
-        """
-        🚦 行動選択関数
-        現在の状態 obs と行動マスク action_mask を使って、方策ネットワークから行動をサンプリングする
-        PPOでは、確率的方策に基づいて行動を選び、その確率（log_prob）も記録する必要があります
-        """
-        # 方策ネットワークに状態とマスクを渡して、行動のロジット（未正規化スコア）を取得
-        logits = self.policy_net(obs, action_mask)
-        # Categorical 分布を使って、ロジットから確率分布を構築
-        dist = Categorical(logits=logits)
-        # 分布 dist から 確率的に行動をサンプリング
-        action = dist.sample()
-        # 選択した行動の対数確率（log_prob）を取得
-        log_prob = dist.log_prob(action)
-        # action.item() によって、テンソルからPythonの整数に変換
-        # log_prob はそのままテンソルとして返す（後で loss.backward() に使うため）
-        return action.item(), log_prob
