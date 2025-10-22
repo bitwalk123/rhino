@@ -16,27 +16,58 @@ def compute_ppo_loss(
         advantages,
         action_masks
 ):
-    # 📦 PPO損失関数（Clip付き）
+    """
+    📦 PPO損失関数（Clip付き）
+    この関数は、以下の2つの損失を計算して合成します：
+    - 方策損失（policy_loss）：確率比率のクリップ付き損失
+    - 価値損失（value_loss）：状態価値とReturnの誤差（MSE）
+    """
+    # 方策ネットワークに状態とマスクを渡して、各行動のロジット（未正規化スコア）を取得
     logits = policy_net(obs, action_masks)
+    # ロジットから 確率分布（Categorical） を構築
     dist = Categorical(logits=logits)
+    # 現在の方策で、過去に選択された行動の対数確率を取得
     new_log_probs = dist.log_prob(actions)
 
+    # PPOの中核：確率比率（新旧方策の確率の変化率）を計算
     ratio = torch.exp(new_log_probs - old_log_probs)
+    # PPOの「Clip付き損失」のために、確率比率を上下に制限
+    # 1 ± 0.2 は クリップ範囲（ε）：この範囲を超える更新は抑制される
+    # これにより、方策の急激な変化を防ぎ、安定した学習が可能になる
     clipped_ratio = torch.clamp(ratio, 1 - 0.2, 1 + 0.2)
+    # PPOの「Surrogate Objective」
+    # advantages は [T] のテンソルで、行動の良さを表す重み
+    # torch.min(...) によって、クリップされた方策損失が選ばれる
+    # - を付けることで、損失関数として最小化対象にする
     policy_loss = -torch.min(ratio * advantages, clipped_ratio * advantages).mean()
 
+    # 状態ベクトル obs を価値ネットワークに通して、状態価値 𝑉(𝑠_𝑡) を取得
+    # .squeeze() によって [T, 1] → [T] に変形（損失計算のため）
     values = value_net(obs).squeeze()
+    # 状態価値と実際の Return の誤差を MSE（平均二乗誤差）で計算
     value_loss = nn.functional.mse_loss(values, returns)
-
+    # 最終的な損失は、方策損失 + 価値損失（重み付き）
+    # 0.5 はハイパーパラメータで、価値損失の影響度を調整
+    # この合成損失を loss.backward() に渡して、両ネットワークを同時に更新
     return policy_loss + 0.5 * value_loss
 
 
 def select_action(policy_net, obs, action_mask):
-    # 🧮 行動選択関数
+    """
+    🚦 行動選択関数
+    現在の状態 obs と行動マスク action_mask を使って、方策ネットワークから行動をサンプリングする
+    PPOでは、確率的方策に基づいて行動を選び、その確率（log_prob）も記録する必要があります
+    """
+    # 方策ネットワークに状態とマスクを渡して、行動のロジット（未正規化スコア）を取得
     logits = policy_net(obs, action_mask)
+    # Categorical 分布を使って、ロジットから確率分布を構築
     dist = Categorical(logits=logits)
+    # 分布 dist から 確率的に行動をサンプリング
     action = dist.sample()
+    # 選択した行動の対数確率（log_prob）を取得
     log_prob = dist.log_prob(action)
+    # action.item() によって、テンソルからPythonの整数に変換
+    # log_prob はそのままテンソルとして返す（後で loss.backward() に使うため）
     return action.item(), log_prob
 
 
@@ -75,7 +106,51 @@ class PPOAgent:
     def __init__(self):
         pass
 
-    def train(self, df: pd.DataFrame, model_path:str):
+    def infer(self, df: pd.DataFrame, model_path: str):
+        env = TradingEnv(df)
+        obs_dim = env.observation_space.shape[0]
+        act_dim = env.action_space.n
+
+        # モデルの状態を読み込み
+        checkpoint = torch.load(model_path)
+        policy_net = PolicyNetwork(obs_dim, act_dim)
+        # ネットワークにパラメータを復元
+        policy_net.load_state_dict(checkpoint["policy_state_dict"])
+        # .eval() によって推論モードに切り替え（DropoutやBatchNormが無効化）
+        policy_net.eval()
+
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        # 推論ループ
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        obs, info = env.reset()
+        done = False
+        while not done:
+            # 状態とマスクをテンソル化（PyTorchネットワークに渡すため）
+            obs_tensor = torch.tensor(obs, dtype=torch.float32)
+            mask_tensor = torch.tensor(info["action_mask"], dtype=torch.float32)
+            # マスク付きで行動分布を生成しサンプリング、log_prob は推論では使わないが、ログや分析に活用可能
+            action, log_prob = select_action(policy_net, obs_tensor, mask_tensor)
+
+            """
+            選択された行動がマスクで禁止されていないかを確認
+            mask_tensor[action] == 0 の場合は違反行動（設計ミスやバグの検出に有効）
+            select_action() 内部でマスクが正しく適用されていれば、通常は違反は起きない
+            """
+            if mask_tensor[action] == 0:
+                print(f"❌ 違反行動: {action}, Mask: {mask_tensor.tolist()}")
+            """
+            else:
+                print(f"✔ 行動: {action}, Mask: {mask_tensor.tolist()}")
+            """
+
+            obs, reward, done, _, info = env.step(action)
+
+        # 取引明細の出力
+        df_transaction = pd.DataFrame(env.transman.dict_transaction)
+        print(df_transaction)
+        print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
+
+    def train(self, df: pd.DataFrame, model_path: str):
         env = TradingEnv(df)
         obs_dim = env.observation_space.shape[0]
         act_dim = env.action_space.n
@@ -94,14 +169,15 @@ class PPOAgent:
         num_epochs = 3
         gamma = 0.99
 
-        # 学習ループ（PPO）
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        # 学習ループ
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         for epoch in range(num_epochs):
             obs_list, action_list, logprob_list, reward_list, mask_list = [], [], [], [], []
 
             # 初期状態とマスク取得
             obs, info = env.reset()
             done = False
-
             while not done:
                 # 環境から得られた観測データ obs を PyTorch のテンソルに変換
                 obs_tensor = torch.tensor(obs, dtype=torch.float32)
