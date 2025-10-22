@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 import torch.nn as nn
-from torch import optim
+from torch import optim, Tensor
 from torch.distributions import Categorical
 
 from modules.env_mask import TradingEnv
@@ -104,32 +104,41 @@ class ValueNetwork(nn.Module):
 
 class PPOAgent:
     def __init__(self):
-        pass
+        self.env = None  # 環境は学習と推論で異なる可能性があるので、ここでは空にする
+        self.policy_net = None  # 方策ネットワーク
+        self.value_net = None  # 状態価値を推定するネットワーク
+        self.optimizer = None  # 両ネットワークのパラメータを同時に更新するオプティマイザ
+        self.gamma = 0.99  # 割引率（discount factor）
+
+    def get_dim(self) -> tuple[int, int]:
+        obs_dim = self.env.observation_space.shape[0]
+        act_dim = self.env.action_space.n
+        return obs_dim, act_dim
 
     def infer(self, df: pd.DataFrame, model_path: str):
-        env = TradingEnv(df)
-        obs_dim = env.observation_space.shape[0]
-        act_dim = env.action_space.n
+        self.env = TradingEnv(df)
+        obs_dim, act_dim = self.get_dim()
 
-        # モデルの状態を読み込み
+        # モデルを読み込み
         checkpoint = torch.load(model_path)
-        policy_net = PolicyNetwork(obs_dim, act_dim)
-        # ネットワークにパラメータを復元
-        policy_net.load_state_dict(checkpoint["policy_state_dict"])
-        # .eval() によって推論モードに切り替え（DropoutやBatchNormが無効化）
-        policy_net.eval()
+        # 行動分布を出力する方策ネットワーク
+        self.policy_net = PolicyNetwork(obs_dim, act_dim)
+        # ネットワークに、保存したパラメータを復元
+        self.policy_net.load_state_dict(checkpoint["policy_state_dict"])
+        # .eval() によって推論モードに切り替え（Dropout や BatchNorm を無効化）
+        self.policy_net.eval()
 
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 推論ループ
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
-        obs, info = env.reset()
+        obs, info = self.env.reset()
         done = False
         while not done:
             # 状態とマスクをテンソル化（PyTorchネットワークに渡すため）
             obs_tensor = torch.tensor(obs, dtype=torch.float32)
             mask_tensor = torch.tensor(info["action_mask"], dtype=torch.float32)
             # マスク付きで行動分布を生成しサンプリング、log_prob は推論では使わないが、ログや分析に活用可能
-            action, log_prob = select_action(policy_net, obs_tensor, mask_tensor)
+            action, log_prob = select_action(self.policy_net, obs_tensor, mask_tensor)
 
             """
             選択された行動がマスクで禁止されていないかを確認
@@ -138,135 +147,132 @@ class PPOAgent:
             """
             if mask_tensor[action] == 0:
                 print(f"❌ 違反行動: {action}, Mask: {mask_tensor.tolist()}")
-            """
-            else:
-                print(f"✔ 行動: {action}, Mask: {mask_tensor.tolist()}")
-            """
 
-            obs, reward, done, _, info = env.step(action)
+            obs, reward, done, _, info = self.env.step(action)
 
         # 取引明細の出力
-        df_transaction = pd.DataFrame(env.transman.dict_transaction)
+        df_transaction = pd.DataFrame(self.env.transman.dict_transaction)
         print(df_transaction)
         print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
 
     def train(self, df: pd.DataFrame, model_path: str):
-        env = TradingEnv(df)
-        obs_dim = env.observation_space.shape[0]
-        act_dim = env.action_space.n
+        # 環境は学習と推論で異なる可能性があるので、ここで定義する
+        self.env = TradingEnv(df)
+        obs_dim, act_dim = self.get_dim()
 
         """
         ネットワークとオプティマイザの初期化
         """
         # 行動分布を出力する方策ネットワーク
-        policy_net = PolicyNetwork(obs_dim, act_dim)
+        self.policy_net = PolicyNetwork(obs_dim, act_dim)
         # 状態価値を推定するネットワーク
         # ValueNetwork は 学習時のAdvantage計算専用
-        value_net = ValueNetwork(obs_dim)
+        self.value_net = ValueNetwork(obs_dim)
         # 両ネットワークのパラメータを同時に更新
-        optimizer = optim.Adam(list(policy_net.parameters()) + list(value_net.parameters()), lr=3e-4)
+        self.optimizer = optim.Adam(list(self.policy_net.parameters()) + list(self.value_net.parameters()), lr=3e-4)
 
         num_epochs = 3
-        gamma = 0.99
-
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 学習ループ
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         for epoch in range(num_epochs):
-            obs_list, action_list, logprob_list, reward_list, mask_list = [], [], [], [], []
-
-            # 初期状態とマスク取得
-            obs, info = env.reset()
-            done = False
-            while not done:
-                # 環境から得られた観測データ obs を PyTorch のテンソルに変換
-                obs_tensor = torch.tensor(obs, dtype=torch.float32)
-                # 行動マスク（action_mask）をテンソルに変換
-                mask_tensor = torch.tensor(info["action_mask"], dtype=torch.float32)
-                # マスク付きで行動分布を生成し、サンプリング、log_prob はPPOの損失計算に必要
-                action, log_prob = select_action(policy_net, obs_tensor, mask_tensor)
-
-                """
-                1エピソード分の履歴を後でバッチ化して、PPOの損失関数に渡す
-                このようにするとエピソード全体を1つのテンソルバッチとして扱えるようになります。
-                """
-                # 現在の観測（状態）を保存
-                obs_list.append(obs_tensor)
-                # 選択した行動を保存
-                action_list.append(torch.tensor(action))
-                # 選択した行動の対数確率を保存
-                logprob_list.append(log_prob)
-                # 行動マスクを保存
-                mask_list.append(mask_tensor)
-
-                # 状態遷移と報酬取得
-                obs, reward, done, _, info = env.step(action)
-                reward_list.append(torch.tensor(reward, dtype=torch.float32))
-
-            """
-            PPO（Proximal Policy Optimization）における「割引報酬（Return）」の計算処理
-            エピソード全体の報酬履歴から、各時点での累積報酬（Return）を逆順で計算。
-
-            PPOでは、状態の価値（value）と実際のReturnとの差分（Advantage）を使って学習
-            𝐴_𝑡 = 𝐺_𝑡 − 𝑉(𝑠_𝑡)
-            そのため、各ステップのReturn 𝐺_𝑡 を正確に計算しておく必要がある
-            """
-            # ある時点 𝑡 における「Return」𝐺_𝑡 は、その時点から将来にわたって得られる報酬の合計
-            returns = []
-            G = 0
-            # 報酬リストを後ろから前へ処理
-            for r in reversed(reward_list):
-                # 現在の報酬 𝑟 に、次のステップの累積報酬 𝐺 を割引して加える
-                # これにより、未来の報酬を考慮した累積値が得られる
-                G = r + gamma * G
-                # returns の先頭に 𝐺 を挿入することで、元の時間順に戻す
-                returns.insert(0, G)
-
-            """
-            PPOの損失計算に向けた「バッチ化と前処理」
-            """
-            # 方策ネットワーク・価値ネットワークの入力
-            obs_batch = torch.stack(obs_list)
-            # 各ステップで選択した行動（整数）をテンソル化
-            action_batch = torch.stack(action_list)
-            # 各行動の対数確率（log_prob）をまとめる
-            logprob_batch = torch.stack(logprob_list)
-            # 各ステップの割引報酬（Return）をまとめる
-            return_batch = torch.stack(returns)
-            # 状態ベクトル obs_batch を価値ネットワークに通して、各ステップの状態価値 𝑉(𝑠_𝑡) を取得
-            value_batch = value_net(obs_batch).squeeze(-1)  # 最後の次元だけを潰す
-            # Advantage（利得）の計算
-            adv_batch = return_batch - value_batch.detach()
-            # 各ステップの行動マスクをまとめる
-            mask_batch = torch.stack(mask_list)
-
-            """
-            PPOの損失関数を計算（方策・価値・エントロピー項を含む）
-            """
-            loss = compute_ppo_loss(
-                policy_net,
-                value_net,
-                obs_batch,
-                action_batch,
-                logprob_batch,
-                return_batch,
-                adv_batch,
-                mask_batch
-            )
-            # 勾配をゼロに初期化
-            optimizer.zero_grad()
-            # 損失関数から勾配を計算
-            loss.backward()
-            # 勾配に基づいてパラメータを更新
-            optimizer.step()
-
+            loss = self.train_one_epoch()
             print(f"Epoch {epoch + 1}: Loss = {loss.item():.4f}")
 
         # 学習モデルの保存
         # https://docs.pytorch.org/docs/stable/generated/torch.save.html
         obj = {
-            "policy_state_dict": policy_net.state_dict(),
-            "value_state_dict": value_net.state_dict()
+            "policy_state_dict": self.policy_net.state_dict(),
+            "value_state_dict": self.value_net.state_dict()
         }
         torch.save(obj, model_path)
         print(f"✅ モデルを保存しました: {model_path}")
+
+    def train_one_epoch(self) -> Tensor:
+        obs_list, action_list, logprob_list, reward_list, mask_list = [], [], [], [], []
+
+        # 初期状態とマスク取得
+        obs, info = self.env.reset()
+        done = False
+        while not done:
+            # 環境から得られた観測データ obs を PyTorch のテンソルに変換
+            obs_tensor = torch.tensor(obs, dtype=torch.float32)
+            # 行動マスク（action_mask）をテンソルに変換
+            mask_tensor = torch.tensor(info["action_mask"], dtype=torch.float32)
+            # マスク付きで行動分布を生成し、サンプリング、log_prob は PPO の損失計算に必要
+            action, log_prob = select_action(self.policy_net, obs_tensor, mask_tensor)
+
+            """
+            1エピソード分の履歴を後でバッチ化して、PPOの損失関数に渡す
+            このようにするとエピソード全体を1つのテンソルバッチとして扱えるようになります。
+            """
+            # 現在の観測（状態）を保存
+            obs_list.append(obs_tensor)
+            # 選択した行動を保存
+            action_list.append(torch.tensor(action))
+            # 選択した行動の対数確率を保存
+            logprob_list.append(log_prob)
+            # 行動マスクを保存
+            mask_list.append(mask_tensor)
+
+            # 状態遷移と報酬取得
+            obs, reward, done, _, info = self.env.step(action)
+            reward_list.append(torch.tensor(reward, dtype=torch.float32))
+
+        """
+        PPO（Proximal Policy Optimization）における「割引報酬（Return）」の計算処理
+        エピソード全体の報酬履歴から、各時点での累積報酬（Return）を逆順で計算。
+
+        PPOでは、状態の価値（value）と実際のReturnとの差分（Advantage）を使って学習
+        𝐴_𝑡 = 𝐺_𝑡 − 𝑉(𝑠_𝑡)
+        そのため、各ステップのReturn 𝐺_𝑡 を正確に計算しておく必要がある
+        """
+        # ある時点 𝑡 における「Return」𝐺_𝑡 は、その時点から将来にわたって得られる報酬の合計
+        returns = []
+        G = 0
+        # 報酬リストを後ろから前へ処理
+        for r in reversed(reward_list):
+            # 現在の報酬 𝑟 に、次のステップの累積報酬 𝐺 を割引して加える
+            # これにより、未来の報酬を考慮した累積値が得られる
+            G = r + self.gamma * G
+            # returns の先頭に 𝐺 を挿入することで、元の時間順に戻す
+            returns.insert(0, G)
+
+        """
+        PPOの損失計算に向けた「バッチ化と前処理」
+        """
+        # 方策ネットワーク・価値ネットワークの入力
+        obs_batch = torch.stack(obs_list)
+        # 各ステップで選択した行動（整数）をテンソル化
+        action_batch = torch.stack(action_list)
+        # 各行動の対数確率（log_prob）をまとめる
+        logprob_batch = torch.stack(logprob_list)
+        # 各ステップの割引報酬（Return）をまとめる
+        return_batch = torch.stack(returns)
+        # 状態ベクトル obs_batch を価値ネットワークに通して、各ステップの状態価値 𝑉(𝑠_𝑡) を取得
+        value_batch = self.value_net(obs_batch).squeeze(-1)  # 最後の次元だけを潰す
+        # Advantage（利得）の計算
+        adv_batch = return_batch - value_batch.detach()
+        # 各ステップの行動マスクをまとめる
+        mask_batch = torch.stack(mask_list)
+
+        """
+        PPOの損失関数を計算（方策・価値・エントロピー項を含む）
+        """
+        loss = compute_ppo_loss(
+            self.policy_net,
+            self.value_net,
+            obs_batch,
+            action_batch,
+            logprob_batch,
+            return_batch,
+            adv_batch,
+            mask_batch
+        )
+        # 勾配をゼロに初期化
+        self.optimizer.zero_grad()
+        # 損失関数から勾配を計算
+        loss.backward()
+        # 勾配に基づいてパラメータを更新
+        self.optimizer.step()
+        return loss
