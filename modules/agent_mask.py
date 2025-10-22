@@ -52,25 +52,6 @@ def compute_ppo_loss(
     return policy_loss + 0.5 * value_loss
 
 
-def select_action(policy_net, obs, action_mask):
-    """
-    🚦 行動選択関数
-    現在の状態 obs と行動マスク action_mask を使って、方策ネットワークから行動をサンプリングする
-    PPOでは、確率的方策に基づいて行動を選び、その確率（log_prob）も記録する必要があります
-    """
-    # 方策ネットワークに状態とマスクを渡して、行動のロジット（未正規化スコア）を取得
-    logits = policy_net(obs, action_mask)
-    # Categorical 分布を使って、ロジットから確率分布を構築
-    dist = Categorical(logits=logits)
-    # 分布 dist から 確率的に行動をサンプリング
-    action = dist.sample()
-    # 選択した行動の対数確率（log_prob）を取得
-    log_prob = dist.log_prob(action)
-    # action.item() によって、テンソルからPythonの整数に変換
-    # log_prob はそのままテンソルとして返す（後で loss.backward() に使うため）
-    return action.item(), log_prob
-
-
 class PolicyNetwork(nn.Module):
     # 🎯 方策ネットワーク（マスク対応）
     def __init__(self, obs_dim: int, act_dim: int):
@@ -138,7 +119,7 @@ class PPOAgent:
             obs_tensor = torch.tensor(obs, dtype=torch.float32)
             mask_tensor = torch.tensor(info["action_mask"], dtype=torch.float32)
             # マスク付きで行動分布を生成しサンプリング、log_prob は推論では使わないが、ログや分析に活用可能
-            action, log_prob = select_action(self.policy_net, obs_tensor, mask_tensor)
+            action, log_prob = self.select_action(obs_tensor, mask_tensor)
 
             """
             選択された行動がマスクで禁止されていないかを確認
@@ -200,7 +181,7 @@ class PPOAgent:
             # 行動マスク（action_mask）をテンソルに変換
             mask_tensor = torch.tensor(info["action_mask"], dtype=torch.float32)
             # マスク付きで行動分布を生成し、サンプリング、log_prob は PPO の損失計算に必要
-            action, log_prob = select_action(self.policy_net, obs_tensor, mask_tensor)
+            action, log_prob = self.select_action(obs_tensor, mask_tensor)
 
             """
             1エピソード分の履歴を後でバッチ化して、PPOの損失関数に渡す
@@ -276,3 +257,21 @@ class PPOAgent:
         # 勾配に基づいてパラメータを更新
         self.optimizer.step()
         return loss
+
+    def select_action(self, obs: Tensor, action_mask: Tensor):
+        """
+        🚦 行動選択関数
+        現在の状態 obs と行動マスク action_mask を使って、方策ネットワークから行動をサンプリングする
+        PPOでは、確率的方策に基づいて行動を選び、その確率（log_prob）も記録する必要があります
+        """
+        # 方策ネットワークに状態とマスクを渡して、行動のロジット（未正規化スコア）を取得
+        logits = self.policy_net(obs, action_mask)
+        # Categorical 分布を使って、ロジットから確率分布を構築
+        dist = Categorical(logits=logits)
+        # 分布 dist から 確率的に行動をサンプリング
+        action = dist.sample()
+        # 選択した行動の対数確率（log_prob）を取得
+        log_prob = dist.log_prob(action)
+        # action.item() によって、テンソルからPythonの整数に変換
+        # log_prob はそのままテンソルとして返す（後で loss.backward() に使うため）
+        return action.item(), log_prob
