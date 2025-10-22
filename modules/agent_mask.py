@@ -7,51 +7,6 @@ from torch.distributions import Categorical
 from modules.env_mask import TradingEnv
 
 
-def compute_ppo_loss(
-        policy_net,
-        value_net,
-        obs, actions,
-        old_log_probs,
-        returns,
-        advantages,
-        action_masks
-):
-    """
-    📦 PPO損失関数（Clip付き）
-    この関数は、以下の2つの損失を計算して合成します：
-    - 方策損失（policy_loss）：確率比率のクリップ付き損失
-    - 価値損失（value_loss）：状態価値とReturnの誤差（MSE）
-    """
-    # 方策ネットワークに状態とマスクを渡して、各行動のロジット（未正規化スコア）を取得
-    logits = policy_net(obs, action_masks)
-    # ロジットから 確率分布（Categorical） を構築
-    dist = Categorical(logits=logits)
-    # 現在の方策で、過去に選択された行動の対数確率を取得
-    new_log_probs = dist.log_prob(actions)
-
-    # PPOの中核：確率比率（新旧方策の確率の変化率）を計算
-    ratio = torch.exp(new_log_probs - old_log_probs)
-    # PPOの「Clip付き損失」のために、確率比率を上下に制限
-    # 1 ± 0.2 は クリップ範囲（ε）：この範囲を超える更新は抑制される
-    # これにより、方策の急激な変化を防ぎ、安定した学習が可能になる
-    clipped_ratio = torch.clamp(ratio, 1 - 0.2, 1 + 0.2)
-    # PPOの「Surrogate Objective」
-    # advantages は [T] のテンソルで、行動の良さを表す重み
-    # torch.min(...) によって、クリップされた方策損失が選ばれる
-    # - を付けることで、損失関数として最小化対象にする
-    policy_loss = -torch.min(ratio * advantages, clipped_ratio * advantages).mean()
-
-    # 状態ベクトル obs を価値ネットワークに通して、状態価値 𝑉(𝑠_𝑡) を取得
-    # .squeeze() によって [T, 1] → [T] に変形（損失計算のため）
-    values = value_net(obs).squeeze()
-    # 状態価値と実際の Return の誤差を MSE（平均二乗誤差）で計算
-    value_loss = nn.functional.mse_loss(values, returns)
-    # 最終的な損失は、方策損失 + 価値損失（重み付き）
-    # 0.5 はハイパーパラメータで、価値損失の影響度を調整
-    # この合成損失を loss.backward() に渡して、両ネットワークを同時に更新
-    return policy_loss + 0.5 * value_loss
-
-
 class PolicyNetwork(nn.Module):
     # 🎯 方策ネットワーク（マスク対応）
     def __init__(self, obs_dim: int, act_dim: int):
@@ -89,19 +44,90 @@ class PPOAgent:
         self.policy_net = None  # 方策ネットワーク
         self.value_net = None  # 状態価値を推定するネットワーク
         self.optimizer = None  # 両ネットワークのパラメータを同時に更新するオプティマイザ
+        # ハイパーパラメータ
         self.gamma = 0.99  # 割引率（discount factor）
+        self.clip_epsilon = 0.2  # クリップ範囲（ε）
+        self.value_coef = 0.5  # 価値損失の影響度を調整する係数
+
+    def compute_ppo_loss(
+            self,
+            obs,
+            actions,
+            old_log_probs,
+            returns,
+            advantages,
+            action_masks
+    ):
+        """
+        📦 PPO損失関数（Clip付き）
+        この関数は、以下の2つの損失を計算して合成します：
+        - 方策損失（policy_loss）：確率比率のクリップ付き損失
+        - 価値損失（value_loss）：状態価値とReturnの誤差（MSE）
+        """
+        # 方策ネットワークに状態とマスクを渡して、各行動のロジット（未正規化スコア）を取得
+        logits = self.policy_net(obs, action_masks)
+        # ロジットから 確率分布（Categorical） を構築
+        dist = Categorical(logits=logits)
+        # 現在の方策で、過去に選択された行動の対数確率を取得
+        new_log_probs = dist.log_prob(actions)
+
+        # PPOの中核：確率比率（新旧方策の確率の変化率）を計算
+        ratio = torch.exp(new_log_probs - old_log_probs)
+        # PPOの「Clip付き損失」のために、確率比率を上下に制限
+        # これにより、方策の急激な変化を防ぎ、安定した学習が可能になる
+        clipped_ratio = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon)
+        # PPOの「Surrogate Objective」
+        # advantages は [T] のテンソルで、行動の良さを表す重み
+        # torch.min(...) によって、クリップされた方策損失が選ばれる
+        # - を付けることで、損失関数として最小化対象にする
+        policy_loss = -torch.min(ratio * advantages, clipped_ratio * advantages).mean()
+
+        # 状態ベクトル obs を価値ネットワークに通して、状態価値 𝑉(𝑠_𝑡) を取得
+        # .squeeze() によって [T, 1] → [T] に変形（損失計算のため）
+        values = self.value_net(obs).squeeze()
+        # 状態価値と実際の Return の誤差を MSE（平均二乗誤差）で計算
+        value_loss = nn.functional.mse_loss(values, returns)
+        # 最終的な損失は、方策損失 + 価値損失（重み付き）
+        return policy_loss + self.value_coef * value_loss
+
+    def compute_returns(self, rewards: list[Tensor]) -> list[Tensor]:
+        """
+        PPO（Proximal Policy Optimization）における「割引報酬（Return）」の計算処理
+        エピソード全体の報酬履歴から、各時点での累積報酬（Return）を逆順で計算。
+
+        PPOでは、状態の価値（value）と実際のReturnとの差分（Advantage）を使って学習
+        𝐴_𝑡 = 𝐺_𝑡 − 𝑉(𝑠_𝑡)
+        そのため、各ステップのReturn 𝐺_𝑡 を正確に計算しておく必要がある
+        """
+        returns = []
+        G = 0
+        # 報酬リストを後ろから前へ処理
+        for r in reversed(rewards):
+            # 現在の報酬 𝑟 に、次のステップの累積報酬 𝐺 を割引して加える
+            # これにより、未来の報酬を考慮した累積値が得られる
+            G = r + self.gamma * G
+            # returns の先頭に 𝐺 を挿入することで、元の時間順に戻す
+            returns.insert(0, G)
+        return returns
 
     def get_dim(self) -> tuple[int, int]:
         obs_dim = self.env.observation_space.shape[0]
         act_dim = self.env.action_space.n
         return obs_dim, act_dim
 
+    def get_transaction(self) -> pd.DataFrame:
+        # 取引明細の辞書をデータフレームにして返す
+        return pd.DataFrame(self.env.transman.dict_transaction)
+
     def infer(self, df: pd.DataFrame, model_path: str):
         self.env = TradingEnv(df)
         obs_dim, act_dim = self.get_dim()
 
+        # ---------------------------------------------------------------------
         # モデルを読み込み
+        # ---------------------------------------------------------------------
         checkpoint = torch.load(model_path)
+
         # 行動分布を出力する方策ネットワーク
         self.policy_net = PolicyNetwork(obs_dim, act_dim)
         # ネットワークに、保存したパラメータを復元
@@ -131,26 +157,24 @@ class PPOAgent:
 
             obs, reward, done, _, info = self.env.step(action)
 
-        # 取引明細の出力
-        df_transaction = pd.DataFrame(self.env.transman.dict_transaction)
-        print(df_transaction)
-        print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
-
-    def train(self, df: pd.DataFrame, model_path: str):
-        # 環境は学習と推論で異なる可能性があるので、ここで定義する
-        self.env = TradingEnv(df)
-        obs_dim, act_dim = self.get_dim()
-
-        """
-        ネットワークとオプティマイザの初期化
-        """
+    def initialize_networks(self, obs_dim: int, act_dim: int):
         # 行動分布を出力する方策ネットワーク
         self.policy_net = PolicyNetwork(obs_dim, act_dim)
         # 状態価値を推定するネットワーク
         # ValueNetwork は 学習時のAdvantage計算専用
         self.value_net = ValueNetwork(obs_dim)
         # 両ネットワークのパラメータを同時に更新
-        self.optimizer = optim.Adam(list(self.policy_net.parameters()) + list(self.value_net.parameters()), lr=3e-4)
+        self.optimizer = optim.Adam(
+            list(self.policy_net.parameters()) + list(self.value_net.parameters()),
+            lr=3e-4
+        )
+
+    def train(self, df: pd.DataFrame, model_path: str):
+        # 環境は学習と推論で異なる可能性があるので、ここで定義する
+        self.env = TradingEnv(df)
+        obs_dim, act_dim = self.get_dim()
+        # ネットワークとオプティマイザの初期化
+        self.initialize_networks(obs_dim, act_dim)
 
         num_epochs = 3
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
@@ -160,7 +184,9 @@ class PPOAgent:
             loss = self.train_one_epoch()
             print(f"Epoch {epoch + 1}: Loss = {loss.item():.4f}")
 
+        # ---------------------------------------------------------------------
         # 学習モデルの保存
+        # ---------------------------------------------------------------------
         # https://docs.pytorch.org/docs/stable/generated/torch.save.html
         obj = {
             "policy_state_dict": self.policy_net.state_dict(),
@@ -200,24 +226,8 @@ class PPOAgent:
             obs, reward, done, _, info = self.env.step(action)
             reward_list.append(torch.tensor(reward, dtype=torch.float32))
 
-        """
-        PPO（Proximal Policy Optimization）における「割引報酬（Return）」の計算処理
-        エピソード全体の報酬履歴から、各時点での累積報酬（Return）を逆順で計算。
-
-        PPOでは、状態の価値（value）と実際のReturnとの差分（Advantage）を使って学習
-        𝐴_𝑡 = 𝐺_𝑡 − 𝑉(𝑠_𝑡)
-        そのため、各ステップのReturn 𝐺_𝑡 を正確に計算しておく必要がある
-        """
-        # ある時点 𝑡 における「Return」𝐺_𝑡 は、その時点から将来にわたって得られる報酬の合計
-        returns = []
-        G = 0
-        # 報酬リストを後ろから前へ処理
-        for r in reversed(reward_list):
-            # 現在の報酬 𝑟 に、次のステップの累積報酬 𝐺 を割引して加える
-            # これにより、未来の報酬を考慮した累積値が得られる
-            G = r + self.gamma * G
-            # returns の先頭に 𝐺 を挿入することで、元の時間順に戻す
-            returns.insert(0, G)
+        # PPO における「割引報酬（Return）」の計算処理
+        returns = self.compute_returns(reward_list)
 
         """
         PPOの損失計算に向けた「バッチ化と前処理」
@@ -240,9 +250,7 @@ class PPOAgent:
         """
         PPOの損失関数を計算（方策・価値・エントロピー項を含む）
         """
-        loss = compute_ppo_loss(
-            self.policy_net,
-            self.value_net,
+        loss = self.compute_ppo_loss(
             obs_batch,
             action_batch,
             logprob_batch,

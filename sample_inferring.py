@@ -18,3 +18,8 @@ if __name__ == "__main__":
     # PPO エージェントのインスタンスと推論
     agent = PPOAgent()
     agent.infer(df, model_path)
+
+    # 取引結果
+    df_transaction = agent.get_transaction()
+    print(df_transaction)
+    print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
