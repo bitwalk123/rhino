@@ -7,7 +7,6 @@ from structs.res import AppRes
 
 if __name__ == "__main__":
     res = AppRes()
-
     # 学習用データフレーム
     file_excel = "ticks_20250819.xlsx"
     code = "7011"
