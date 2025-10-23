@@ -240,14 +240,17 @@ class ObservationManager:
         # キューを作成
         self.deque_price = deque(maxlen=self.n_warmup)
 
+        # 調整用係数
+        self.factor_ticker = 10.0  # 調整因子（銘柄別）
+        self.unit = 100  # 最小取引単位（出来高）
+
         # 特徴量算出のために保持する変数
         self.price_init = 0.0  # ザラバの始値
         self.price_prev = 0.0  # １つ前の株価
         self.volume_prev = 0.0  # １つ前の出来高
 
-        # 調整用係数
-        self.factor_ticker = 10.0  # 調整因子（銘柄別）
-        self.unit = 100  # 最小取引単位（出来高）
+        self.n_feature = len(self.getObs())
+        self.clear()
 
     def clear(self):
         # キューをクリア
@@ -281,11 +284,11 @@ class ObservationManager:
         self.volume_prev = volume
         return volume_delta
 
-    def get_obs(
+    def getObs(
             self,
-            price: float,  # 株価
-            volume: float,  # 出来高
-            position: PositionType  # ポジション
+            price: float = 0,  # 株価
+            volume: float = 0,  # 出来高
+            position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         list_feature = list()
 
@@ -302,9 +305,12 @@ class ObservationManager:
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
 
         # arr_feature と pos_onehot を単純結合
-        features = np.concatenate([arr_feature, pos_onehot])
+        return np.concatenate([arr_feature, pos_onehot])
 
-        return features
+    def getObsReset(self) -> np.ndarray:
+        obs = self.getObs()
+        self.clear()
+        return obs
 
 
 class TradingEnv(gym.Env):
@@ -320,39 +326,14 @@ class TradingEnv(gym.Env):
         self.trans_man = TransactionManager()
         # 観測量管理クラス
         self.obs_man = ObservationManager(n_warmup=self.n_warmup)
-
-        # 特徴量の列名のリストが返る
-        self.cols_features = self._add_features()
-        # obs: len(self.cols_features) + one-hot(3)
-        n_features = len(self.cols_features) + 3
+        n_feature = self.obs_man.n_feature
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(n_features,),
+            shape=(n_feature,),
             dtype=np.float32
         )
         self.action_space = gym.spaces.Discrete(len(ActionType))
-
-    def _add_features(self) -> list:
-        # 特徴量の追加
-        list_features = list()
-        # 調整用係数
-        factor_ticker = 10  # 調整因子（銘柄別）
-        unit = 100  # 最小取引単位
-        # 最初の株価（株価比率の算出用）
-        price_start = self.df["Price"].iloc[0]
-
-        # 1. 株価比率
-        colname = "PriceRatio"
-        self.df[colname] = self.df["Price"] / price_start
-        list_features.append(colname)
-
-        # 2. 累計出来高差分 / 最小取引単位
-        colname = "dVol"
-        self.df[colname] = np.log1p(self.df["Volume"].diff() / unit) / factor_ticker
-        list_features.append(colname)
-
-        return list_features
 
     def _get_action_mask(self) -> np.ndarray:
         # 行動マスク
@@ -375,33 +356,28 @@ class TradingEnv(gym.Env):
             """
             return np.array([1, 0, 0, 1], dtype=np.int8)
 
-    def _get_observation(self):
-        if self.step_current >= self.n_warmup:
-            features = self.df.iloc[self.step_current][self.cols_features]
-        else:
-            features = [0] * len(self.cols_features)
-        obs = np.array(features, dtype=np.float32)
-        # PositionType → one-hot
-        pos_onehot = np.eye(3)[self.trans_man.position.value].astype(np.float32)
-        obs = np.concatenate([obs, pos_onehot])
-        return obs
-
     def reset(self, seed=None, options=None):
         self.step_current = 0
         self.trans_man.clear()
-        self.obs_man.clear()
-        obs = self._get_observation()
+        obs = self.obs_man.getObsReset()
         return obs, {"action_mask": self._get_action_mask()}
 
     def step(self, action: int):
         # --- ウォームアップ期間 (self.n_warmup) は強制 HOLD ---
         if self.step_current < self.n_warmup:
             action = ActionType.HOLD.value
+
+        # データフレームからティックデータを取得
         t = self.df.at[self.step_current, "Time"]
         price = self.df.at[self.step_current, "Price"]
+        volume = self.df.at[self.step_current, "Volume"]
 
         reward = self.trans_man.evalReward(action, t, price)
-        obs = self._get_observation()
+        obs = self.obs_man.getObs(
+            price,  # 株価
+            volume,  # 出来高
+            self.trans_man.position,  # ポジション
+        )
 
         done = False
         if self.step_current >= len(self.df) - 1:
