@@ -24,6 +24,7 @@ class TransactionManager:
     売買管理クラス
     方策マスクでナンピンをしないことが前提
     """
+
     def __init__(self, code: str = '7011'):
         # #####################################################################
         # 取引関連
@@ -53,7 +54,7 @@ class TransactionManager:
         self.penalty_hold = -0.
         # ***** 損益関係 *****
         # 建玉返済時に損益 0 の場合のペナルティ
-        self.penalty_profit_zero = -0.
+        self.penalty_profit_zero = -0.1
 
     def _add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self._get_datetime(t))
@@ -62,11 +63,6 @@ class TransactionManager:
         self.dict_transaction["約定単価"].append(price)
         self.dict_transaction["約定数量"].append(self.unit)
         self.dict_transaction["損益"].append(profit)
-
-    def _comply_transaction_rule(self) -> float:
-        self.count_violate_rule_transaction = 0
-        reward = self.reward_comply_rule_small
-        return reward
 
     @staticmethod
     def _get_datetime(t: float) -> str:
@@ -83,10 +79,6 @@ class TransactionManager:
             "損益": [],
         }
 
-    def _violate_transaction_rule(self) -> float:
-        self.count_violate_rule_transaction += 1
-        return self.penalty_rule_transaction * self.count_violate_rule_transaction
-
     def clear(self):
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
@@ -94,23 +86,41 @@ class TransactionManager:
         self.dict_transaction = self._init_transaction()  # 取引明細
 
     def forceRepay(self, t: float, price: float) -> float:
+        reward = 0
         profit = self.getProfit(price)
         if self.position == PositionType.LONG:
             # 返済: 買建 (LONG) → 売埋
+            # -------------------------------------------------------------
+            # 取引明細
+            # -------------------------------------------------------------
             self._add_transaction(t, "売埋（強制返済）", price, profit)
         elif self.position == PositionType.SHORT:
             # 返済: 売建 (SHORT) → 買埋
+            # -------------------------------------------------------------
+            # 取引明細
+            # -------------------------------------------------------------
             self._add_transaction(t, "買埋（強制返済）", price, profit)
         else:
+            # ポジション無し
             pass
-        # =====================================================================
+
+        # -------------------------------------------------------------
+        # 損益から報酬計算
+        # -------------------------------------------------------------
+        if profit == 0.0:
+            # profit == 0（損益 0）の時は僅かなペナルティ
+            reward += self.penalty_profit_zero
+        else:
+            # 報酬は、呼び値で割って正規化
+            reward += profit / self.tickprice
+        # ---------------------------------------------------------------------
         # 損益確定
-        # =====================================================================
-        reward = profit / self.tickprice  # 呼び値で割って報酬を正規化
+        # 損益合計は、損益そのままで足す
+        # ---------------------------------------------------------------------
         self.pnl_total += profit
-        # =====================================================================
+        # ---------------------------------------------------------------------
         # ポジション解消
-        # =====================================================================
+        # ---------------------------------------------------------------------
         self.position = PositionType.NONE
         self.price_entry = 0
 
@@ -132,9 +142,9 @@ class TransactionManager:
                 # =============================================================
                 self.position = PositionType.LONG  # ポジションを更新
                 self.price_entry = price + self.slippage  # 取得価格
-                # =============================================================
+                # -------------------------------------------------------------
                 # 取引明細
-                # =============================================================
+                # -------------------------------------------------------------
                 self._add_transaction(t, "買建", price)
             elif action_type == ActionType.SELL:
                 # =============================================================
@@ -142,9 +152,9 @@ class TransactionManager:
                 # =============================================================
                 self.position = PositionType.SHORT  # ポジションを更新
                 self.price_entry = price - self.slippage  # 取得価格
-                # =============================================================
+                # -------------------------------------------------------------
                 # 取引明細
-                # =============================================================
+                # -------------------------------------------------------------
                 self._add_transaction(t, "売建", price)
             elif action_type == ActionType.REPAY:
                 # 取引ルール違反
@@ -166,9 +176,9 @@ class TransactionManager:
             elif action_type == ActionType.REPAY:
                 # 実現損益
                 profit = self.getProfit(price)
-                # =============================================================
+                # -------------------------------------------------------------
                 # 取引明細
-                # =============================================================
+                # -------------------------------------------------------------
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
                     self._add_transaction(t, "売埋", price, profit)
@@ -177,22 +187,23 @@ class TransactionManager:
                     self._add_transaction(t, "買埋", price, profit)
                 else:
                     raise TypeError(f"Unknown PositionType: {self.position}")
-
-                # =============================================================
-                # 損益確定
-                # =============================================================
+                # -------------------------------------------------------------
+                # 損益から報酬計算
+                # -------------------------------------------------------------
                 if profit == 0.0:
                     # profit == 0（損益 0）の時は僅かなペナルティ
-                    pass
+                    reward += self.penalty_profit_zero
                 else:
-                    # 呼び値で割って報酬を正規化
+                    # 報酬は、呼び値で割って正規化
                     reward += profit / self.tickprice
-
+                # -------------------------------------------------------------
+                # 損益確定
+                # 損益合計は、損益そのままで足す
+                # -------------------------------------------------------------
                 self.pnl_total += profit
-
-                # =============================================================
+                # -------------------------------------------------------------
                 # ポジション解消
-                # =============================================================
+                # -------------------------------------------------------------
                 self.position = PositionType.NONE
                 self.price_entry = 0
             else:
@@ -231,6 +242,7 @@ class TradingEnv(gym.Env):
         self.current_step = 0
         # 売買管理クラス
         self.transman = TransactionManager()
+
         # obs: len(self.cols_features) + one-hot(3)
         n_features = len(self.cols_features) + 3
         self.observation_space = gym.spaces.Box(
@@ -249,14 +261,17 @@ class TradingEnv(gym.Env):
         unit = 100  # 最小取引単位
         # 最初の株価（株価比率の算出用）
         price_start = self.df["Price"].iloc[0]
+
         # 1. 株価比率
         colname = "PriceRatio"
         self.df[colname] = self.df["Price"] / price_start
         list_features.append(colname)
+
         # 2. 累計出来高差分 / 最小取引単位
         colname = "dVol"
         self.df[colname] = np.log1p(self.df["Volume"].diff() / unit) / factor_ticker
         list_features.append(colname)
+
         return list_features
 
     def _get_action_mask(self) -> np.ndarray:
@@ -288,28 +303,31 @@ class TradingEnv(gym.Env):
         obs = self._get_observation()
         return obs, {"action_mask": self._get_action_mask()}
 
-    def step(self, n_action: int):
+    def step(self, action: int):
         # --- ウォームアップ期間 (self.period) は強制 HOLD ---
         if self.current_step < self.period:
-            action = ActionType.HOLD
-        else:
-            action = ActionType(n_action)
-        reward = 0.0
-        done = False
+            action = ActionType.HOLD.value
         t = self.df.at[self.current_step, "Time"]
         price = self.df.at[self.current_step, "Price"]
-        reward += self.transman.setAction(action, t, price)
+
+        reward = self.transman.evalReward(action, t, price)
         obs = self._get_observation()
+
+        done = False
         if self.current_step >= len(self.df) - 1:
             done = True
+
         self.current_step += 1
         info = {"pnl_total": self.transman.pnl_total, "action_mask": self._get_action_mask()}
+
         return obs, reward, done, False, info
+
 
 class TrainingEnv(TradingEnv):
     """
     環境クラス
     過去のティックデータを使った学習、推論用
     """
+
     def __init__(self, df: pd.DataFrame):
         super().__init__(df)
