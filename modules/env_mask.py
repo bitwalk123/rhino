@@ -26,19 +26,17 @@ class TransactionManager:
     """
 
     def __init__(self, code: str = '7011'):
-        # #####################################################################
-        # 取引関連
-        # #####################################################################
         self.code: str = code  # 銘柄コード
+        # ---------------------------------------------------------------------
+        # 取引関連
+        # ---------------------------------------------------------------------
         self.unit: int = 1  # 売買単位
         self.tickprice: float = 1.0  # 呼び値
         self.slippage = self.tickprice  # スリッページ
-
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
         self.pnl_total = 0.0  # 総損益
-        self.dict_transaction = self._init_transaction()  # 取引明細
-
+        self.dict_transaction = self.init_transaction()  # 取引明細
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 報酬設計
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
@@ -49,41 +47,31 @@ class TransactionManager:
         self.penalty_rule_transaction = -0.
         # ***** HOLD 関係 *****
         # 建玉を持っている時の HOLD 報酬
-        self.reward_hold_small = 0.
+        self.reward_hold_small = 0.0001
         # 建玉を持っていない時の HOLD ペナルティ
         self.penalty_hold = -0.
         # ***** 損益関係 *****
         # 建玉返済時に損益 0 の場合のペナルティ
         self.penalty_profit_zero = -0.1
+        # 含み損益から報酬を算出する比
+        self.reward_unrealized_profit_ratio = 0.01
 
-    def _add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
-        self.dict_transaction["注文日時"].append(self._get_datetime(t))
+    def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
+        self.dict_transaction["注文日時"].append(self.get_datetime(t))
         self.dict_transaction["銘柄コード"].append(self.code)
         self.dict_transaction["売買"].append(transaction)
         self.dict_transaction["約定単価"].append(price)
         self.dict_transaction["約定数量"].append(self.unit)
         self.dict_transaction["損益"].append(profit)
 
-    @staticmethod
-    def _get_datetime(t: float) -> str:
-        return str(datetime.datetime.fromtimestamp(int(t)))
-
-    @staticmethod
-    def _init_transaction() -> dict:
-        return {
-            "注文日時": [],
-            "銘柄コード": [],
-            "売買": [],
-            "約定単価": [],
-            "約定数量": [],
-            "損益": [],
-        }
-
     def clear(self):
-        self.position = PositionType.NONE  # ポジション（建玉）
-        self.price_entry = 0.0  # 取得価格
+        self.clear_position()
         self.pnl_total = 0.0  # 総損益
-        self.dict_transaction = self._init_transaction()  # 取引明細
+        self.dict_transaction = self.init_transaction()  # 取引明細
+
+    def clear_position(self):
+        self.position = PositionType.NONE
+        self.price_entry = 0
 
     def forceRepay(self, t: float, price: float) -> float:
         reward = 0
@@ -93,17 +81,16 @@ class TransactionManager:
             # -------------------------------------------------------------
             # 取引明細
             # -------------------------------------------------------------
-            self._add_transaction(t, "売埋（強制返済）", price, profit)
+            self.add_transaction(t, "売埋（強制返済）", price, profit)
         elif self.position == PositionType.SHORT:
             # 返済: 売建 (SHORT) → 買埋
             # -------------------------------------------------------------
             # 取引明細
             # -------------------------------------------------------------
-            self._add_transaction(t, "買埋（強制返済）", price, profit)
+            self.add_transaction(t, "買埋（強制返済）", price, profit)
         else:
             # ポジション無し
             pass
-
         # -------------------------------------------------------------
         # 損益から報酬計算
         # -------------------------------------------------------------
@@ -115,21 +102,19 @@ class TransactionManager:
             reward += profit / self.tickprice
         # ---------------------------------------------------------------------
         # 損益確定
-        # 損益合計は、損益そのままで足す
+        # 損益合計は、そのままで足す
         # ---------------------------------------------------------------------
         self.pnl_total += profit
         # ---------------------------------------------------------------------
         # ポジション解消
         # ---------------------------------------------------------------------
-        self.position = PositionType.NONE
-        self.price_entry = 0
+        self.clear_position()
 
         return reward
 
     def evalReward(self, action: int, t: float, price: float) -> float:
         action_type = ActionType(action)
         reward = 0.0
-
         if self.position == PositionType.NONE:
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             # ポジションが無い場合に取りうるアクションは HOLD, BUY, SELL
@@ -145,7 +130,7 @@ class TransactionManager:
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
-                self._add_transaction(t, "買建", price)
+                self.add_transaction(t, "買建", price)
             elif action_type == ActionType.SELL:
                 # =============================================================
                 # 売建 (SHORT)
@@ -155,7 +140,7 @@ class TransactionManager:
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
-                self._add_transaction(t, "売建", price)
+                self.add_transaction(t, "売建", price)
             elif action_type == ActionType.REPAY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -166,6 +151,11 @@ class TransactionManager:
             # ポジションが有る場合に取りうるアクションは HOLD, REPAY
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
+                # 建玉を持っている時の僅かな報酬
+                # reward += self.reward_hold_small
+                # 含み損益から報酬算出
+                # profit = self.getProfit(price)
+                # reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
                 pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
@@ -174,17 +164,18 @@ class TransactionManager:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
             elif action_type == ActionType.REPAY:
-                # 実現損益
+                # 含み損益
                 profit = self.getProfit(price)
+                reward += profit / self.tickprice
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
-                    self._add_transaction(t, "売埋", price, profit)
+                    self.add_transaction(t, "売埋", price, profit)
                 elif self.position == PositionType.SHORT:
                     # 返済: 売建 (SHORT) → 買埋
-                    self._add_transaction(t, "買埋", price, profit)
+                    self.add_transaction(t, "買埋", price, profit)
                 else:
                     raise TypeError(f"Unknown PositionType: {self.position}")
                 # -------------------------------------------------------------
@@ -204,12 +195,15 @@ class TransactionManager:
                 # -------------------------------------------------------------
                 # ポジション解消
                 # -------------------------------------------------------------
-                self.position = PositionType.NONE
-                self.price_entry = 0
+                self.clear_position()
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
 
         return reward
+
+    @staticmethod
+    def get_datetime(t: float) -> str:
+        return str(datetime.datetime.fromtimestamp(int(t)))
 
     def getNumberOfTransactions(self) -> int:
         return len(self.dict_transaction["注文日時"])
@@ -227,6 +221,17 @@ class TransactionManager:
             return self.price_entry - price + self.slippage
         else:
             return 0.0  # 実現損益
+
+    @staticmethod
+    def init_transaction() -> dict:
+        return {
+            "注文日時": [],
+            "銘柄コード": [],
+            "売買": [],
+            "約定単価": [],
+            "約定数量": [],
+            "損益": [],
+        }
 
 
 class TradingEnv(gym.Env):
