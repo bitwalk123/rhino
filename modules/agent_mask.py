@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -48,6 +50,7 @@ class PPOAgent:
         # ハイパーパラメータ
         # ---------------------------------------------------------------------
         self.clip_epsilon = 0.2  # PPOクリップ係数 (Clip Epsilon (ε))
+        self.entropy_coef = 0.01  # 探索促進のためのエントロピー項の重み
         self.gamma = 0.99  # 割引率（discount factor）
         self.lr = 3e-4  # 学習率 (Learning Rate)
         self.value_coef = 0.5  # 価値損失係数 (Value Loss Coefficient)
@@ -90,8 +93,17 @@ class PPOAgent:
         values = self.value_net(obs).squeeze()
         # 状態価値と実際の Return の誤差を MSE（平均二乗誤差）で計算
         value_loss = nn.functional.mse_loss(values, returns)
+
         # 最終的な損失は、方策損失 + 価値損失（重み付き）
-        return policy_loss + self.value_coef * value_loss
+        # return policy_loss + self.value_coef * value_loss
+
+        # エントロピー損失（探索促進）
+        entropy = dist.entropy().mean()
+        # entropy_coef = 0.01  # ハイパーパラメータとして調整可能
+
+        # 総合損失
+        total_loss = policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
+        return total_loss
 
     def compute_returns(self, rewards: list[Tensor]) -> list[Tensor]:
         """
@@ -208,6 +220,13 @@ class PPOAgent:
         # TODO: おそらくここか？学習済みモデルが既にあれば読込処理を追加する必要あり
         self.initialize_networks(obs_dim, act_dim)
 
+        # 🔁 既存モデルがあれば読み込む（継続学習対応）
+        if os.path.exists(model_path):
+            checkpoint = torch.load(model_path)
+            self.policy_net.load_state_dict(checkpoint["policy_state_dict"])
+            self.value_net.load_state_dict(checkpoint["value_state_dict"])
+            print(f"📦 既存モデルを読み込みました: {model_path}")
+
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 学習ループ
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
@@ -294,4 +313,3 @@ class PPOAgent:
         # 勾配に基づいてパラメータを更新
         self.optimizer.step()
         return loss
-
