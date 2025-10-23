@@ -208,7 +208,7 @@ class PPOAgent:
         # log_prob はそのままテンソルとして返す（後で loss.backward() に使うため）
         return action.item(), log_prob
 
-    def train(self, df: pd.DataFrame, model_path: str, num_epochs: int = 3):
+    def train(self, df: pd.DataFrame, model_path: str, num_epochs: int = 3, new_model: bool = False):
         """
         過去のティックデータを利用したモデルの学習
         """
@@ -217,11 +217,10 @@ class PPOAgent:
         obs_dim, act_dim = self.get_dim()
 
         # ネットワークとオプティマイザの初期化
-        # TODO: おそらくここか？学習済みモデルが既にあれば読込処理を追加する必要あり
         self.initialize_networks(obs_dim, act_dim)
 
         # 🔁 既存モデルがあれば読み込む（継続学習対応）
-        if os.path.exists(model_path):
+        if not new_model and os.path.exists(model_path):
             checkpoint = torch.load(model_path)
             self.policy_net.load_state_dict(checkpoint["policy_state_dict"])
             self.value_net.load_state_dict(checkpoint["value_state_dict"])
