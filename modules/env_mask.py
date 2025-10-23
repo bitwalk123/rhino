@@ -269,3 +269,11 @@ class TradingEnv(gym.Env):
         self.current_step += 1
         info = {"pnl_total": self.transman.pnl_total, "action_mask": self._get_action_mask()}
         return obs, reward, done, False, info
+
+class TrainingEnv(TradingEnv):
+    """
+    環境クラス
+    過去のティックデータを使った学習、推論用
+    """
+    def __init__(self, df: pd.DataFrame):
+        super().__init__(df)

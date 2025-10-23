@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch import optim, Tensor
 from torch.distributions import Categorical
 
-from modules.env_mask import TradingEnv
+from modules.env_mask import TrainingEnv
 
 
 class PolicyNetwork(nn.Module):
@@ -139,7 +139,7 @@ class PPOAgent:
         過去のティックデータから学習済モデルで推論
         リアルタイム推論用は別途用意する
         """
-        self.env = TradingEnv(df)
+        self.env = TrainingEnv(df)
         obs_dim, act_dim = self.get_dim()
 
         # ---------------------------------------------------------------------
@@ -213,7 +213,7 @@ class PPOAgent:
         過去のティックデータを利用したモデルの学習
         """
         # 環境は学習と推論で異なる可能性があるので、ここで定義する
-        self.env = TradingEnv(df)
+        self.env = TrainingEnv(df)
         obs_dim, act_dim = self.get_dim()
 
         # ネットワークとオプティマイザの初期化
