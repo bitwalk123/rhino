@@ -230,8 +230,8 @@ class PPOAgent:
         # 学習ループ
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         for epoch in range(num_epochs):
-            loss = self.train_one_epoch()
-            print(f"Epoch {epoch + 1}: Loss = {loss.item():.4f}")
+            loss, reward = self.train_one_epoch()
+            print(f"Epoch {epoch + 1}: Loss = {loss.item():.4f}, Total Reward = {reward:.3f}")
 
         # ---------------------------------------------------------------------
         # 学習モデルの保存
@@ -244,8 +244,9 @@ class PPOAgent:
         torch.save(obj, model_path)
         print(f"✅ モデルを保存しました: {model_path}")
 
-    def train_one_epoch(self) -> Tensor:
+    def train_one_epoch(self) -> tuple[Tensor, float]:
         obs_list, action_list, logprob_list, reward_list, mask_list = [], [], [], [], []
+        total_reward = 0.0
 
         # 初期状態とマスク取得
         obs, info = self.env.reset()
@@ -273,6 +274,7 @@ class PPOAgent:
             # 状態遷移と報酬取得
             obs, reward, done, _, info = self.env.step(action)
             reward_list.append(torch.tensor(reward, dtype=torch.float32))
+            total_reward += reward
 
         # PPO における「割引報酬（Return）」の計算処理
         returns = self.compute_returns(reward_list)
@@ -311,4 +313,4 @@ class PPOAgent:
         loss.backward()
         # 勾配に基づいてパラメータを更新
         self.optimizer.step()
-        return loss
+        return loss, total_reward
