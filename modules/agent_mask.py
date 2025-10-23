@@ -132,7 +132,7 @@ class PPOAgent:
 
     def get_transaction(self) -> pd.DataFrame:
         # 取引明細の辞書をデータフレームにして返す
-        return pd.DataFrame(self.env.transman.dict_transaction)
+        return pd.DataFrame(self.env.trans_man.dict_transaction)
 
     def infer(self, df: pd.DataFrame, model_path: str):
         """

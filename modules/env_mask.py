@@ -1,4 +1,5 @@
 import datetime
+from collections import deque
 from enum import Enum
 
 import gymnasium as gym
@@ -32,7 +33,8 @@ class TransactionManager:
         # ---------------------------------------------------------------------
         self.unit: int = 1  # 売買単位
         self.tickprice: float = 1.0  # 呼び値
-        self.slippage = self.tickprice  # スリッページ
+        # self.slippage = self.tickprice  # スリッページ
+        self.slippage = 0  # スリッページ無し
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
         self.pnl_total = 0.0  # 総損益
@@ -98,7 +100,8 @@ class TransactionManager:
         # -------------------------------------------------------------
         if profit == 0.0:
             # profit == 0（損益 0）の時は僅かなペナルティ
-            reward += self.penalty_profit_zero
+            # reward += self.penalty_profit_zero
+            pass
         else:
             # 報酬は、呼び値で割って正規化
             reward += profit / self.tickprice
@@ -151,8 +154,8 @@ class TransactionManager:
                 # 建玉を持っている時の僅かな報酬
                 # reward += self.reward_hold_small
                 # 含み損益から報酬算出
-                #profit = self.getProfit(price)
-                #reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
+                # profit = self.getProfit(price)
+                # reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
                 pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
@@ -161,16 +164,18 @@ class TransactionManager:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
             elif action_type == ActionType.REPAY:
-                # 実現損益
-                profit = self.getProfit(price)
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
+                    price -= self.slippage
+                    profit = self.getProfit(price)
                     self.add_transaction(t, "売埋", price, profit)
                 elif self.position == PositionType.SHORT:
                     # 返済: 売建 (SHORT) → 買埋
+                    price += self.slippage
+                    profit = self.getProfit(price)
                     self.add_transaction(t, "買埋", price, profit)
                 else:
                     raise TypeError(f"Unknown PositionType: {self.position}")
@@ -207,12 +212,12 @@ class TransactionManager:
             # ---------------------------------------------------------
             # 返済: 買建 (LONG) → 売埋
             # ---------------------------------------------------------
-            return price - self.price_entry - self.slippage
+            return price - self.price_entry
         elif self.position == PositionType.SHORT:
             # ---------------------------------------------------------
             # 返済: 売建 (SHORT) → 買埋
             # ---------------------------------------------------------
-            return self.price_entry - price + self.slippage
+            return self.price_entry - price
         else:
             return 0.0  # 実現損益
 
@@ -228,20 +233,96 @@ class TransactionManager:
         }
 
 
+class ObservationManager:
+    def __init__(self, n_warmup: int):
+        # 時系列の履歴数
+        self.n_warmup = n_warmup
+        # キューを作成
+        self.deque_price = deque(maxlen=self.n_warmup)
+
+        # 特徴量算出のために保持する変数
+        self.price_init = 0.0  # ザラバの始値
+        self.price_prev = 0.0  # １つ前の株価
+        self.volume_prev = 0.0  # １つ前の出来高
+
+        # 調整用係数
+        self.factor_ticker = 10.0  # 調整因子（銘柄別）
+        self.unit = 100  # 最小取引単位（出来高）
+
+    def clear(self):
+        # キューをクリア
+        self.deque_price.clear()
+        # 特徴量算出のために保持する変数
+        self.price_init: float = 0.0  # ザラバの始値
+        self.price_prev: float = 0.0  # １つ前の株価
+        self.volume_prev: float = 0.0  # １つ前の出来高
+
+    def func_price_ratio(self, price: float) -> float:
+        if self.price_init == 0.0:
+            self.price_init = price
+            price_ratio = 1.0
+        else:
+            price_ratio = price / self.price_init
+        return price_ratio
+
+    def func_volume_delta(self, volume: float):
+        if self.volume_prev == 0.0:
+            volume_delta = 0.0
+        elif volume < self.volume_prev:
+            """
+            【稀に発生する警告】
+            RuntimeWarning: invalid value encountered in log1p
+            """
+            volume_delta = 0.0
+        else:
+            x = (volume - self.volume_prev) / self.unit
+            volume_delta = np.log1p(x) / self.factor_ticker
+
+        self.volume_prev = volume
+        return volume_delta
+
+    def get_obs(
+            self,
+            price: float,  # 株価
+            volume: float,  # 出来高
+            position: PositionType  # ポジション
+    ) -> np.ndarray:
+        list_feature = list()
+
+        # 1. 株価比率
+        list_feature.append(self.func_price_ratio(price))
+
+        # 2. 累計出来高差分 / 最小取引単位
+        list_feature.append(self.func_volume_delta(volume))
+
+        # 一旦配列に変換
+        arr_feature = np.array(list_feature, dtype=np.float32)
+
+        # PositionType → one-hot (3) ［単位行列へ変換］
+        pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
+
+        # arr_feature と pos_onehot を単純結合
+        features = np.concatenate([arr_feature, pos_onehot])
+
+        return features
+
+
 class TradingEnv(gym.Env):
     # 環境クラス
     def __init__(self, df: pd.DataFrame):
         super().__init__()
         self.df = df.reset_index(drop=True)  # Time, Price, Volume のみ
         # ウォームアップ期間
-        self.period = 60
+        self.n_warmup: int = 60
+        # 現在の行位置
+        self.step_current: int = 0
+        # 売買管理クラス
+        self.trans_man = TransactionManager()
+        # 観測量管理クラス
+        self.obs_man = ObservationManager(n_warmup=self.n_warmup)
+
         # 特徴量の列名のリストが返る
         self.cols_features = self._add_features()
-        # 現在の行位置
-        self.current_step = 0
-        # 売買管理クラス
-        self.transman = TransactionManager()
-
         # obs: len(self.cols_features) + one-hot(3)
         n_features = len(self.cols_features) + 3
         self.observation_space = gym.spaces.Box(
@@ -275,49 +356,59 @@ class TradingEnv(gym.Env):
 
     def _get_action_mask(self) -> np.ndarray:
         # 行動マスク
-        if self.current_step < self.period:
-            # ウォーミングアップ期間
-            return np.array([1, 0, 0, 0], dtype=np.int8)  # 強制 HOLD
-        elif self.transman.position == PositionType.NONE:
-            # 建玉なし
-            return np.array([1, 1, 1, 0], dtype=np.int8)  # HOLD, BUY, SELL
+        if self.step_current < self.n_warmup:
+            """
+            ウォーミングアップ期間
+            強制 HOLD
+            """
+            return np.array([1, 0, 0, 0], dtype=np.int8)
+        elif self.trans_man.position == PositionType.NONE:
+            """
+            建玉なし
+            取りうるアクション: HOLD, BUY, SELL
+            """
+            return np.array([1, 1, 1, 0], dtype=np.int8)
         else:
-            # 建玉あり
-            return np.array([1, 0, 0, 1], dtype=np.int8)  # HOLD, REPAY
+            """
+            建玉あり
+            取りうるアクション: HOLD, REPAY
+            """
+            return np.array([1, 0, 0, 1], dtype=np.int8)
 
     def _get_observation(self):
-        if self.current_step >= self.period:
-            features = self.df.iloc[self.current_step][self.cols_features]
+        if self.step_current >= self.n_warmup:
+            features = self.df.iloc[self.step_current][self.cols_features]
         else:
             features = [0] * len(self.cols_features)
         obs = np.array(features, dtype=np.float32)
         # PositionType → one-hot
-        pos_onehot = np.eye(3)[self.transman.position.value].astype(np.float32)
+        pos_onehot = np.eye(3)[self.trans_man.position.value].astype(np.float32)
         obs = np.concatenate([obs, pos_onehot])
         return obs
 
     def reset(self, seed=None, options=None):
-        self.current_step = 0
-        self.transman.clear()
+        self.step_current = 0
+        self.trans_man.clear()
+        self.obs_man.clear()
         obs = self._get_observation()
         return obs, {"action_mask": self._get_action_mask()}
 
     def step(self, action: int):
-        # --- ウォームアップ期間 (self.period) は強制 HOLD ---
-        if self.current_step < self.period:
+        # --- ウォームアップ期間 (self.n_warmup) は強制 HOLD ---
+        if self.step_current < self.n_warmup:
             action = ActionType.HOLD.value
-        t = self.df.at[self.current_step, "Time"]
-        price = self.df.at[self.current_step, "Price"]
+        t = self.df.at[self.step_current, "Time"]
+        price = self.df.at[self.step_current, "Price"]
 
-        reward = self.transman.evalReward(action, t, price)
+        reward = self.trans_man.evalReward(action, t, price)
         obs = self._get_observation()
 
         done = False
-        if self.current_step >= len(self.df) - 1:
+        if self.step_current >= len(self.df) - 1:
             done = True
 
-        self.current_step += 1
-        info = {"pnl_total": self.transman.pnl_total, "action_mask": self._get_action_mask()}
+        self.step_current += 1
+        info = {"pnl_total": self.trans_man.pnl_total, "action_mask": self._get_action_mask()}
 
         return obs, reward, done, False, info
 
