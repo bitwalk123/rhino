@@ -54,7 +54,7 @@ class TransactionManager:
         # 建玉返済時に損益 0 の場合のペナルティ
         self.penalty_profit_zero = -0.1
         # 含み損益から報酬を算出する比
-        self.reward_unrealized_profit_ratio = 0.01
+        self.reward_unrealized_profit_ratio = 0.1
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -91,6 +91,8 @@ class TransactionManager:
         else:
             # ポジション無し
             pass
+        # 損益追加
+        self.pnl_total += profit
         # -------------------------------------------------------------
         # 損益から報酬計算
         # -------------------------------------------------------------
@@ -100,11 +102,6 @@ class TransactionManager:
         else:
             # 報酬は、呼び値で割って正規化
             reward += profit / self.tickprice
-        # ---------------------------------------------------------------------
-        # 損益確定
-        # 損益合計は、そのままで足す
-        # ---------------------------------------------------------------------
-        self.pnl_total += profit
         # ---------------------------------------------------------------------
         # ポジション解消
         # ---------------------------------------------------------------------
@@ -154,8 +151,8 @@ class TransactionManager:
                 # 建玉を持っている時の僅かな報酬
                 # reward += self.reward_hold_small
                 # 含み損益から報酬算出
-                # profit = self.getProfit(price)
-                # reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
+                #profit = self.getProfit(price)
+                #reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
                 pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
@@ -164,9 +161,8 @@ class TransactionManager:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
             elif action_type == ActionType.REPAY:
-                # 含み損益
+                # 実現損益
                 profit = self.getProfit(price)
-                reward += profit / self.tickprice
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
@@ -178,20 +174,18 @@ class TransactionManager:
                     self.add_transaction(t, "買埋", price, profit)
                 else:
                     raise TypeError(f"Unknown PositionType: {self.position}")
+                # 損益追加
+                self.pnl_total += profit
                 # -------------------------------------------------------------
                 # 損益から報酬計算
                 # -------------------------------------------------------------
                 if profit == 0.0:
                     # profit == 0（損益 0）の時は僅かなペナルティ
-                    reward += self.penalty_profit_zero
+                    # reward += self.penalty_profit_zero
+                    pass
                 else:
                     # 報酬は、呼び値で割って正規化
                     reward += profit / self.tickprice
-                # -------------------------------------------------------------
-                # 損益確定
-                # 損益合計は、損益そのままで足す
-                # -------------------------------------------------------------
-                self.pnl_total += profit
                 # -------------------------------------------------------------
                 # ポジション解消
                 # -------------------------------------------------------------
