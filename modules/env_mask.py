@@ -48,9 +48,9 @@ class TransactionManager:
         # 取引ルール違反時のペナルティ
         self.penalty_rule_transaction = -0.
         # ***** HOLD 関係 *****
-        # 建玉を持っている時の HOLD 報酬
+        # HOLD 報酬
         self.reward_hold_small = 0.0001
-        # 建玉を持っていない時の HOLD ペナルティ
+        # HOLD ペナルティ
         self.penalty_hold = -0.
         # ***** 損益関係 *****
         # 建玉返済時に損益 0 の場合のペナルティ
@@ -120,7 +120,7 @@ class TransactionManager:
             # ポジションが無い場合に取りうるアクションは HOLD, BUY, SELL
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                pass
+                reward += self.reward_hold_small
             elif action_type == ActionType.BUY:
                 # =============================================================
                 # 買建 (LONG)
@@ -404,7 +404,6 @@ class TradingEnv(gym.Env):
         info = {"pnl_total": self.trans_man.pnl_total, "action_mask": self._get_action_mask()}
 
         return obs, reward, done, False, info
-
 
 
 class TrainingEnv(TradingEnv):
