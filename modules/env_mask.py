@@ -221,6 +221,12 @@ class TransactionManager:
         else:
             return 0.0  # 実現損益
 
+    def getPL(self, price) -> float:
+        """
+        観測値用に、含み損益を呼び値で割った値を返す
+        """
+        return self.getProfit(price) / self.tickprice
+
     @staticmethod
     def init_transaction() -> dict:
         return {
@@ -288,6 +294,7 @@ class ObservationManager:
             self,
             price: float = 0,  # 株価
             volume: float = 0,  # 出来高
+            pl: float = 0,  # 含み損益
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         list_feature = list()
@@ -297,6 +304,9 @@ class ObservationManager:
 
         # 2. 累計出来高差分 / 最小取引単位
         list_feature.append(self.func_volume_delta(volume))
+
+        # 3. 含み損益
+        list_feature.append(pl)
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
@@ -376,6 +386,7 @@ class TradingEnv(gym.Env):
         obs = self.obs_man.getObs(
             price,  # 株価
             volume,  # 出来高
+            self.trans_man.getPL(price),  # 含み損益
             self.trans_man.position,  # ポジション
         )
 
