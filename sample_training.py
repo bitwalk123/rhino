@@ -8,7 +8,7 @@ from structs.res import AppRes
 if __name__ == "__main__":
     res = AppRes()
     # 学習用データフレーム
-    file_excel = "ticks_20250828.xlsx"
+    file_excel = "ticks_20250819.xlsx"
     code = "7011"
     path_excel = os.path.join(res.dir_collection, file_excel)
     df = get_excel_sheet(path_excel, code)
