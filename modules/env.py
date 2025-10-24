@@ -1,6 +1,7 @@
 import datetime
 from collections import deque
 from enum import Enum
+from typing import override
 
 import gymnasium as gym
 import numpy as np
@@ -242,12 +243,7 @@ class TransactionManager:
 
 
 class ObservationManager:
-    def __init__(self, n_warmup: int):
-        # 時系列の履歴数
-        self.n_warmup = n_warmup
-        # キューを作成
-        self.deque_price = deque(maxlen=self.n_warmup)
-
+    def __init__(self):
         # 調整用係数
         self.factor_ticker = 10.0  # 調整因子（銘柄別）
         self.unit = 100  # 最小取引単位（出来高）
@@ -261,8 +257,6 @@ class ObservationManager:
         self.clear()
 
     def clear(self):
-        # キューをクリア
-        self.deque_price.clear()
         # 特徴量算出のために保持する変数
         self.price_init: float = 0.0  # ザラバの始値
         self.price_prev: float = 0.0  # １つ前の株価
@@ -327,9 +321,8 @@ class ObservationManager:
 
 class TradingEnv(gym.Env):
     # 環境クラス
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self):
         super().__init__()
-        self.df = df.reset_index(drop=True)  # Time, Price, Volume のみ
         # ウォームアップ期間
         self.n_warmup: int = 60
         # 現在の行位置
@@ -337,7 +330,7 @@ class TradingEnv(gym.Env):
         # 売買管理クラス
         self.trans_man = TransactionManager()
         # 観測値管理クラス
-        self.obs_man = ObservationManager(n_warmup=self.n_warmup)
+        self.obs_man = ObservationManager()
         # 観測空間
         n_feature = self.obs_man.n_feature
         self.observation_space = gym.spaces.Box(
@@ -371,18 +364,15 @@ class TradingEnv(gym.Env):
             return np.array([1, 0, 0, 1], dtype=np.int8)
 
     def _get_tick(self) -> tuple[float, float, float]:
-        t: float = self.df.at[self.step_current, "Time"]
-        price: float = self.df.at[self.step_current, "Price"]
-        volume: float = self.df.at[self.step_current, "Volume"]
-        return t, price, volume
+        ...
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options=None) -> tuple[np.ndarray, dict]:
         self.step_current = 0
         self.trans_man.clear()
         obs = self.obs_man.getObsReset()
         return obs, {"action_mask": self._get_action_mask()}
 
-    def step(self, action: int):
+    def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
         ...
 
 
@@ -393,9 +383,21 @@ class TrainingEnv(TradingEnv):
     """
 
     def __init__(self, df: pd.DataFrame):
-        super().__init__(df)
+        super().__init__()
+        self.df = df.reset_index(drop=True)  # Time, Price, Volume のみ
 
-    def step(self, action: int):
+    @override
+    def _get_tick(self) -> tuple[float, float, float]:
+        t: float = self.df.at[self.step_current, "Time"]
+        price: float = self.df.at[self.step_current, "Price"]
+        volume: float = self.df.at[self.step_current, "Volume"]
+        return t, price, volume
+
+    @override
+    def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
+        """
+        過去のティックデータを使うことを前提とした step 処理
+        """
         # --- ウォームアップ期間 (self.n_warmup) は強制 HOLD ---
         if self.step_current < self.n_warmup:
             action = ActionType.HOLD.value
