@@ -121,7 +121,7 @@ class TransactionManager:
             # ポジションが無い場合に取りうるアクションは HOLD, BUY, SELL
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                #reward += self.reward_hold_small
+                # reward += self.reward_hold_small
                 pass
             elif action_type == ActionType.BUY:
                 # =============================================================
@@ -156,8 +156,8 @@ class TransactionManager:
                 # 建玉を持っている時の僅かな報酬
                 # reward += self.reward_hold_small
                 # 含み損益から報酬算出
-                #profit = self.getPL(price)
-                #reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
+                # profit = self.getPL(price)
+                # reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
                 pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
@@ -383,6 +383,19 @@ class TradingEnv(gym.Env):
         return obs, {"action_mask": self._get_action_mask()}
 
     def step(self, action: int):
+        ...
+
+
+class TrainingEnv(TradingEnv):
+    """
+    環境クラス
+    過去のティックデータを使った学習、推論用
+    """
+
+    def __init__(self, df: pd.DataFrame):
+        super().__init__(df)
+
+    def step(self, action: int):
         # --- ウォームアップ期間 (self.n_warmup) は強制 HOLD ---
         if self.step_current < self.n_warmup:
             action = ActionType.HOLD.value
@@ -407,13 +420,3 @@ class TradingEnv(gym.Env):
         info = {"pnl_total": self.trans_man.pnl_total, "action_mask": self._get_action_mask()}
 
         return obs, reward, done, False, info
-
-
-class TrainingEnv(TradingEnv):
-    """
-    環境クラス
-    過去のティックデータを使った学習、推論用
-    """
-
-    def __init__(self, df: pd.DataFrame):
-        super().__init__(df)
