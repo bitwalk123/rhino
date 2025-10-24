@@ -13,7 +13,7 @@ from funcs.ios import get_excel_sheet
 from funcs.models import get_ppo_model_path
 from funcs.tide import get_intraday_timestamp
 from funcs.tse import get_jpx_ticker_list
-from modules.agent import PPOAgent
+from modules.agent_old import PPOAgent
 from modules.dock import Dock
 from modules.toolbar import ToolBar
 from modules.win_learning_curve import WinLearningCurve

@@ -2,7 +2,7 @@ import os
 
 from funcs.ios import get_excel_sheet
 from funcs.models import get_trained_ppo_model_path
-from modules.agent_mask import PPOAgent
+from modules.agent import PPOAgent
 from structs.res import AppRes
 
 if __name__ == "__main__":
@@ -19,4 +19,4 @@ if __name__ == "__main__":
 
     # PPO エージェントのインスタンスと学習
     agent = PPOAgent()
-    agent.train(df, model_path, num_epochs=100, new_model=False)
+    agent.train(df, model_path, num_epochs=3, new_model=True)
