@@ -56,7 +56,7 @@ class TransactionManager:
         # 建玉返済時に損益 0 の場合のペナルティ
         self.penalty_profit_zero = -0.1
         # 含み損益から報酬を算出する比
-        self.reward_unrealized_profit_ratio = 0.1
+        self.reward_unrealized_profit_ratio = 0.01
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -154,9 +154,8 @@ class TransactionManager:
                 # 建玉を持っている時の僅かな報酬
                 # reward += self.reward_hold_small
                 # 含み損益から報酬算出
-                # profit = self.getProfit(price)
-                # reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
-                pass
+                profit = self.getPL(price)
+                reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -334,8 +333,9 @@ class TradingEnv(gym.Env):
         self.step_current: int = 0
         # 売買管理クラス
         self.trans_man = TransactionManager()
-        # 観測量管理クラス
+        # 観測値管理クラス
         self.obs_man = ObservationManager(n_warmup=self.n_warmup)
+        # 観測空間
         n_feature = self.obs_man.n_feature
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
@@ -343,6 +343,7 @@ class TradingEnv(gym.Env):
             shape=(n_feature,),
             dtype=np.float32
         )
+        # 行動空間
         self.action_space = gym.spaces.Discrete(len(ActionType))
 
     def _get_action_mask(self) -> np.ndarray:
@@ -366,6 +367,12 @@ class TradingEnv(gym.Env):
             """
             return np.array([1, 0, 0, 1], dtype=np.int8)
 
+    def _get_tick(self) -> tuple[float, float, float]:
+        t: float = self.df.at[self.step_current, "Time"]
+        price: float = self.df.at[self.step_current, "Price"]
+        volume: float = self.df.at[self.step_current, "Volume"]
+        return t, price, volume
+
     def reset(self, seed=None, options=None):
         self.step_current = 0
         self.trans_man.clear()
@@ -378,11 +385,10 @@ class TradingEnv(gym.Env):
             action = ActionType.HOLD.value
 
         # データフレームからティックデータを取得
-        t = self.df.at[self.step_current, "Time"]
-        price = self.df.at[self.step_current, "Price"]
-        volume = self.df.at[self.step_current, "Volume"]
-
+        t, price, volume = self._get_tick()
+        # 報酬
         reward = self.trans_man.evalReward(action, t, price)
+        # 観測値
         obs = self.obs_man.getObs(
             price,  # 株価
             volume,  # 出来高
@@ -398,6 +404,7 @@ class TradingEnv(gym.Env):
         info = {"pnl_total": self.trans_man.pnl_total, "action_mask": self._get_action_mask()}
 
         return obs, reward, done, False, info
+
 
 
 class TrainingEnv(TradingEnv):
