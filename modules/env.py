@@ -101,18 +101,18 @@ class TransactionManager:
         # -------------------------------------------------------------
         if profit == 0.0:
             # profit == 0（損益 0）の時は僅かなペナルティ
-            # reward += self.penalty_profit_zero
+            # reward += np.tanh(self.penalty_profit_zero)
             pass
         else:
             # 報酬は、呼び値で割って正規化
-            # reward += profit / self.tickprice
+            # reward += np.tanh(profit / self.tickprice)
             pass
         # ---------------------------------------------------------------------
         # ポジション解消
         # ---------------------------------------------------------------------
         self.clear_position()
 
-        return np.tanh(reward)
+        return reward
 
     def evalReward(self, action: int, t: float, price: float) -> float:
         action_type = ActionType(action)
@@ -122,7 +122,7 @@ class TransactionManager:
             # ポジションが無い場合に取りうるアクションは HOLD, BUY, SELL
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                # reward += self.reward_hold_small
+                # reward += np.tanh(self.reward_hold_small)
                 pass
             elif action_type == ActionType.BUY:
                 # =============================================================
@@ -156,7 +156,7 @@ class TransactionManager:
             if action_type == ActionType.HOLD:
                 # 含み損益から報酬算出
                 profit = self.getProfit(price)
-                reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
+                reward += np.tanh(profit / self.tickprice) * self.reward_unrealized_profit_ratio
                 pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
@@ -187,11 +187,11 @@ class TransactionManager:
                 # -------------------------------------------------------------
                 if profit == 0.0:
                     # profit == 0（損益 0）の時は僅かなペナルティ
-                    # reward += self.penalty_profit_zero
+                    # reward += np.tanh(self.penalty_profit_zero)
                     pass
                 else:
                     # 報酬は、呼び値で割って、更にスケーリング
-                    reward += profit / self.tickprice
+                    reward += np.tanh(profit / self.tickprice)
                 # -------------------------------------------------------------
                 # ポジション解消
                 # -------------------------------------------------------------
@@ -199,7 +199,7 @@ class TransactionManager:
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
 
-        return np.tanh(reward)
+        return reward
 
     @staticmethod
     def get_datetime(t: float) -> str:

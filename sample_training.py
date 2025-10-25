@@ -9,7 +9,7 @@ if __name__ == "__main__":
     res = AppRes()
 
     n_epoch = 1
-    flag_new_model = True
+    flag_new_model = False
 
     # PPO エージェントのインスタンス
     agent = PPOAgent()
