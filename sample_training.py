@@ -19,4 +19,4 @@ if __name__ == "__main__":
 
     # PPO エージェントのインスタンスと学習
     agent = PPOAgent()
-    agent.train(df, model_path, num_epochs=10, new_model=True)
+    agent.train(df, model_path, num_epochs=1000, new_model=True)
