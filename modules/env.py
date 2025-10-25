@@ -57,7 +57,7 @@ class TransactionManager:
         # 建玉返済時に損益 0 の場合のペナルティ
         self.penalty_profit_zero = -0.1
         # 含み損益から報酬を算出する比
-        self.reward_unrealized_profit_ratio = 0.01
+        self.reward_unrealized_profit_ratio = 0.1
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -154,11 +154,9 @@ class TransactionManager:
             # ポジションが有る場合に取りうるアクションは HOLD, REPAY
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                # 建玉を持っている時の僅かな報酬
-                # reward += self.reward_hold_small
                 # 含み損益から報酬算出
-                # profit = self.getPL(price)
-                # reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
+                profit = self.getProfit(price)
+                reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
                 pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反

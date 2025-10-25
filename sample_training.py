@@ -8,7 +8,7 @@ from structs.res import AppRes
 if __name__ == "__main__":
     res = AppRes()
 
-    n_epoch = 1
+    n_epoch = 10
     flag_new_model = True
 
     # PPO エージェントのインスタンス
