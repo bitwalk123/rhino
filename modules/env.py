@@ -245,7 +245,7 @@ class TransactionManager:
 class ObservationManager:
     def __init__(self):
         # 調整用係数
-        self.factor_ticker = 10.0  # 調整因子（銘柄別）
+        self.factor_scaling = 10.0
         self.unit = 100  # 最小取引単位（出来高）
 
         # 特徴量算出のために保持する変数
@@ -272,6 +272,13 @@ class ObservationManager:
         self.deque_ma_060.clear()
         self.deque_ma_180.clear()
 
+    def func_moving_average(self, price, deque_price) -> float:
+        if price > 0:
+            deque_price.append(price)
+            return sum(deque_price) / len(deque_price) / self.price_open
+        else:
+            return 0
+
     def func_price_ratio(self, price: float) -> float:
         if self.price_open == 0.0:
             # 寄り付いた最初の株価が基準価格
@@ -281,24 +288,20 @@ class ObservationManager:
             price_ratio = price / self.price_open
         return price_ratio
 
-    def func_volume_delta(self, volume: float):
+    def func_ratio_scaling(self, ratio: float) -> float:
+        return np.tanh((ratio - 1.0) * self.factor_scaling)
+
+    def func_volume_delta(self, volume: float) -> float:
         if self.volume_prev == 0.0:
             volume_delta = 0.0
         elif volume < self.volume_prev:
             volume_delta = 0.0
         else:
             x = (volume - self.volume_prev) / self.unit
-            volume_delta = np.log1p(x) / self.factor_ticker
+            volume_delta = np.log1p(x)
 
         self.volume_prev = volume
-        return volume_delta
-
-    def func_moving_average(self, price, deque_price):
-        if price > 0:
-            deque_price.append(price)
-            return sum(deque_price) / len(deque_price) / self.price_open
-        else:
-            return 0
+        return np.tanh(volume_delta)
 
     def getObs(
             self,
@@ -310,25 +313,26 @@ class ObservationManager:
         list_feature = list()
 
         # 株価比率
-        list_feature.append(self.func_price_ratio(price))
+        price_ratio = self.func_price_ratio(price)
+        list_feature.append(self.func_ratio_scaling(price_ratio))
 
-        # 累計出来高差分 / 最小取引単位
+        # 累計出来高差分 / 最小取引単位（tanh でスケーリング済み）
         list_feature.append(self.func_volume_delta(volume))
 
-        # 含み損益
+        # 含み損益（tanh でスケーリング済み）
         list_feature.append(pl)
 
         # 移動平均
         ma_030 = self.func_moving_average(price, self.deque_ma_030)
-        list_feature.append(ma_030)
+        list_feature.append(self.func_ratio_scaling(ma_030))
         ma_060 = self.func_moving_average(price, self.deque_ma_060)
-        list_feature.append(ma_060)
+        list_feature.append(self.func_ratio_scaling(ma_060))
         ma_180 = self.func_moving_average(price, self.deque_ma_180)
-        list_feature.append(ma_180)
+        list_feature.append(self.func_ratio_scaling(ma_180))
 
         # 移動平均の差分
         ma_diff = ma_030 - ma_180
-        list_feature.append(ma_diff)
+        list_feature.append(self.func_ratio_scaling(ma_diff))
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
