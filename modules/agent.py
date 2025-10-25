@@ -230,8 +230,12 @@ class PPOAgent:
         # 学習ループ
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         for epoch in range(num_epochs):
-            loss, reward = self.train_one_epoch()
-            print(f"Epoch {epoch + 1}: Loss = {loss.item():.4f}, Total Reward = {reward:.3f}")
+            loss, total_reward = self.train_one_epoch()
+            print(
+                f"Epoch {epoch + 1:>4d}: "
+                f"Loss = {loss.item():>6.3f}, "
+                f"Total Reward = {total_reward:>8.3f}"
+            )
 
         # ---------------------------------------------------------------------
         # 学習モデルの保存

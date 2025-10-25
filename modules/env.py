@@ -112,7 +112,7 @@ class TransactionManager:
         # ---------------------------------------------------------------------
         self.clear_position()
 
-        return reward
+        return np.tanh(reward)
 
     def evalReward(self, action: int, t: float, price: float) -> float:
         action_type = ActionType(action)
@@ -192,7 +192,7 @@ class TransactionManager:
                     # reward += self.penalty_profit_zero
                     pass
                 else:
-                    # 報酬は、呼び値で割って正規化
+                    # 報酬は、呼び値で割って、更にスケーリング
                     reward += profit / self.tickprice
                 # -------------------------------------------------------------
                 # ポジション解消
@@ -201,7 +201,7 @@ class TransactionManager:
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
 
-        return reward
+        return np.tanh(reward)
 
     @staticmethod
     def get_datetime(t: float) -> str:
@@ -226,9 +226,9 @@ class TransactionManager:
 
     def getPL(self, price) -> float:
         """
-        観測値用に、含み損益を呼び値で割った値を返す
+        観測値用に、含み損益を呼び値で割った値を返す（スケーリング付き）
         """
-        return self.getProfit(price) / self.tickprice
+        return np.tanh(self.getProfit(price) / self.tickprice)
 
     @staticmethod
     def init_transaction() -> dict:
@@ -309,18 +309,26 @@ class ObservationManager:
     ) -> np.ndarray:
         list_feature = list()
 
-        # 1. 株価比率
+        # 株価比率
         list_feature.append(self.func_price_ratio(price))
 
-        # 2. 累計出来高差分 / 最小取引単位
+        # 累計出来高差分 / 最小取引単位
         list_feature.append(self.func_volume_delta(volume))
 
-        # 3. 含み損益
+        # 含み損益
         list_feature.append(pl)
 
-        # 4. Moving Averages
-        for deque_price in [self.deque_ma_030, self.deque_ma_060, self.deque_ma_180]:
-            list_feature.append(self.func_moving_average(price, deque_price))
+        # 移動平均
+        ma_030 = self.func_moving_average(price, self.deque_ma_030)
+        list_feature.append(ma_030)
+        ma_060 = self.func_moving_average(price, self.deque_ma_060)
+        list_feature.append(ma_060)
+        ma_180 = self.func_moving_average(price, self.deque_ma_180)
+        list_feature.append(ma_180)
+
+        # 移動平均の差分
+        ma_diff = ma_030 - ma_180
+        list_feature.append(ma_diff)
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
