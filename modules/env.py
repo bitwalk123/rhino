@@ -249,7 +249,7 @@ class ObservationManager:
         self.unit = 100  # 最小取引単位（出来高）
 
         # 特徴量算出のために保持する変数
-        self.price_first = 0.0  # ザラバの始値
+        self.price_open = 0.0  # ザラバの始値
         self.price_prev = 0.0  # １つ前の株価
         self.volume_prev = 0.0  # １つ前の出来高
 
@@ -264,7 +264,7 @@ class ObservationManager:
 
     def clear(self):
         # 特徴量算出のために保持する変数
-        self.price_first: float = 0.0  # ザラバの始値
+        self.price_open: float = 0.0  # ザラバの始値
         self.price_prev: float = 0.0  # １つ前の株価
         self.volume_prev: float = 0.0  # １つ前の出来高
         # キューのクリア
@@ -272,14 +272,13 @@ class ObservationManager:
         self.deque_ma_060.clear()
         self.deque_ma_180.clear()
 
-
     def func_price_ratio(self, price: float) -> float:
-        if self.price_first == 0.0:
+        if self.price_open == 0.0:
             # 寄り付いた最初の株価が基準価格
-            self.price_first = price
+            self.price_open = price
             price_ratio = 1.0
         else:
-            price_ratio = price / self.price_first
+            price_ratio = price / self.price_open
         return price_ratio
 
     def func_volume_delta(self, volume: float):
@@ -298,10 +297,10 @@ class ObservationManager:
         self.volume_prev = volume
         return volume_delta
 
-    def func_ma(self, price, deque_price):
+    def func_moving_average(self, price, deque_price):
         if price > 0:
             deque_price.append(price)
-            return sum(deque_price) / len(deque_price) / self.price_first
+            return sum(deque_price) / len(deque_price) / self.price_open
         else:
             return 0
 
@@ -325,7 +324,7 @@ class ObservationManager:
 
         # 4. Moving Averages
         for deque_price in [self.deque_ma_030, self.deque_ma_060, self.deque_ma_180]:
-            list_feature.append(self.func_ma(price, deque_price))
+            list_feature.append(self.func_moving_average(price, deque_price))
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
