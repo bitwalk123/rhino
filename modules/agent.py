@@ -208,7 +208,7 @@ class PPOAgent:
         # log_prob はそのままテンソルとして返す（後で loss.backward() に使うため）
         return action.item(), log_prob
 
-    def train(self, df: pd.DataFrame, model_path: str, num_epochs: int = 3, new_model: bool = False):
+    def train(self, df: pd.DataFrame, model_path: str, num_epoch: int = 3, new_model: bool = False):
         """
         過去のティックデータを利用したモデルの学習
         """
@@ -229,7 +229,7 @@ class PPOAgent:
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 学習ループ
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
-        for epoch in range(num_epochs):
+        for epoch in range(num_epoch):
             loss, total_reward = self.train_one_epoch()
             print(
                 f"Epoch {epoch + 1:>4d}: "
