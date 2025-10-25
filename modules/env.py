@@ -285,10 +285,6 @@ class ObservationManager:
         if self.volume_prev == 0.0:
             volume_delta = 0.0
         elif volume < self.volume_prev:
-            """
-            【稀に発生する警告】
-            RuntimeWarning: invalid value encountered in log1p
-            """
             volume_delta = 0.0
         else:
             x = (volume - self.volume_prev) / self.unit
