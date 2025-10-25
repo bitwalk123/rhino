@@ -9,14 +9,14 @@ if __name__ == "__main__":
     res = AppRes()
 
     n_epoch = 1
-    flag_new_model = False
+    flag_new_model = True
 
     # PPO エージェントのインスタンス
     agent = PPOAgent()
 
     # 学習用データフレーム
     code = "7011"
-    list_file = os.listdir(res.dir_collection)
+    list_file = sorted(os.listdir(res.dir_collection))
     for idx, file in enumerate(list_file):
         path_excel = os.path.join(res.dir_collection, file)
         df = get_excel_sheet(path_excel, code)
