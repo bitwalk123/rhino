@@ -237,7 +237,7 @@ class TransactionManager:
         """
         観測値用に、含み損益を呼び値で割った値を返す（スケーリング付き）
         """
-        return np.tanh(self.getProfit(price) / self.tickprice)
+        return self.getProfit(price) / self.tickprice
 
     @staticmethod
     def init_transaction() -> dict:
@@ -288,9 +288,10 @@ class ObservationManager:
         if self.price_open == 0.0:
             # 寄り付いた最初の株価が基準価格
             self.price_open = price
-            price_ratio = 1.0
+            price_ratio = 0.0
         else:
-            price_ratio = price / self.price_open
+            price_ratio = price / self.price_open - 1.0
+
         return price_ratio
 
     def func_ratio_scaling(self, ratio: float) -> float:
@@ -319,14 +320,16 @@ class ObservationManager:
 
         # 株価比率
         price_ratio = self.func_price_ratio(price)
-        list_feature.append(self.func_ratio_scaling(price_ratio))
+        # list_feature.append(self.func_ratio_scaling(price_ratio))
+        list_feature.append(price_ratio)
 
-        # 累計出来高差分 / 最小取引単位（tanh でスケーリング済み）
-        list_feature.append(self.func_volume_delta(volume))
+        # 累計出来高差分 / 最小取引単位
+        # list_feature.append(self.func_volume_delta(volume))
 
-        # 含み損益（tanh でスケーリング済み）
-        list_feature.append(pl)
+        # 含み損益
+        # list_feature.append(pl / 10)
 
+        """
         # キューへの追加
         self.deque_price_030.append(price)
         self.deque_price_060.append(price)
@@ -354,6 +357,7 @@ class ObservationManager:
         else:
             rsi = 0.
         list_feature.append(rsi)
+        """
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)

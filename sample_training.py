@@ -21,7 +21,7 @@ def plot_reward_distribution(ser: pd.Series):
 if __name__ == "__main__":
     res = AppRes()
 
-    n_epoch = 10
+    n_epoch = 1
     flag_new_model = True
 
     # PPO エージェントのインスタンス
@@ -47,7 +47,8 @@ if __name__ == "__main__":
             num_epoch=n_epoch,
             new_model=flag_new_model
         )
+        ser_reward = pd.Series(agent.epoch_log["reward_raw"])
+        plot_reward_distribution(ser_reward)
+
         if flag_new_model:
             flag_new_model = False
-
-    plot_reward_distribution(pd.Series(agent.epoch_log["reward_raw"]))
