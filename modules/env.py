@@ -44,23 +44,25 @@ class TransactionManager:
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 報酬設計
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        # スケール因子
+        self.factor_scale = 0.1
         # ***** 損益関係 *****
         # 含み損益から報酬を算出する比
-        self.reward_unrealized_profit_ratio = 0.1
+        self.reward_unrealized_profit_ratio = 0.01
         # 建玉返済時に損益 0 の場合のペナルティ
-        self.penalty_profit_zero = -0.01
+        self.penalty_profit_zero = -0.001
         # 建玉保持時に損益 0 の場合の報酬
         self.reward_profit_zero = -self.penalty_profit_zero
+        # ***** HOLD 関係 *****
+        # HOLD 報酬
+        self.reward_hold = 0.001
+        # HOLD ペナルティ
+        self.penalty_hold = -0.
         # ***** 取引ルール関係 *****
         # 取引ルール適合時の僅かな報酬
         self.reward_comply_rule_small = 0.
         # 取引ルール違反時のペナルティ
         self.penalty_rule_transaction = -0.
-        # ***** HOLD 関係 *****
-        # HOLD 報酬
-        self.reward_hold_small = 0.0001
-        # HOLD ペナルティ
-        self.penalty_hold = -0.
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -125,7 +127,7 @@ class TransactionManager:
             # ポジションが無い場合に取りうるアクションは HOLD, BUY, SELL
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                # reward += np.tanh(self.reward_hold_small)
+                # reward += np.tanh(self.reward_hold)
                 pass
             elif action_type == ActionType.BUY:
                 # =============================================================
@@ -157,17 +159,14 @@ class TransactionManager:
             # ポジションが有る場合に取りうるアクションは HOLD, REPAY
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                """
                 # 含み損益から報酬算出
                 profit = self.getProfit(price)
                 if profit == 0.0:
                     # 含み損益 0 の時に僅かな報酬
-                    reward += np.tanh(self.reward_profit_zero)
+                    reward += self.reward_profit_zero
                 else:
                     # 含み損益に係数を乗じた報酬
-                    reward += np.tanh(profit / self.tickprice) * self.reward_unrealized_profit_ratio
-                """
-                pass
+                    reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -200,9 +199,8 @@ class TransactionManager:
                     # reward += np.tanh(self.penalty_profit_zero)
                     pass
                 else:
-                    # 報酬は、呼び値で割る（スケーリング）
-                    # reward += np.tanh(profit / self.tickprice)
-                    reward += profit / self.tickprice / 10
+                    # 報酬は、呼び値で割る
+                    reward += profit / self.tickprice * self.factor_scale
                 # -------------------------------------------------------------
                 # ポジション解消
                 # -------------------------------------------------------------
@@ -210,7 +208,7 @@ class TransactionManager:
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
 
-        return reward
+        return np.clip(reward, -1, 1)
 
     @staticmethod
     def get_datetime(t: float) -> str:
@@ -254,7 +252,7 @@ class TransactionManager:
 class ObservationManager:
     def __init__(self):
         # 調整用係数
-        self.factor_scaling = 10.0
+        self.factor_mag = 10.
         self.unit = 100  # 最小取引単位（出来高）
 
         # 特徴量算出のために保持する変数
@@ -263,9 +261,8 @@ class ObservationManager:
         self.volume_prev = 0.0  # １つ前の出来高
 
         # キューを定義
-        self.deque_price_030 = deque(maxlen=30)  # MA30
         self.deque_price_060 = deque(maxlen=60)  # MA60
-        self.deque_price_180 = deque(maxlen=180)  # MA180
+        self.deque_price_300 = deque(maxlen=300)  # MA180
 
         # 観測数の取得
         self.n_feature = len(self.getObs())
@@ -277,12 +274,20 @@ class ObservationManager:
         self.price_prev: float = 0.0  # １つ前の株価
         self.volume_prev: float = 0.0  # １つ前の出来高
         # キューのクリア
-        self.deque_price_030.clear()
         self.deque_price_060.clear()
-        self.deque_price_180.clear()
+        self.deque_price_300.clear()
 
     def func_moving_average(self, deque_price) -> float:
-        return sum(deque_price) / len(deque_price) / self.price_open
+        return (sum(deque_price) / len(deque_price) / self.price_open - 1.0) * self.factor_mag
+
+    def func_price_delta(self, price: float) -> float:
+        if self.price_prev == 0.0:
+            price_delta = 0.0
+        else:
+            price_delta = (price - self.price_prev) * self.factor_mag
+
+        self.price_prev = price
+        return np.clip(price_delta, -1, 1)
 
     def func_price_ratio(self, price: float) -> float:
         if self.price_open == 0.0:
@@ -290,12 +295,12 @@ class ObservationManager:
             self.price_open = price
             price_ratio = 0.0
         else:
-            price_ratio = price / self.price_open - 1.0
+            price_ratio = (price / self.price_open - 1.0) * self.factor_mag
 
-        return price_ratio
+        return np.clip(price_ratio, -1, 1)
 
     def func_ratio_scaling(self, ratio: float) -> float:
-        return np.tanh((ratio - 1.0) * self.factor_scaling)
+        return np.clip((ratio - 1.0) * self.factor_mag, -1, 1)
 
     def func_volume_delta(self, volume: float) -> float:
         if self.volume_prev == 0.0:
@@ -320,39 +325,43 @@ class ObservationManager:
 
         # 株価比率
         price_ratio = self.func_price_ratio(price)
-        # list_feature.append(self.func_ratio_scaling(price_ratio))
         list_feature.append(price_ratio)
+
+        # 株価差分
+        price_delta = self.func_price_delta(price)
+        list_feature.append(price_delta)
 
         # 累計出来高差分 / 最小取引単位
         # list_feature.append(self.func_volume_delta(volume))
 
         # 含み損益
-        # list_feature.append(pl / 10)
+        list_feature.append(np.clip(pl / self.factor_mag, -1, 1))
 
-        """
         # キューへの追加
-        self.deque_price_030.append(price)
         self.deque_price_060.append(price)
-        self.deque_price_180.append(price)
+        self.deque_price_300.append(price)
 
         # 移動平均
         if price > 0:
-            ma_030 = self.func_moving_average(self.deque_price_030)
             ma_060 = self.func_moving_average(self.deque_price_060)
-            ma_180 = self.func_moving_average(self.deque_price_180)
+            ma_300 = self.func_moving_average(self.deque_price_300)
         else:
-            ma_030 = ma_060 = ma_180 = 0
-        list_feature.append(self.func_ratio_scaling(ma_030))
+            ma_060 = 0
+            ma_300 = 0
+        """
         list_feature.append(self.func_ratio_scaling(ma_060))
-        list_feature.append(self.func_ratio_scaling(ma_180))
+        list_feature.append(self.func_ratio_scaling(ma_120))
+        list_feature.append(self.func_ratio_scaling(ma_300))
+        """
 
         # 移動平均の差分
-        ma_diff = ma_030 - ma_180
-        list_feature.append(self.func_ratio_scaling(ma_diff))
+        ma_diff = np.clip((ma_060 - ma_300) * self.factor_mag, -1, 1)
+        list_feature.append(ma_diff)
 
+        """
         # RSI: [-1, 1] に標準化
-        if len(self.deque_price_060) == 60:
-            array_rsi = (talib.RSI(np.array(self.deque_price_060, dtype=np.float64), timeperiod=59) - 50.) / 50.
+        if len(self.deque_price_300) == 60:
+            array_rsi = (talib.RSI(np.array(self.deque_price_300, dtype=np.float64), timeperiod=299) - 50.) / 50.
             rsi = array_rsi[-1]
         else:
             rsi = 0.
