@@ -284,7 +284,7 @@ class ObservationManager:
         if self.price_prev == 0.0:
             price_delta = 0.0
         else:
-            price_delta = (price - self.price_prev) * self.factor_mag
+            price_delta = (price - self.price_prev) / self.factor_mag
 
         self.price_prev = price
         return np.clip(price_delta, -1, 1)

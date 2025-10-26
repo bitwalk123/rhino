@@ -19,10 +19,24 @@ def plot_reward_distribution(ser: pd.Series):
     plt.show()
 
 
+def plot_obs_trend(df: pd.DataFrame, n: int):
+    fig = plt.figure(figsize=(15, 9))
+    ax = dict()
+    gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
+    for i, axis in enumerate(gs.subplots(sharex="col")):
+        ax[i] = axis
+        ax[i].grid()
+
+    for i in range(n):
+        ax[i].plot(df[i])
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
     res = AppRes()
 
-    n_epoch = 20
+    n_epoch = 100
     flag_new_model = True
 
     # PPO エージェントのインスタンス
@@ -31,7 +45,7 @@ if __name__ == "__main__":
     # 学習用データフレーム
     code = "7011"
     list_file = sorted(os.listdir(res.dir_collection))
-    # list_file = ["ticks_20250828.xlsx"]
+    # list_file = ["ticks_20250819.xlsx"]
     for idx, file in enumerate(list_file):
         path_excel = os.path.join(res.dir_collection, file)
         df = get_excel_sheet(path_excel, code)
@@ -64,4 +78,11 @@ if __name__ == "__main__":
         f"mean: {ser_reward.mean():.3f}, "
         f"stdev: {ser_reward.std():.3f}"
     )
+    """
     plot_reward_distribution(ser_reward)
+
+    # 観測空間
+    df_obs = pd.concat([pd.Series(row) for row in agent.epoch_log["obs_raw"]], axis=1).T
+    rows = df_obs.shape[1]
+    plot_obs_trend(df_obs, rows)
+    """
