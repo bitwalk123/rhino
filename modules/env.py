@@ -157,6 +157,7 @@ class TransactionManager:
             # ポジションが有る場合に取りうるアクションは HOLD, REPAY
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
+                """
                 # 含み損益から報酬算出
                 profit = self.getProfit(price)
                 if profit == 0.0:
@@ -165,6 +166,8 @@ class TransactionManager:
                 else:
                     # 含み損益に係数を乗じた報酬
                     reward += np.tanh(profit / self.tickprice) * self.reward_unrealized_profit_ratio
+                """
+                pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -194,11 +197,12 @@ class TransactionManager:
                 # -------------------------------------------------------------
                 if profit == 0.0:
                     # 損益 0の時は僅かなペナルティ（スケーリング）
-                    reward += np.tanh(self.penalty_profit_zero)
+                    # reward += np.tanh(self.penalty_profit_zero)
                     pass
                 else:
                     # 報酬は、呼び値で割る（スケーリング）
-                    reward += np.tanh(profit / self.tickprice)
+                    # reward += np.tanh(profit / self.tickprice)
+                    reward += profit / self.tickprice / 10
                 # -------------------------------------------------------------
                 # ポジション解消
                 # -------------------------------------------------------------

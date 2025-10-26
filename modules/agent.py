@@ -47,6 +47,9 @@ class PPOAgent:
         self.value_net = None  # 状態価値を推定するネットワーク
         self.optimizer = None  # 両ネットワークのパラメータを同時に更新するオプティマイザ
         # ---------------------------------------------------------------------
+        # ステップ毎のログ取得用
+        self.epoch_log = dict()
+        # ---------------------------------------------------------------------
         # ハイパーパラメータ
         # ---------------------------------------------------------------------
         self.clip_epsilon = 0.2  # PPOクリップ係数 (Clip Epsilon (ε))
@@ -249,7 +252,7 @@ class PPOAgent:
         print(f"✅ モデルを保存しました: {model_path}")
 
     def train_one_epoch(self) -> tuple[Tensor, float]:
-        obs_list, action_list, logprob_list, reward_list, mask_list = [], [], [], [], []
+        obs_raw_list, reward_raw_list, obs_list, action_list, logprob_list, reward_list, mask_list = [], [], [], [], [], [], []
         total_reward = 0.0
 
         # 初期状態とマスク取得
@@ -275,10 +278,24 @@ class PPOAgent:
             logprob_list.append(log_prob)
             # 行動マスクを保存
             mask_list.append(mask_tensor)
+            # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             # 状態遷移と報酬取得
             obs, reward, done, _, info = self.env.step(action)
             reward_list.append(torch.tensor(reward, dtype=torch.float32))
             total_reward += reward
+            # ログ用
+            obs_raw_list.append(obs)  # obs は環境からの生データ（listやnumpy array）
+            reward_raw_list.append(reward)
+
+        # ログに記録
+        self.epoch_log = {
+            "obs_raw": obs_raw_list,
+            "reward_raw": reward_raw_list,
+            # "obs": obs_list,
+            # "rewards": reward_list,
+            # "actions": action_list,
+            # "masks": mask_list
+        }
 
         # PPO における「割引報酬（Return）」の計算処理
         returns = self.compute_returns(reward_list)
@@ -317,4 +334,5 @@ class PPOAgent:
         loss.backward()
         # 勾配に基づいてパラメータを更新
         self.optimizer.step()
+
         return loss, total_reward
