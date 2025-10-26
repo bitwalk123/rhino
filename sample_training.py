@@ -47,6 +47,13 @@ if __name__ == "__main__":
             num_epoch=n_epoch,
             new_model=flag_new_model
         )
+
+        # 取引結果
+        df_transaction = agent.get_transaction()
+        print(df_transaction)
+        print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
+
+        # 報酬分布
         ser_reward = pd.Series(agent.epoch_log["reward_raw"])
         plot_reward_distribution(ser_reward)
 
