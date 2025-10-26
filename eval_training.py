@@ -78,9 +78,9 @@ if __name__ == "__main__":
         f"mean: {ser_reward.mean():.3f}, "
         f"stdev: {ser_reward.std():.3f}"
     )
-    """
     plot_reward_distribution(ser_reward)
 
+    """
     # 観測空間
     df_obs = pd.concat([pd.Series(row) for row in agent.epoch_log["obs_raw"]], axis=1).T
     rows = df_obs.shape[1]
