@@ -81,44 +81,6 @@ class TransactionManager:
         self.position = PositionType.NONE
         self.price_entry = 0
 
-    def forceRepay(self, t: float, price: float) -> float:
-        reward = 0
-        profit = self.getProfit(price)
-        if self.position == PositionType.LONG:
-            # 返済: 買建 (LONG) → 売埋
-            # -------------------------------------------------------------
-            # 取引明細
-            # -------------------------------------------------------------
-            self.add_transaction(t, "売埋（強制返済）", price, profit)
-        elif self.position == PositionType.SHORT:
-            # 返済: 売建 (SHORT) → 買埋
-            # -------------------------------------------------------------
-            # 取引明細
-            # -------------------------------------------------------------
-            self.add_transaction(t, "買埋（強制返済）", price, profit)
-        else:
-            # ポジション無し
-            pass
-        # 損益追加
-        self.pnl_total += profit
-        # -------------------------------------------------------------
-        # 損益から報酬計算（必要か？）
-        # -------------------------------------------------------------
-        if profit == 0.0:
-            # profit == 0（損益 0）の時は僅かなペナルティ
-            # reward += np.tanh(self.penalty_profit_zero)
-            pass
-        else:
-            # 報酬は、呼び値で割って正規化
-            # reward += np.tanh(profit / self.tickprice)
-            pass
-        # ---------------------------------------------------------------------
-        # ポジション解消
-        # ---------------------------------------------------------------------
-        self.clear_position()
-
-        return reward
-
     def evalReward(self, action: int, t: float, price: float) -> float:
         action_type = ActionType(action)
         reward = 0.0
@@ -209,6 +171,44 @@ class TransactionManager:
                 raise TypeError(f"Unknown ActionType: {action_type}")
 
         return np.clip(reward, -1, 1)
+
+    def forceRepay(self, t: float, price: float) -> float:
+        reward = 0
+        profit = self.getProfit(price)
+        if self.position == PositionType.LONG:
+            # 返済: 買建 (LONG) → 売埋
+            # -------------------------------------------------------------
+            # 取引明細
+            # -------------------------------------------------------------
+            self.add_transaction(t, "売埋（強制返済）", price, profit)
+        elif self.position == PositionType.SHORT:
+            # 返済: 売建 (SHORT) → 買埋
+            # -------------------------------------------------------------
+            # 取引明細
+            # -------------------------------------------------------------
+            self.add_transaction(t, "買埋（強制返済）", price, profit)
+        else:
+            # ポジション無し
+            pass
+        # 損益追加
+        self.pnl_total += profit
+        # -------------------------------------------------------------
+        # 損益から報酬計算（必要か？）
+        # -------------------------------------------------------------
+        if profit == 0.0:
+            # profit == 0（損益 0）の時は僅かなペナルティ
+            # reward += np.tanh(self.penalty_profit_zero)
+            pass
+        else:
+            # 報酬は、呼び値で割って正規化
+            # reward += np.tanh(profit / self.tickprice)
+            pass
+        # ---------------------------------------------------------------------
+        # ポジション解消
+        # ---------------------------------------------------------------------
+        self.clear_position()
+
+        return reward
 
     @staticmethod
     def get_datetime(t: float) -> str:
@@ -491,6 +491,7 @@ class TrainingEnv(TradingEnv):
 
         done = False
         if self.step_current >= len(self.df) - 1:
+            reward += self.trans_man.forceRepay(t, price)
             done = True
 
         self.step_current += 1
