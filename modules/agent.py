@@ -4,7 +4,6 @@ import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv
 
 from funcs.commons import get_collection_path
 from funcs.ios import get_excel_sheet

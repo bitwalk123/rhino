@@ -5,7 +5,7 @@ if __name__ == "__main__":
     res = AppRes()
     agent = PPOAgentSB3(res)
 
-    # 学習用データ
+    # 推論用データ
     file = "ticks_20250819.xlsx"
     code = "7011"
 
