@@ -6,7 +6,7 @@ import pandas as pd
 
 from funcs.ios import get_excel_sheet
 from funcs.models import get_trained_ppo_model_path
-from modules.agent import PPOAgent
+from modules.agent_torch import PPOAgent
 from structs.res import AppRes
 
 FONT_PATH = "fonts/RictyDiminished-Regular.ttf"

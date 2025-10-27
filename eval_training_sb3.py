@@ -1,34 +1,13 @@
 import os
 
-import gymnasium as gym
-import numpy as np
 import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
 from funcs.ios import get_excel_sheet
+from modules.agent_auxiliary import ActionMaskWrapper
 from modules.env import TrainingEnv
 from structs.res import AppRes
-
-
-class ActionMaskWrapper(gym.Wrapper):
-    def __init__(self, env):
-        super().__init__(env)
-        self.action_mask = None
-
-    def reset(self, **kwargs):
-        obs, info = self.env.reset(**kwargs)
-        self.action_mask = info.get("action_mask", np.ones(self.env.action_space.n, dtype=np.int8))
-        return obs, info
-
-    def step(self, action):
-        if self.action_mask[action] == 0:
-            # 無効なアクションを選んだ場合、強制的に HOLD に置き換える
-            action = 0  # ActionType.HOLD.value
-        obs, reward, done, truncated, info = self.env.step(action)
-        self.action_mask = info.get("action_mask", np.ones(self.env.action_space.n, dtype=np.int8))
-        return obs, reward, done, truncated, info
-
 
 if __name__ == "__main__":
     res = AppRes()
