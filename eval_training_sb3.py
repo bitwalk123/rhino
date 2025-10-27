@@ -12,4 +12,5 @@ if __name__ == "__main__":
     # list_file = ["ticks_20250819.xlsx"]
     list_file = sorted(os.listdir(res.dir_collection))
     for file in list_file:
+        print(file)
         agent.train(file, code)
