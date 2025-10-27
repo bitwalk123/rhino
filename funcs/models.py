@@ -1,15 +1,16 @@
 import os
 
-from sb3_contrib import RecurrentPPO
+from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from structs.res import AppRes
 
 
-def get_ppo_model_new(env: DummyVecEnv) -> RecurrentPPO:
+def get_ppo_model_new(env: DummyVecEnv) -> PPO:
     # PPO モデルの生成
     # LSTM を含む方策ネットワーク MlpLstmPolicy を指定
-    return RecurrentPPO("MlpLstmPolicy", env, verbose=1)
+    #return RecurrentPPO("MlpLstmPolicy", env, verbose=1)
+    return PPO("MlpPolicy", env, verbose=1)
 
 
 def get_ppo_model_path(res: AppRes, code: str) -> tuple[str, str]:
