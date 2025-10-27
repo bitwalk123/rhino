@@ -490,11 +490,17 @@ class TrainingEnv(TradingEnv):
         )
 
         done = False
+        truncated = False
+
         if self.step_current >= len(self.df) - 1:
             reward += self.trans_man.forceRepay(t, price)
             done = True
+            truncated = True  # ← 時間切れによる終了を明示
 
         self.step_current += 1
-        info = {"pnl_total": self.trans_man.pnl_total, "action_mask": self._get_action_mask()}
+        info = {
+            "pnl_total": self.trans_man.pnl_total,
+            "action_mask": self._get_action_mask()
+        }
 
-        return obs, reward, done, False, info
+        return obs, reward, done, truncated, info
