@@ -35,8 +35,7 @@ class TransactionManager:
         # ---------------------------------------------------------------------
         self.unit: int = 1  # 売買単位
         self.tickprice: float = 1.0  # 呼び値
-        # self.slippage = self.tickprice  # スリッページ
-        self.slippage = 0  # スリッページ無し
+        self.slippage = self.tickprice  # スリッページは呼び値 1 ティック分
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
         self.pnl_total = 0.0  # 総損益
