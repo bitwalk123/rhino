@@ -262,7 +262,7 @@ class ObservationManager:
 
         # キューを定義
         self.deque_price_060 = deque(maxlen=60)  # MA60
-        self.deque_price_300 = deque(maxlen=300)  # MA180
+        self.deque_price_300 = deque(maxlen=300)  # MA300
 
         # 観測数の取得
         self.n_feature = len(self.getObs())
@@ -334,9 +334,6 @@ class ObservationManager:
         # 累計出来高差分 / 最小取引単位
         # list_feature.append(self.func_volume_delta(volume))
 
-        # 含み損益
-        list_feature.append(np.clip(pl / self.factor_mag, -1, 1))
-
         # キューへの追加
         self.deque_price_060.append(price)
         self.deque_price_300.append(price)
@@ -348,25 +345,27 @@ class ObservationManager:
         else:
             ma_060 = 0
             ma_300 = 0
-        """
-        list_feature.append(self.func_ratio_scaling(ma_060))
-        list_feature.append(self.func_ratio_scaling(ma_120))
-        list_feature.append(self.func_ratio_scaling(ma_300))
-        """
 
         # 移動平均の差分
         ma_diff = np.clip((ma_060 - ma_300) * self.factor_mag, -1, 1)
         list_feature.append(ma_diff)
 
-        """
         # RSI: [-1, 1] に標準化
-        if len(self.deque_price_300) == 60:
-            array_rsi = (talib.RSI(np.array(self.deque_price_300, dtype=np.float64), timeperiod=299) - 50.) / 50.
-            rsi = array_rsi[-1]
+        n = len(self.deque_price_300)
+        if n > 2:
+            array_rsi = talib.RSI(
+                np.array(self.deque_price_300, dtype=np.float64),
+                timeperiod=n - 1
+            )
+            rsi = (array_rsi[-1] - 50.) / 50.
         else:
             rsi = 0.
         list_feature.append(rsi)
-        """
+
+        # ---------------------------------------------------------------------
+        # 含み損益
+        # ---------------------------------------------------------------------
+        list_feature.append(np.clip(pl / self.factor_mag, -1, 1))
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)

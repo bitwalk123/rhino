@@ -1,5 +1,6 @@
 import os
 
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -7,6 +8,15 @@ from funcs.ios import get_excel_sheet
 from funcs.models import get_trained_ppo_model_path
 from modules.agent import PPOAgent
 from structs.res import AppRes
+
+FONT_PATH = "fonts/RictyDiminished-Regular.ttf"
+fm.fontManager.addfont(FONT_PATH)
+
+# FontPropertiesオブジェクト生成（名前の取得のため）
+font_prop = fm.FontProperties(fname=FONT_PATH)
+font_prop.get_name()
+
+plt.rcParams["font.family"] = font_prop.get_name()
 
 
 def plot_reward_distribution(ser: pd.Series):
@@ -19,7 +29,7 @@ def plot_reward_distribution(ser: pd.Series):
     plt.show()
 
 
-def plot_obs_trend(df: pd.DataFrame, n: int):
+def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
     fig = plt.figure(figsize=(15, 9))
     ax = dict()
     gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
@@ -29,6 +39,11 @@ def plot_obs_trend(df: pd.DataFrame, n: int):
 
     for i in range(n):
         ax[i].plot(df[i])
+        if i < n - 3:
+            ax[i].set_ylim(-1.1, 1.1)
+        else:
+            ax[i].set_ylim(0, 1.1)
+        ax[i].set_ylabel(list_ylabel[i])
     plt.tight_layout()
     plt.show()
 
@@ -36,7 +51,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int):
 if __name__ == "__main__":
     res = AppRes()
 
-    n_epoch = 10
+    n_epoch = 1
     flag_new_model = True
 
     # PPO エージェントのインスタンス
@@ -44,11 +59,11 @@ if __name__ == "__main__":
 
     # 学習用データフレーム
     code = "7011"
-    #list_file = sorted(os.listdir(res.dir_collection))
-    list_file = ["ticks_20250819.xlsx"]
+    # list_file = sorted(os.listdir(res.dir_collection))
+    list_file = ["ticks_20250828.xlsx"]
     for idx, file in enumerate(list_file):
         path_excel = os.path.join(res.dir_collection, file)
-        df = get_excel_sheet(path_excel, code)
+        df_code = get_excel_sheet(path_excel, code)
 
         # モデルの保存先
         model_path = get_trained_ppo_model_path(res, code)
@@ -57,7 +72,7 @@ if __name__ == "__main__":
         # 学習
         print(f"{idx + 1:>4d}/{len(list_file):>4d}: {file}")
         agent.train(
-            df,
+            df_code,
             model_path,
             num_epoch=n_epoch,
             new_model=flag_new_model
@@ -78,11 +93,20 @@ if __name__ == "__main__":
         f"mean: {ser_reward.mean():.3f}, "
         f"stdev: {ser_reward.std():.3f}"
     )
-    plot_reward_distribution(ser_reward)
+    # plot_reward_distribution(ser_reward)
 
-    """
     # 観測空間
     df_obs = pd.concat([pd.Series(row) for row in agent.epoch_log["obs_raw"]], axis=1).T
     rows = df_obs.shape[1]
-    plot_obs_trend(df_obs, rows)
-    """
+    print(f"観測数 : {rows}")
+    list_name = [
+        "株価比",
+        "株価Δ",
+        "MAΔ",
+        "RSI",
+        "含損益",
+        "HOLD",
+        "LONG",
+        "SHORT"
+    ]
+    plot_obs_trend(df_obs, rows, list_name)
