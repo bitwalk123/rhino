@@ -51,7 +51,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
 if __name__ == "__main__":
     res = AppRes()
 
-    n_epoch = 10
+    n_epoch = 1
     flag_new_model = True
 
     # PPO エージェントのインスタンス
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # 学習用データフレーム
     code = "7011"
     list_file = sorted(os.listdir(res.dir_collection))
-    # list_file = ["ticks_20250819.xlsx"]
+    #list_file = ["ticks_20250819.xlsx"]
     for idx, file in enumerate(list_file):
         path_excel = os.path.join(res.dir_collection, file)
         df_code = get_excel_sheet(path_excel, code)
