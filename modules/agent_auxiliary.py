@@ -6,10 +6,12 @@ import numpy as np
 
 from stable_baselines3.common.callbacks import BaseCallback
 
+
 class ActionMaskWrapper(gym.Wrapper):
     """
     SB3 で環境の方策マスクに対応させるためのラッパー
     """
+
     def __init__(self, env):
         super().__init__(env)
         self.action_mask = None
@@ -27,10 +29,12 @@ class ActionMaskWrapper(gym.Wrapper):
         self.action_mask = info.get("action_mask", np.ones(self.env.action_space.n, dtype=np.int8))
         return obs, reward, done, truncated, info
 
+
 class EpisodeLimitCallback(BaseCallback):
     """
     SB3 で Episode 回数を Epoch として扱うためのコールバック
     """
+
     def __init__(self, max_episodes, verbose=0):
         super().__init__(verbose)
         self.max_episodes = max_episodes
@@ -47,6 +51,7 @@ class SaveBestModelCallback(BaseCallback):
     """
     SB3 で最高報酬のモデルのみ保存するためのコールバック
     """
+
     def __init__(
             self,
             save_path: str,
@@ -85,5 +90,3 @@ class SaveBestModelCallback(BaseCallback):
                 if self.verbose > 0:
                     print(f"✅ New best reward: {ep_reward:.2f} → Model saved.")
         return True
-
-

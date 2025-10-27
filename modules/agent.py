@@ -1,5 +1,6 @@
 import os
 
+import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.monitor import Monitor
@@ -17,35 +18,30 @@ class PPOAgentSB3:
     def __init__(self, res: AppRes):
         super().__init__()
         self.res = res
+        self.env_raw = None
 
-    def get_env(self, file: str, code: str) -> DummyVecEnv:
+    def get_env(self, file: str, code: str) -> Monitor:
         # Excel ファイルをフルパスに
         path_excel = get_collection_path(self.res, file)
         # Excel ファイルをデータフレームに読み込む
         df = get_excel_sheet(path_excel, code)
 
         # 環境のインスタンスを生成
-        env_raw = TrainingEnv(df)
+        self.env_raw = env_raw = TrainingEnv(df)
         env = ActionMaskWrapper(env_raw)
         # SB3の環境チェック（オプション）
         check_env(env, warn=True)
 
         env_monitor = Monitor(env, self.res.dir_log)  # Monitorの利用
-        env_vec = DummyVecEnv([lambda: env_monitor])
 
-        return env_vec
+        return env_monitor
 
     def train(self, file: str, code: str):
         # 学習環境の取得
-        path_excel = os.path.join(self.res.dir_collection, file)
-        df = get_excel_sheet(path_excel, code)
-        env_raw = TrainingEnv(df)
-        env = ActionMaskWrapper(env_raw)
-        # SB3の環境チェック（オプション）
-        check_env(env, warn=True)
+        env = self.get_env(file, code)
 
         # 学習済モデルを読み込む
-        model_path, _ = get_ppo_model_path(self.res, code)
+        model_path = get_ppo_model_path(self.res, code)
         if os.path.exists(model_path):
             print(f"モデル {model_path} を読み込みます。")
             try:
@@ -68,14 +64,8 @@ class PPOAgentSB3:
         env.close()
 
     def infer(self, file: str, code: str):
-        # 学習環境の取得（過去ティックデータをつかうことが前提）
-        path_excel = os.path.join(self.res.dir_collection, file)
-        df = get_excel_sheet(path_excel, code)
-        # df: ティックデータ（Time, Price, Volume）を含む DataFrame
-        env_raw = TrainingEnv(df)
-        env = ActionMaskWrapper(env_raw)
-        # SB3の環境チェック（オプション）
-        check_env(env, warn=True)
+        # 学習環境の取得
+        env = self.get_env(file, code)
 
         # 学習済モデルを読み込む
         model_path = get_trained_ppo_model_path(self.res, code)
@@ -92,6 +82,9 @@ class PPOAgentSB3:
             action, _states = model.predict(obs)
             obs, reward, done, truncated, info = env.step(action)
 
-        df_transaction = pd.DataFrame(env_raw.trans_man.dict_transaction)
+        df_transaction = pd.DataFrame(self.env_raw.trans_man.dict_transaction)
         print(df_transaction)
         print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
+
+        # 学習環境の解放
+        env.close()

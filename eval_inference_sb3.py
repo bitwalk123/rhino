@@ -1,5 +1,3 @@
-import os
-
 from modules.agent import PPOAgentSB3
 from structs.res import AppRes
 
@@ -8,8 +6,7 @@ if __name__ == "__main__":
     agent = PPOAgentSB3(res)
 
     # 学習用データ
+    file = "ticks_20250819.xlsx"
     code = "7011"
-    # list_file = ["ticks_20250819.xlsx"]
-    list_file = sorted(os.listdir(res.dir_collection))
-    for file in list_file:
-        agent.train(file, code)
+
+    agent.infer(file, code)

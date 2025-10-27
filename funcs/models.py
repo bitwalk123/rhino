@@ -13,12 +13,11 @@ def get_ppo_model_new(env: DummyVecEnv) -> PPO:
     return PPO("MlpPolicy", env, verbose=1)
 
 
-def get_ppo_model_path(res: AppRes, code: str) -> tuple[str, str]:
+def get_ppo_model_path(res: AppRes, code: str) -> str:
     model_path = os.path.join(res.dir_model, f"ppo_{code}.zip")
-    reward_path = os.path.join(res.dir_model, f"best_reward_{code}.txt")
-    return model_path, reward_path
+    return model_path
 
 
-def get_trained_ppo_model_path(res: AppRes, code: str, ext="pth") -> str:
-    model_path = os.path.join(res.dir_model, "trained", f"ppo_{code}.{ext}")
+def get_trained_ppo_model_path(res: AppRes, code: str) -> str:
+    model_path = os.path.join(res.dir_model, "trained", f"ppo_{code}.zip")
     return model_path
