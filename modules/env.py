@@ -350,8 +350,20 @@ class ObservationManager:
         ma_diff = np.clip((ma_060 - ma_300) * self.factor_mag, -1, 1)
         list_feature.append(ma_diff)
 
-        # RSI: [-1, 1] に標準化
         n = len(self.deque_price_300)
+
+        # ROC
+        if n > 2:
+            array_roc = talib.ROC(
+                np.array(self.deque_price_300, dtype=np.float64),
+                timeperiod=n - 1
+            )
+            roc = np.clip(array_roc[-1], -1, 1)
+        else:
+            roc = 0.
+        list_feature.append(roc)
+
+        # RSI: [-1, 1] に標準化
         if n > 2:
             array_rsi = talib.RSI(
                 np.array(self.deque_price_300, dtype=np.float64),

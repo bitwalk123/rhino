@@ -51,7 +51,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
 if __name__ == "__main__":
     res = AppRes()
 
-    n_epoch = 1
+    n_epoch = 10
     flag_new_model = True
 
     # PPO エージェントのインスタンス
@@ -59,8 +59,8 @@ if __name__ == "__main__":
 
     # 学習用データフレーム
     code = "7011"
-    # list_file = sorted(os.listdir(res.dir_collection))
-    list_file = ["ticks_20250828.xlsx"]
+    list_file = sorted(os.listdir(res.dir_collection))
+    # list_file = ["ticks_20250819.xlsx"]
     for idx, file in enumerate(list_file):
         path_excel = os.path.join(res.dir_collection, file)
         df_code = get_excel_sheet(path_excel, code)
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         f"mean: {ser_reward.mean():.3f}, "
         f"stdev: {ser_reward.std():.3f}"
     )
-    # plot_reward_distribution(ser_reward)
+    plot_reward_distribution(ser_reward)
 
     # 観測空間
     df_obs = pd.concat([pd.Series(row) for row in agent.epoch_log["obs_raw"]], axis=1).T
@@ -103,6 +103,7 @@ if __name__ == "__main__":
         "株価比",
         "株価Δ",
         "MAΔ",
+        "ROC",
         "RSI",
         "含損益",
         "HOLD",
