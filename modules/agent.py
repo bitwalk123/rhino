@@ -7,7 +7,7 @@ from stable_baselines3.common.monitor import Monitor
 
 from funcs.commons import get_collection_path
 from funcs.ios import get_excel_sheet
-from funcs.models import get_ppo_model_path, get_ppo_model_new, get_trained_ppo_model_path
+from funcs.models import get_ppo_model_path, get_trained_ppo_model_path
 from modules.agent_auxiliary import ActionMaskWrapper
 from modules.env import TrainingEnv
 from structs.res import AppRes
@@ -18,6 +18,8 @@ class PPOAgentSB3:
         super().__init__()
         self.res = res
         self.env_raw = None
+        self.results = dict()
+        self.results["reward"] = list()
 
     def get_env(self, file: str, code: str) -> Monitor:
         # Excel ファイルをフルパスに
@@ -80,10 +82,11 @@ class PPOAgentSB3:
         while not done:
             action, _states = model.predict(obs)
             obs, reward, done, truncated, info = env.step(action)
+            # 報酬分布作成用
+            self.results["reward"].append(reward)
 
-        df_transaction = pd.DataFrame(self.env_raw.trans_man.dict_transaction)
-        print(df_transaction)
-        print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
+        # 取引内容
+        self.results["transaction"] = self.env_raw.getTransaction()
 
         # 学習環境の解放
         env.close()

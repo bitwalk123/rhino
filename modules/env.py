@@ -440,6 +440,9 @@ class TradingEnv(gym.Env):
     def _get_tick(self) -> tuple[float, float, float]:
         ...
 
+    def getTransaction(self) -> pd.DataFrame:
+        return pd.DataFrame(self.trans_man.dict_transaction)
+
     def reset(self, seed=None, options=None) -> tuple[np.ndarray, dict]:
         self.step_current = 0
         self.trans_man.clear()
