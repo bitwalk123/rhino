@@ -8,6 +8,7 @@ class AppRes:
     dir_log = 'logs'
     dir_model = 'models'
     dir_output = 'output'
+    dir_temp = 'tmp'
 
     tse = 'https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls'
 
@@ -20,6 +21,7 @@ class AppRes:
             self.dir_log,
             self.dir_model,
             self.dir_output,
+            self.dir_temp,
         ]
         for dirname in list_dir:
             self.check_system_dir(dirname)
