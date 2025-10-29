@@ -44,7 +44,7 @@ class TransactionManager:
         # 報酬設計
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # スケール因子
-        self.factor_scale = 0.1
+        self.factor_scale = 0.01
         # ***** 損益関係 *****
         # 含み損益から報酬を算出する比
         self.reward_unrealized_profit_ratio = 0.01
@@ -169,7 +169,7 @@ class TransactionManager:
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
 
-        return np.clip(reward, -1, 1)
+        return reward
 
     def forceRepay(self, t: float, price: float) -> float:
         reward = 0
