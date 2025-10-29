@@ -32,7 +32,7 @@ if __name__ == "__main__":
     agent = PPOAgentSB3()
 
     # 推論用データ
-    file = "ticks_20251028.xlsx"
+    file = "ticks_20250919.xlsx"
     code = "7011"
 
     print(f"過去データ {file} の銘柄 {code} について推論します。")
