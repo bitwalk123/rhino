@@ -68,11 +68,11 @@ class PPOAgentSB3:
             except ValueError:
                 print("読み込み時、例外 ValueError が発生したので新規にモデルを作成します。")
                 model = PPO("MlpPolicy", env, verbose=1)
-                #self.prep_user_data(file, code, df_history)
+                # self.prep_user_data(file, code, df_history)
         else:
             print(f"新規にモデルを作成します。")
             model = PPO("MlpPolicy", env, verbose=1)
-            #self.prep_user_data(file, code)
+            # self.prep_user_data(file, code)
 
         # モデルの学習
         model.learn(total_timesteps=self.total_timesteps)
