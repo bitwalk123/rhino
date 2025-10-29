@@ -8,7 +8,6 @@ from modules.rhino import Rhino
 
 def main():
     app = QApplication(sys.argv)
-
     win = Rhino()
     win.show()
     sys.exit(app.exec())
