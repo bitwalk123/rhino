@@ -54,6 +54,7 @@ class PPOAgentSB3:
             print(f"モデル {model_path} を読み込みます。")
             try:
                 model = PPO.load(model_path, env, verbose=1)
+                """
                 # ユーザー情報の読込
                 with zipfile.ZipFile(model_path, 'r') as zipf:
                     if self.user_file in zipf.namelist():
@@ -63,14 +64,15 @@ class PPOAgentSB3:
                     else:
                         print(f"{self.user_file} は ZIP 内に存在しません。")
                         self.prep_user_data(file, code)
+                """
             except ValueError:
                 print("読み込み時、例外 ValueError が発生したので新規にモデルを作成します。")
                 model = PPO("MlpPolicy", env, verbose=1)
-                self.prep_user_data(file, code, df_history)
+                #self.prep_user_data(file, code, df_history)
         else:
             print(f"新規にモデルを作成します。")
             model = PPO("MlpPolicy", env, verbose=1)
-            self.prep_user_data(file, code)
+            #self.prep_user_data(file, code)
 
         # モデルの学習
         model.learn(total_timesteps=self.total_timesteps)
@@ -78,9 +80,11 @@ class PPOAgentSB3:
         # モデルの保存
         print(f"モデルを {model_path} に保存します。")
         model.save(model_path)
+        """
         # 保存した zip ファイルにユーザー情報を追加
         with zipfile.ZipFile(model_path, 'a') as zipf:
             zipf.write(self.temp_file, arcname=self.user_file)
+        """
 
         # 学習環境の解放
         env.close()
