@@ -2,6 +2,9 @@ import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from funcs.commons import get_collection_path
+from funcs.ios import get_excel_sheet
+from funcs.models import get_ppo_model_path
 from modules.agent import PPOAgentSB3
 from structs.res import AppRes
 
@@ -26,14 +29,20 @@ def plot_reward_distribution(ser: pd.Series):
 
 if __name__ == "__main__":
     res = AppRes()
-    agent = PPOAgentSB3(res)
+    agent = PPOAgentSB3()
 
     # 推論用データ
     file = "ticks_20251028.xlsx"
     code = "7011"
 
     print(f"過去データ {file} の銘柄 {code} について推論します。")
-    agent.infer(file, code)
+    # Excel ファイルのフルパス
+    path_excel = get_collection_path(res, file)
+    # Excel ファイルをデータフレームに読み込む
+    df = get_excel_sheet(path_excel, code)
+    path_model = get_ppo_model_path(res, code)
+
+    agent.infer(df, path_model)
 
     # 取引結果
     df_transaction: pd.DataFrame = agent.results["transaction"]
