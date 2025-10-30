@@ -18,17 +18,32 @@ font_prop.get_name()
 plt.rcParams["font.family"] = font_prop.get_name()
 
 
-def plot_reward_distribution(ser: pd.Series):
-    plt.hist(ser, bins=20)
-    plt.title("Reward Distribution")
-    plt.xlabel("Reward")
-    plt.ylabel("Frequency")
-    plt.yscale("log")
-    plt.grid()
+def plot_reward_distribution(ser: pd.Series, logscale: bool = False):
+    fig, ax = plt.subplots(figsize=(6, 4))
+
+    ax.hist(ser, bins=20)
+    ax.set_title("Reward Distribution")
+    ax.set_xlabel("Reward")
+
+    if logscale:
+        ax.set_yscale("log")
+        ax.set_ylabel("Freq. in Log scale")
+    else:
+        ax.set_ylabel("Frequency")
+
+    x_low, x_high = ax.get_xlim()
+    if -1.0 < x_low:
+        x_low = -1.0
+    if x_high < 1.0:
+        x_high = 1.0
+    ax.set_xlim(x_low, x_high)
+    ax.grid()
+
+    plt.tight_layout()
     plt.show()
 
 
-def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list, logscale: bool = False):
+def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
     fig = plt.figure(figsize=(15, 9))
     ax = dict()
     gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
@@ -77,7 +92,7 @@ if __name__ == "__main__":
         f"stdev: {ser_reward.std():.3f}"
     )
     # 報酬分布
-    plot_reward_distribution(ser_reward)
+    plot_reward_distribution(ser_reward, logscale=True)
     # 観測値トレンド
     df_obs = pd.concat([pd.Series(row) for row in agent.results["obs"]], axis=1).T
     rows = df_obs.shape[1]
@@ -93,4 +108,4 @@ if __name__ == "__main__":
         "LONG",
         "SHORT"
     ]
-    plot_obs_trend(df_obs, rows, list_name, logscale=True)
+    plot_obs_trend(df_obs, rows, list_name)
