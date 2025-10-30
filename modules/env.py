@@ -135,7 +135,7 @@ class TransactionManager:
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
                     price -= self.slippage
-                    profit = self.getProfit(price)
+                    profit = self.get_profit(price)
                     # ---------------------------------------------------------
                     # 取引明細
                     # ---------------------------------------------------------
@@ -143,7 +143,7 @@ class TransactionManager:
                 elif self.position == PositionType.SHORT:
                     # 返済: 売建 (SHORT) → 買埋
                     price += self.slippage
-                    profit = self.getProfit(price)
+                    profit = self.get_profit(price)
                     # ---------------------------------------------------------
                     # 取引明細
                     # ---------------------------------------------------------
@@ -165,7 +165,7 @@ class TransactionManager:
 
     def forceRepay(self, t: float, price: float) -> float:
         reward = 0.0
-        profit = self.getProfit(price)
+        profit = self.get_profit(price)
         if self.position == PositionType.LONG:
             # 返済: 買建 (LONG) → 売埋
             # -------------------------------------------------------------
@@ -196,14 +196,7 @@ class TransactionManager:
     def get_datetime(t: float) -> str:
         return str(datetime.datetime.fromtimestamp(int(t)))
 
-    def get_reward_from_profit(self, profit: float) -> float:
-        # 報酬は呼び値で割る
-        return np.tanh(profit / self.tickprice / self.factor_scale)
-
-    def getNumberOfTransactions(self) -> int:
-        return len(self.dict_transaction["注文日時"])
-
-    def getProfit(self, price) -> float:
+    def get_profit(self, price) -> float:
         if self.position == PositionType.LONG:
             # ---------------------------------------------------------
             # 返済: 買建 (LONG) → 売埋
@@ -217,11 +210,18 @@ class TransactionManager:
         else:
             return 0.0  # 実現損益
 
+    def get_reward_from_profit(self, profit: float) -> float:
+        # 報酬は呼び値で割る
+        return np.tanh(profit / self.tickprice / self.factor_scale)
+
+    def getNumberOfTransactions(self) -> int:
+        return len(self.dict_transaction["注文日時"])
+
     def getPL4Obs(self, price) -> float:
         """
         観測値用に、損益用の報酬と同じにスケーリングして含み損益を返す。
         """
-        profit = self.getProfit(price)
+        profit = self.get_profit(price)
         return self.get_reward_from_profit(profit)
 
     @staticmethod
@@ -345,7 +345,7 @@ class ObservationManager:
                 np.array(self.deque_price_300, dtype=np.float64),
                 timeperiod=n - 1
             )
-            roc = np.clip(array_roc[-1], -1, 1)
+            roc = np.tanh(array_roc[-1])
         else:
             roc = 0.
         list_feature.append(roc)

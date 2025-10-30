@@ -28,6 +28,25 @@ def plot_reward_distribution(ser: pd.Series):
     plt.show()
 
 
+def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list, logscale: bool = False):
+    fig = plt.figure(figsize=(15, 9))
+    ax = dict()
+    gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
+    for i, axis in enumerate(gs.subplots(sharex="col")):
+        ax[i] = axis
+        ax[i].grid()
+
+    for i in range(n):
+        ax[i].plot(df[i])
+        if i < n - 3:
+            ax[i].set_ylim(-1.1, 1.1)
+        else:
+            ax[i].set_ylim(0, 1.1)
+        ax[i].set_ylabel(list_ylabel[i])
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
     res = AppRes()
     agent = PPOAgentSB3()
@@ -57,4 +76,21 @@ if __name__ == "__main__":
         f"mean: {ser_reward.mean():.3f}, "
         f"stdev: {ser_reward.std():.3f}"
     )
+    # 報酬分布
     plot_reward_distribution(ser_reward)
+    # 観測値トレンド
+    df_obs = pd.concat([pd.Series(row) for row in agent.results["obs"]], axis=1).T
+    rows = df_obs.shape[1]
+    print(f"観測数 : {rows}")
+    list_name = [
+        "株価比",
+        "株価Δ",
+        "MAΔ",
+        "ROC",
+        "RSI",
+        "含損益",
+        "NONE",
+        "LONG",
+        "SHORT"
+    ]
+    plot_obs_trend(df_obs, rows, list_name, logscale=True)
