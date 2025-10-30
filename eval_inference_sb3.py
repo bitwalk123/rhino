@@ -23,6 +23,7 @@ def plot_reward_distribution(ser: pd.Series):
     plt.title("Reward Distribution")
     plt.xlabel("Reward")
     plt.ylabel("Frequency")
+    plt.yscale("log")
     plt.grid()
     plt.show()
 

@@ -43,25 +43,15 @@ class TransactionManager:
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 報酬設計
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
-        # スケール因子
-        self.factor_scale = 0.01
-        # ***** 損益関係 *****
-        # 含み損益から報酬を算出する比
-        self.reward_unrealized_profit_ratio = 0.01
-        # 建玉返済時に損益 0 の場合のペナルティ
-        self.penalty_profit_zero = -0.001
-        # 建玉保持時に損益 0 の場合の報酬
-        self.reward_profit_zero = -self.penalty_profit_zero
-        # ***** HOLD 関係 *****
-        # HOLD 報酬
-        self.reward_hold = 0.001
-        # HOLD ペナルティ
-        self.penalty_hold = -0.
-        # ***** 取引ルール関係 *****
-        # 取引ルール適合時の僅かな報酬
-        self.reward_comply_rule_small = 0.
-        # 取引ルール違反時のペナルティ
-        self.penalty_rule_transaction = -0.
+        """
+        tanh が直線的に変化する [-1, 1] に収まるように乗ずる因子
+        ティックは最大 100 動くと仮定
+        """
+        self.factor_scale = 100.
+        """
+        含み益の場合に乗ずる比率
+        """
+        self.ratio_unrealized_profit = 0.1
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -88,7 +78,6 @@ class TransactionManager:
             # ポジションが無い場合に取りうるアクションは HOLD, BUY, SELL
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                # reward += np.tanh(self.reward_hold)
                 pass
             elif action_type == ActionType.BUY:
                 # =============================================================
@@ -120,14 +109,19 @@ class TransactionManager:
             # ポジションが有る場合に取りうるアクションは HOLD, REPAY
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                # 含み損益から報酬算出
-                profit = self.getProfit(price)
-                if profit == 0.0:
-                    # 含み損益 0 の時に僅かな報酬
-                    reward += self.reward_profit_zero
+                # =============================================================
+                # 含み益
+                # =============================================================
+                """
+                if self.position == PositionType.LONG:
+                    # 返済: 買建 (LONG) → 売埋
+                    price -= self.slippage
                 else:
-                    # 含み損益に係数を乗じた報酬
-                    reward += profit / self.tickprice * self.reward_unrealized_profit_ratio
+                    # 返済: 売建 (SHORT) → 買埋
+                    price += self.slippage
+                reward += np.tanh(self.getProfit(price) * self.ratio_unrealized_profit / self.factor_scale)
+                """
+                pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -135,36 +129,34 @@ class TransactionManager:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
             elif action_type == ActionType.REPAY:
-                # -------------------------------------------------------------
-                # 取引明細
-                # -------------------------------------------------------------
+                # =============================================================
+                # 返済
+                # =============================================================
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
                     price -= self.slippage
                     profit = self.getProfit(price)
+                    # ---------------------------------------------------------
+                    # 取引明細
+                    # ---------------------------------------------------------
                     self.add_transaction(t, "売埋", price, profit)
                 elif self.position == PositionType.SHORT:
                     # 返済: 売建 (SHORT) → 買埋
                     price += self.slippage
                     profit = self.getProfit(price)
+                    # ---------------------------------------------------------
+                    # 取引明細
+                    # ---------------------------------------------------------
                     self.add_transaction(t, "買埋", price, profit)
                 else:
                     raise TypeError(f"Unknown PositionType: {self.position}")
                 # 損益追加
                 self.pnl_total += profit
-                # -------------------------------------------------------------
-                # 損益から報酬計算
-                # -------------------------------------------------------------
-                if profit == 0.0:
-                    # 損益 0の時は僅かなペナルティ（スケーリング）
-                    # reward += np.tanh(self.penalty_profit_zero)
-                    pass
-                else:
-                    # 報酬は、呼び値で割る
-                    reward += profit / self.tickprice * self.factor_scale
-                # -------------------------------------------------------------
+                # 報酬
+                reward += self.get_reward_from_profit(profit)
+                # =============================================================
                 # ポジション解消
-                # -------------------------------------------------------------
+                # =============================================================
                 self.clear_position()
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
@@ -172,7 +164,7 @@ class TransactionManager:
         return reward
 
     def forceRepay(self, t: float, price: float) -> float:
-        reward = 0
+        reward = 0.0
         profit = self.getProfit(price)
         if self.position == PositionType.LONG:
             # 返済: 買建 (LONG) → 売埋
@@ -191,20 +183,11 @@ class TransactionManager:
             pass
         # 損益追加
         self.pnl_total += profit
-        # -------------------------------------------------------------
-        # 損益から報酬計算（必要か？）
-        # -------------------------------------------------------------
-        if profit == 0.0:
-            # profit == 0（損益 0）の時は僅かなペナルティ
-            # reward += np.tanh(self.penalty_profit_zero)
-            pass
-        else:
-            # 報酬は、呼び値で割って正規化
-            # reward += np.tanh(profit / self.tickprice)
-            pass
-        # ---------------------------------------------------------------------
+        # 報酬
+        reward += self.get_reward_from_profit(profit)
+        # =====================================================================
         # ポジション解消
-        # ---------------------------------------------------------------------
+        # =====================================================================
         self.clear_position()
 
         return reward
@@ -212,6 +195,10 @@ class TransactionManager:
     @staticmethod
     def get_datetime(t: float) -> str:
         return str(datetime.datetime.fromtimestamp(int(t)))
+
+    def get_reward_from_profit(self, profit: float) -> float:
+        # 報酬は呼び値で割る
+        return np.tanh(profit / self.tickprice / self.factor_scale)
 
     def getNumberOfTransactions(self) -> int:
         return len(self.dict_transaction["注文日時"])
@@ -221,20 +208,21 @@ class TransactionManager:
             # ---------------------------------------------------------
             # 返済: 買建 (LONG) → 売埋
             # ---------------------------------------------------------
-            return price - self.price_entry
+            return price - self.price_entry - self.slippage
         elif self.position == PositionType.SHORT:
             # ---------------------------------------------------------
             # 返済: 売建 (SHORT) → 買埋
             # ---------------------------------------------------------
-            return self.price_entry - price
+            return self.price_entry - price - self.slippage
         else:
             return 0.0  # 実現損益
 
-    def getPL(self, price) -> float:
+    def getPL4Obs(self, price) -> float:
         """
-        観測値用に、含み損益を呼び値で割った値を返す（スケーリング付き）
+        観測値用に、損益用の報酬と同じにスケーリングして含み損益を返す。
         """
-        return self.getProfit(price) / self.tickprice
+        profit = self.getProfit(price)
+        return self.get_reward_from_profit(profit)
 
     @staticmethod
     def init_transaction() -> dict:
@@ -376,7 +364,7 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # 含み損益
         # ---------------------------------------------------------------------
-        list_feature.append(np.clip(pl / self.factor_mag, -1, 1))
+        list_feature.append(pl)
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
@@ -487,7 +475,7 @@ class TrainingEnv(TradingEnv):
         obs = self.obs_man.getObs(
             price,  # 株価
             volume,  # 出来高
-            self.trans_man.getPL(price),  # 含み損益
+            self.trans_man.getPL4Obs(price),  # 含み損益
             self.trans_man.position,  # ポジション
         )
 
