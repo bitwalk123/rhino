@@ -112,11 +112,8 @@ class TransactionManager:
                 # =============================================================
                 # 含み益
                 # =============================================================
-                """
                 profit = self.get_profit(price)
                 reward += self.get_reward_from_profit(profit) * self.ratio_unrealized_profit
-                """
-                pass
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
