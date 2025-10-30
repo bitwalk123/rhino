@@ -68,12 +68,15 @@ class PPOAgentSB3:
             return
         model = PPO.load(path_model, env, verbose=1)
 
+        self.results["obs"] = list()
         self.results["reward"] = list()
         obs, _ = env.reset()
         done = False
         while not done:
             action, _states = model.predict(obs)
             obs, reward, done, truncated, info = env.step(action)
+            # 観測値トレンド成用
+            self.results["obs"].append(obs)
             # 報酬分布作成用
             self.results["reward"].append(reward)
 
