@@ -51,7 +51,7 @@ class TransactionManager:
         """
         含み益の場合に乗ずる比率
         """
-        self.ratio_unrealized_profit = 0.1
+        self.ratio_unrealized_profit = 0.01
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -113,13 +113,8 @@ class TransactionManager:
                 # 含み益
                 # =============================================================
                 """
-                if self.position == PositionType.LONG:
-                    # 返済: 買建 (LONG) → 売埋
-                    price -= self.slippage
-                else:
-                    # 返済: 売建 (SHORT) → 買埋
-                    price += self.slippage
-                reward += np.tanh(self.getProfit(price) * self.ratio_unrealized_profit / self.factor_scale)
+                profit = self.get_profit(price)
+                reward += self.get_reward_from_profit(profit) * self.ratio_unrealized_profit
                 """
                 pass
             elif action_type == ActionType.BUY:
@@ -134,7 +129,6 @@ class TransactionManager:
                 # =============================================================
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
-                    price -= self.slippage
                     profit = self.get_profit(price)
                     # ---------------------------------------------------------
                     # 取引明細
@@ -142,7 +136,6 @@ class TransactionManager:
                     self.add_transaction(t, "売埋", price, profit)
                 elif self.position == PositionType.SHORT:
                     # 返済: 売建 (SHORT) → 買埋
-                    price += self.slippage
                     profit = self.get_profit(price)
                     # ---------------------------------------------------------
                     # 取引明細
