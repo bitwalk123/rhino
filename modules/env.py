@@ -131,7 +131,7 @@ class TransactionManager:
                 # 損益追加
                 self.pnl_total += profit
                 # 報酬
-                if profit == 0.0:
+                if 0.0 <= profit <= 1.0:
                     reward += self.get_reward_from_profit(self.penalty_zero_profit)
                 else:
                     reward += self.get_reward_from_profit(profit)
