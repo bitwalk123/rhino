@@ -53,6 +53,10 @@ class TransactionManager:
         含み益の場合に乗ずる比率
         """
         self.ratio_unrealized_profit = 0.01
+        """
+        損益 0 の場合はペナルティ
+        """
+        self.penalty_zero_profit = -0.5
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -125,26 +129,26 @@ class TransactionManager:
                 # =============================================================
                 # 返済
                 # =============================================================
-                if self.position == PositionType.LONG:
-                    # 返済: 買建 (LONG) → 売埋
-                    profit = self.get_profit(price)
-                    # ---------------------------------------------------------
-                    # 取引明細
-                    # ---------------------------------------------------------
-                    self.add_transaction(t, "売埋", price, profit)
-                elif self.position == PositionType.SHORT:
-                    # 返済: 売建 (SHORT) → 買埋
-                    profit = self.get_profit(price)
-                    # ---------------------------------------------------------
-                    # 取引明細
-                    # ---------------------------------------------------------
-                    self.add_transaction(t, "買埋", price, profit)
-                else:
-                    raise TypeError(f"Unknown PositionType: {self.position}")
+                profit = self.get_profit(price)
                 # 損益追加
                 self.pnl_total += profit
                 # 報酬
-                reward += self.get_reward_from_profit(profit)
+                if profit == 0.0:
+                    # 損益 0 の場合はペナルティ
+                    reward += self.get_reward_from_profit(self.penalty_zero_profit)
+                else:
+                    reward += self.get_reward_from_profit(profit)
+                # -------------------------------------------------------------
+                # 取引明細
+                # -------------------------------------------------------------
+                if self.position == PositionType.LONG:
+                    # 返済: 買建 (LONG) → 売埋
+                    self.add_transaction(t, "売埋", price, profit)
+                elif self.position == PositionType.SHORT:
+                    # 返済: 売建 (SHORT) → 買埋
+                    self.add_transaction(t, "買埋", price, profit)
+                else:
+                    raise TypeError(f"Unknown PositionType: {self.position}")
                 # =============================================================
                 # ポジション解消
                 # =============================================================
