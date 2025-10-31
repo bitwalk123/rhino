@@ -35,7 +35,8 @@ class TransactionManager:
         # ---------------------------------------------------------------------
         self.unit: int = 1  # 売買単位
         self.tickprice: float = 1.0  # 呼び値
-        self.slippage = self.tickprice  # スリッページは呼び値 1 ティック分
+        # self.slippage = self.tickprice  # スリッページは呼び値 1 ティック分
+        self.slippage = 0  # スリッページは呼び値 1 ティック分
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
         self.pnl_total = 0.0  # 総損益
@@ -45,9 +46,9 @@ class TransactionManager:
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         """
         tanh が直線的に変化する [-1, 1] に収まるように割る因子
-        ティックは最大 10 動くと仮定
+        ティックは最大 100 動くと仮定
         """
-        self.factor_scale = 10.
+        self.factor_scale = 100.
         """
         含み益の場合に乗ずる比率
         """
