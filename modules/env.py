@@ -35,8 +35,6 @@ class TransactionManager:
         # ---------------------------------------------------------------------
         self.unit: int = 1  # 売買単位
         self.tickprice: float = 1.0  # 呼び値
-        # self.slippage = self.tickprice  # スリッページは呼び値 1 ティック分
-        self.slippage = 0  # スリッページは呼び値 1 ティック分
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
         self.pnl_total = 0.0  # 総損益
@@ -54,7 +52,7 @@ class TransactionManager:
         """
         self.ratio_unrealized_profit = 0.01
         """
-        損益 0 の場合はペナルティ
+        確定損益が 0 の場合のペナルティ
         """
         self.penalty_zero_profit = -0.5
 
@@ -89,7 +87,7 @@ class TransactionManager:
                 # 買建 (LONG)
                 # =============================================================
                 self.position = PositionType.LONG  # ポジションを更新
-                self.price_entry = price + self.slippage  # 取得価格
+                self.price_entry = price  # 取得価格
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
@@ -99,7 +97,7 @@ class TransactionManager:
                 # 売建 (SHORT)
                 # =============================================================
                 self.position = PositionType.SHORT  # ポジションを更新
-                self.price_entry = price - self.slippage  # 取得価格
+                self.price_entry = price  # 取得価格
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
@@ -134,7 +132,6 @@ class TransactionManager:
                 self.pnl_total += profit
                 # 報酬
                 if profit == 0.0:
-                    # 損益 0 の場合はペナルティ
                     reward += self.get_reward_from_profit(self.penalty_zero_profit)
                 else:
                     reward += self.get_reward_from_profit(profit)
@@ -196,12 +193,12 @@ class TransactionManager:
             # ---------------------------------------------------------
             # 返済: 買建 (LONG) → 売埋
             # ---------------------------------------------------------
-            return price - self.price_entry - self.slippage
+            return price - self.price_entry
         elif self.position == PositionType.SHORT:
             # ---------------------------------------------------------
             # 返済: 売建 (SHORT) → 買埋
             # ---------------------------------------------------------
-            return self.price_entry - price - self.slippage
+            return self.price_entry - price
         else:
             return 0.0  # 実現損益
 
