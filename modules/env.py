@@ -56,11 +56,11 @@ class TransactionManager:
         """
         self.penalty_zero_profit = -0.5
         """
-        含み損益がマイナスの時のカウンター
-        含み損益がマイナスを強調する比率
+        含み損益の保持のカウンター
+        含み損益のインセンティブ・ペナルティ比率
         """
-        self.count_negative_profit = 0
-        self.ratio_negative_profit = 0.01
+        self.count_unreal_profit = 0
+        self.ratio_unreal_profit = 0.000001
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -78,7 +78,7 @@ class TransactionManager:
     def clear_position(self):
         self.position = PositionType.NONE
         self.price_entry = 0
-        self.count_negative_profit = 0
+        self.count_unreal_profit = 0
 
     def evalReward(self, action: int, t: float, price: float) -> float:
         action_type = ActionType(action)
@@ -123,14 +123,16 @@ class TransactionManager:
                 # 含み益
                 # =============================================================
                 profit = self.get_profit(price)
-                unrealized_profit = self.get_reward_from_profit(profit) * self.ratio_unrealized_profit
-                if profit < 0:
-                    self.count_negative_profit += 1
-                    ratio_penalty = 1 + self.count_negative_profit * self.ratio_negative_profit
-                    reward += unrealized_profit * ratio_penalty
+                reward += self.get_reward_from_profit(profit) * self.ratio_unrealized_profit
+                if self.position == PositionType.LONG:
+                    self.count_unreal_profit += 1
+                    reward += self.count_unreal_profit * self.ratio_unreal_profit
+                elif self.position == PositionType.SHORT:
+                    self.count_unreal_profit += 1
+                    reward -= self.count_unreal_profit * self.ratio_unreal_profit
                 else:
-                    self.count_negative_profit = 0
-                    reward += unrealized_profit
+                    self.count_unreal_profit = 0
+
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
