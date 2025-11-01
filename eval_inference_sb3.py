@@ -1,3 +1,4 @@
+from matplotlib import dates as mdates
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -16,6 +17,42 @@ font_prop = fm.FontProperties(fname=FONT_PATH)
 font_prop.get_name()
 
 plt.rcParams["font.family"] = font_prop.get_name()
+
+
+def plot_bar_profit(df: pd.DataFrame):
+    df.index = pd.to_datetime(df["注文日時"])
+    df.index.name = "DateTime"
+    ser = df["損益"].dropna()
+    total = int(ser.sum())
+    fig, ax = plt.subplots(figsize=(6, 4))
+
+    ax.bar(ser.index, ser, width=0.0005, label=f"総収益 : {total:d} 円")
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+    ax.set_ylabel("確定損益（円/株）")
+    ax.grid(axis="y")
+    ax.legend(fontsize=7)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
+    fig = plt.figure(figsize=(15, 9))
+    ax = dict()
+    gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
+    for i, axis in enumerate(gs.subplots(sharex="col")):
+        ax[i] = axis
+        ax[i].grid()
+
+    for i in range(n):
+        ax[i].plot(df[i])
+        if i < n - 3:
+            ax[i].set_ylim(-1.1, 1.1)
+        else:
+            ax[i].set_ylim(0, 1.1)
+        ax[i].set_ylabel(list_ylabel[i])
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_reward_distribution(ser: pd.Series, logscale: bool = False):
@@ -43,25 +80,6 @@ def plot_reward_distribution(ser: pd.Series, logscale: bool = False):
     plt.show()
 
 
-def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
-    fig = plt.figure(figsize=(15, 9))
-    ax = dict()
-    gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
-    for i, axis in enumerate(gs.subplots(sharex="col")):
-        ax[i] = axis
-        ax[i].grid()
-
-    for i in range(n):
-        ax[i].plot(df[i])
-        if i < n - 3:
-            ax[i].set_ylim(-1.1, 1.1)
-        else:
-            ax[i].set_ylim(0, 1.1)
-        ax[i].set_ylabel(list_ylabel[i])
-    plt.tight_layout()
-    plt.show()
-
-
 if __name__ == "__main__":
     res = AppRes()
     agent = PPOAgentSB3()
@@ -83,6 +101,7 @@ if __name__ == "__main__":
     df_transaction: pd.DataFrame = agent.results["transaction"]
     print(df_transaction)
     print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
+    plot_bar_profit(df_transaction)
 
     print("モデルへの報酬分布")
     ser_reward = pd.Series(agent.results["reward"])
