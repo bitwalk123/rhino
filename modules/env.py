@@ -124,14 +124,12 @@ class TransactionManager:
                 # =============================================================
                 profit = self.get_profit(price)
                 reward += self.get_reward_from_profit(profit) * self.ratio_unrealized_profit
-                if self.position == PositionType.LONG:
+                if profit > 0:
                     self.count_unreal_profit += 1
                     reward += self.count_unreal_profit * self.ratio_unreal_profit
-                elif self.position == PositionType.SHORT:
+                elif profit < 0:
                     self.count_unreal_profit += 1
                     reward -= self.count_unreal_profit * self.ratio_unreal_profit
-                else:
-                    self.count_unreal_profit = 0
 
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
