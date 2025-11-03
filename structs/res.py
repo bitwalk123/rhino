@@ -5,6 +5,7 @@ class AppRes:
     dir_collection = 'collection'
     dir_font = 'fonts'
     dir_image = 'images'
+    dir_info = 'info'
     dir_log = 'logs'
     dir_model = 'models'
     dir_output = 'output'
@@ -18,6 +19,7 @@ class AppRes:
         # システムディレクトリのチェック
         list_dir = [
             self.dir_collection,
+            self.dir_info,
             self.dir_log,
             self.dir_model,
             self.dir_output,
