@@ -340,7 +340,7 @@ class ObservationManager:
             ma_300 = 0
 
         # 移動平均の差分
-        ma_diff = np.clip((ma_060 - ma_300) * self.factor_mag, -1, 1)
+        ma_diff = np.tanh((ma_060 - ma_300) * self.factor_mag)
         list_feature.append(ma_diff)
 
         n = len(self.deque_price_300)
