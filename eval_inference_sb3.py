@@ -47,7 +47,12 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
     for i in range(n):
         ax[i].plot(df[i])
         if i < n - 3:
-            ax[i].set_ylim(-1.1, 1.1)
+            y_min, y_max = ax[i].get_ylim()
+            if -1.1 < y_min:
+                y_min = -1.1
+            if y_max < 1.1:
+                y_max = 1.1
+            ax[i].set_ylim(y_min, y_max)
         else:
             ax[i].set_ylim(0, 1.1)
         ax[i].set_ylabel(list_ylabel[i])
@@ -85,7 +90,8 @@ if __name__ == "__main__":
     agent = PPOAgentSB3()
 
     # 推論用データ
-    file = "ticks_20250919.xlsx"
+    file = "ticks_20250819.xlsx"
+    # file = "ticks_20251006.xlsx"
     code = "7011"
 
     print(f"過去データ {file} の銘柄 {code} について推論します。")
