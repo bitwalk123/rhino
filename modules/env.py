@@ -60,7 +60,7 @@ class TransactionManager:
         含み損益のインセンティブ・ペナルティ比率
         """
         self.count_unreal_profit = 0
-        self.ratio_unreal_profit = 0.0001
+        self.ratio_unreal_profit = 0.00005
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -245,7 +245,7 @@ class TransactionManager:
 class ObservationManager:
     def __init__(self):
         # 調整用係数
-        self.factor_mag = 10.
+        self.factor_mag = 30.
         self.unit = 100  # 最小取引単位（出来高）
 
         # 特徴量算出のために保持する変数
