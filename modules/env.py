@@ -331,8 +331,8 @@ class ObservationManager:
         list_feature.append(price_ratio)
 
         # 株価差分
-        price_delta = self.func_price_delta(price)
-        list_feature.append(price_delta)
+        # price_delta = self.func_price_delta(price)
+        # list_feature.append(price_delta)
 
         # 累計出来高差分 / 最小取引単位
         # list_feature.append(self.func_volume_delta(volume))
