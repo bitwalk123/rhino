@@ -255,6 +255,7 @@ class ObservationManager:
 
         # キューを定義
         self.deque_price_060 = deque(maxlen=60)  # MA60
+        self.deque_price_120 = deque(maxlen=120)  # MA120
         self.deque_price_300 = deque(maxlen=300)  # MA300
 
         # 観測数の取得
@@ -267,11 +268,12 @@ class ObservationManager:
         self.price_prev: float = 0.0  # １つ前の株価
         self.volume_prev: float = 0.0  # １つ前の出来高
         # キューのクリア
+        self.deque_price_120.clear()
         self.deque_price_060.clear()
         self.deque_price_300.clear()
 
     def func_moving_average(self, deque_price) -> float:
-        return (sum(deque_price) / len(deque_price) / self.price_open - 1.0) * self.factor_mag
+        return sum(deque_price) / len(deque_price)
 
     def func_price_delta(self, price: float) -> float:
         if self.price_prev == 0.0:
@@ -290,7 +292,15 @@ class ObservationManager:
         else:
             price_ratio = (price / self.price_open - 1.0) * self.factor_mag
 
-        return np.clip(price_ratio, -1, 1)
+        return price_ratio
+
+    def func_ma_ratio(self, ma: float) -> float:
+        if self.price_open == 0.0:
+            ma_ratio = 0.0
+        else:
+            ma_ratio = (ma / self.price_open - 1.0) * self.factor_mag
+
+        return ma_ratio
 
     def func_ratio_scaling(self, ratio: float) -> float:
         return np.clip((ratio - 1.0) * self.factor_mag, -1, 1)
@@ -329,18 +339,30 @@ class ObservationManager:
 
         # キューへの追加
         self.deque_price_060.append(price)
+        self.deque_price_120.append(price)
         self.deque_price_300.append(price)
 
         # 移動平均
         if price > 0:
             ma_060 = self.func_moving_average(self.deque_price_060)
+            ma_120 = self.func_moving_average(self.deque_price_120)
             ma_300 = self.func_moving_average(self.deque_price_300)
         else:
             ma_060 = 0
+            ma_120 = 0
             ma_300 = 0
 
+        r_ma_060 = self.func_ma_ratio(ma_060)
+        list_feature.append(r_ma_060)
+
+        r_ma_120 = self.func_ma_ratio(ma_120)
+        list_feature.append(r_ma_120)
+
+        r_ma_300 = self.func_ma_ratio(ma_300)
+        list_feature.append(r_ma_300)
+
         # 移動平均の差分
-        ma_diff = np.tanh((ma_060 - ma_300) * self.factor_mag)
+        ma_diff = np.tanh((r_ma_060 - r_ma_300) * 10)
         list_feature.append(ma_diff)
 
         n = len(self.deque_price_300)
