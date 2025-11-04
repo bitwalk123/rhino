@@ -90,8 +90,9 @@ if __name__ == "__main__":
     agent = PPOAgentSB3()
 
     # 推論用データ
-    file = "ticks_20250819.xlsx"
-    # file = "ticks_20251006.xlsx"
+    # file = "ticks_20250819.xlsx"
+    # file = "ticks_20250828.xlsx"
+    file = "ticks_20251006.xlsx"
     code = "7011"
 
     print(f"過去データ {file} の銘柄 {code} について推論します。")
@@ -124,13 +125,12 @@ if __name__ == "__main__":
     print(f"観測数 : {rows}")
     list_name = [
         "株価比",
-        "株価Δ",
         "MA60",
         "MA120",
         "MA300",
-        "MAΔ",
-        "ROC",
-        "RSI",
+        "MAΔ-1",
+        "MAΔ-2",
+        "MAΔ-3",
         "含損益",
         "NONE",
         "LONG",

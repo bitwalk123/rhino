@@ -245,7 +245,7 @@ class TransactionManager:
 class ObservationManager:
     def __init__(self):
         # 調整用係数
-        self.factor_mag = 30.
+        self.factor_mag = 20.
         self.unit = 100  # 最小取引単位（出来高）
 
         # 特徴量算出のために保持する変数
@@ -268,8 +268,8 @@ class ObservationManager:
         self.price_prev: float = 0.0  # １つ前の株価
         self.volume_prev: float = 0.0  # １つ前の出来高
         # キューのクリア
-        self.deque_price_120.clear()
         self.deque_price_060.clear()
+        self.deque_price_120.clear()
         self.deque_price_300.clear()
 
     def func_moving_average(self, deque_price) -> float:
@@ -362,12 +362,19 @@ class ObservationManager:
         list_feature.append(r_ma_300)
 
         # 移動平均の差分
-        ma_diff = np.tanh((r_ma_060 - r_ma_300) * 10)
-        list_feature.append(ma_diff)
+        ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 2)
+        list_feature.append(ma_diff_1)
+
+        ma_diff_2 = np.tanh((r_ma_060 - r_ma_300) * 2)
+        list_feature.append(ma_diff_2)
+
+        ma_diff_3 = np.tanh((r_ma_120 - r_ma_300) * 2)
+        list_feature.append(ma_diff_3)
 
         n = len(self.deque_price_300)
 
         # ROC
+        """
         if n > 2:
             array_roc = talib.ROC(
                 np.array(self.deque_price_300, dtype=np.float64),
@@ -377,8 +384,10 @@ class ObservationManager:
         else:
             roc = 0.
         list_feature.append(roc)
+        """
 
         # RSI: [-1, 1] に標準化
+        """
         if n > 2:
             array_rsi = talib.RSI(
                 np.array(self.deque_price_300, dtype=np.float64),
@@ -388,6 +397,7 @@ class ObservationManager:
         else:
             rsi = 0.
         list_feature.append(rsi)
+        """
 
         # ---------------------------------------------------------------------
         # 含み損益
