@@ -56,7 +56,7 @@ class PPOAgentSB3:
         # 学習環境の解放
         env.close()
 
-    def infer(self, df: pd.DataFrame, path_model:str):
+    def infer(self, df: pd.DataFrame, path_model:str)->bool:
         # 学習環境の取得
         env = self.get_env_with_df(df)
 
@@ -65,8 +65,12 @@ class PPOAgentSB3:
             print(f"モデル {path_model} を読み込みます。")
         else:
             print(f"モデルを {path_model} がありませんでした。")
-            return
-        model = PPO.load(path_model, env, verbose=1)
+            return False
+        try:
+            model = PPO.load(path_model, env, verbose=1)
+        except ValueError as e:
+            print(e)
+            return False
 
         self.results["obs"] = list()
         self.results["reward"] = list()
@@ -85,3 +89,5 @@ class PPOAgentSB3:
 
         # 学習環境の解放
         env.close()
+
+        return True

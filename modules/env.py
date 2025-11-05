@@ -322,6 +322,7 @@ class ObservationManager:
             price: float = 0,  # 株価
             volume: float = 0,  # 出来高
             pl: float = 0,  # 含み損益
+            count_hold: int = 0,  # HOLD 継続カウンタ
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         list_feature = list()
@@ -373,21 +374,8 @@ class ObservationManager:
 
         n = len(self.deque_price_300)
 
-        # ROC
-        """
-        if n > 2:
-            array_roc = talib.ROC(
-                np.array(self.deque_price_300, dtype=np.float64),
-                timeperiod=n - 1
-            )
-            roc = np.tanh(array_roc[-1])
-        else:
-            roc = 0.
-        list_feature.append(roc)
-        """
-
         # RSI: [-1, 1] に標準化
-        """
+        n = len(self.deque_price_300)
         if n > 2:
             array_rsi = talib.RSI(
                 np.array(self.deque_price_300, dtype=np.float64),
@@ -397,17 +385,23 @@ class ObservationManager:
         else:
             rsi = 0.
         list_feature.append(rsi)
-        """
 
         # ---------------------------------------------------------------------
         # 含み損益
         # ---------------------------------------------------------------------
         list_feature.append(pl)
 
+        # ---------------------------------------------------------------------
+        # HOLD 継続カウンタ
+        # ---------------------------------------------------------------------
+        list_feature.append(np.tanh(count_hold / 5000.))
+
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
 
+        # ---------------------------------------------------------------------
         # PositionType → one-hot (3) ［単位行列へ変換］
+        # ---------------------------------------------------------------------
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
 
         # arr_feature と pos_onehot を単純結合
@@ -514,6 +508,7 @@ class TrainingEnv(TradingEnv):
             price,  # 株価
             volume,  # 出来高
             self.trans_man.getPL4Obs(price),  # 含み損益
+            self.trans_man.count_unreal_profit,  # HOLD 継続カウンタ
             self.trans_man.position,  # ポジション
         )
 

@@ -1,3 +1,5 @@
+import sys
+
 from matplotlib import dates as mdates
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
@@ -39,14 +41,19 @@ def plot_bar_profit(df: pd.DataFrame):
 def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
     fig = plt.figure(figsize=(15, 10))
     ax = dict()
-    gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
+    # gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
+    gs = fig.add_gridspec(
+        n, 1,
+        wspace=0.0, hspace=0.0,
+        height_ratios=[1 if i < n - 4 else 0.5 for i in range(n)]
+    )
     for i, axis in enumerate(gs.subplots(sharex="col")):
         ax[i] = axis
         ax[i].grid()
 
     for i in range(n):
         ax[i].plot(df[i])
-        if i < n - 3:
+        if i < n - 4:
             y_min, y_max = ax[i].get_ylim()
             if -1.1 < y_min:
                 y_min = -1.1
@@ -54,7 +61,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
                 y_max = 1.1
             ax[i].set_ylim(y_min, y_max)
         else:
-            ax[i].set_ylim(0, 1.1)
+            ax[i].set_ylim(-0.1, 1.1)
         ax[i].set_ylabel(list_ylabel[i])
     plt.tight_layout()
     plt.show()
@@ -102,7 +109,9 @@ if __name__ == "__main__":
     df = get_excel_sheet(path_excel, code)
     path_model = get_ppo_model_path(res, code)
 
-    agent.infer(df, path_model)
+    result = agent.infer(df, path_model)
+    if not result:
+        sys.exit("正常終了しませんでした。")
 
     # 取引結果
     df_transaction: pd.DataFrame = agent.results["transaction"]
@@ -131,7 +140,9 @@ if __name__ == "__main__":
         "MAΔ-1",
         "MAΔ-2",
         "MAΔ-3",
+        "RSI",
         "含損益",
+        "HOLD",
         "NONE",
         "LONG",
         "SHORT"
