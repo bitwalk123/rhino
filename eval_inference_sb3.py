@@ -45,7 +45,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
     gs = fig.add_gridspec(
         n, 1,
         wspace=0.0, hspace=0.0,
-        height_ratios=[1 if i < n - 4 else 0.5 for i in range(n)]
+        height_ratios=[1 if i < n - 3 else 0.5 for i in range(n)]
     )
     for i, axis in enumerate(gs.subplots(sharex="col")):
         ax[i] = axis
@@ -53,7 +53,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
 
     for i in range(n):
         ax[i].plot(df[i])
-        if i < n - 4:
+        if i < n - 3:
             y_min, y_max = ax[i].get_ylim()
             if -1.1 < y_min:
                 y_min = -1.1
@@ -97,8 +97,8 @@ if __name__ == "__main__":
     agent = PPOAgentSB3()
 
     # 推論用データ
-    file = "ticks_20250819.xlsx"
-    #file = "ticks_20250828.xlsx"
+    #file = "ticks_20250819.xlsx"
+    file = "ticks_20250828.xlsx"
     # file = "ticks_20251006.xlsx"
     code = "7011"
 
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     )
 
     # 報酬分布
-    plot_reward_distribution(ser_reward, logscale=False)
+    plot_reward_distribution(ser_reward, logscale=True)
 
     # 観測値トレンド
     df_obs = pd.concat([pd.Series(row) for row in agent.results["obs"]], axis=1).T
@@ -137,14 +137,11 @@ if __name__ == "__main__":
     list_name = [
         "株価比",
         "MA60",
-        "MA120",
         "MA300",
-        "MAΔ-1",
-        "MAΔ-2",
-        "MAΔ-3",
+        "MAΔ",
         "RSI",
         "含損益",
-        "HOLD",
+        "HOLD cnt",
         "NONE",
         "LONG",
         "SHORT"
