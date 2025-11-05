@@ -97,8 +97,8 @@ if __name__ == "__main__":
     agent = PPOAgentSB3()
 
     # 推論用データ
-    # file = "ticks_20250819.xlsx"
-    file = "ticks_20250828.xlsx"
+    file = "ticks_20250819.xlsx"
+    #file = "ticks_20250828.xlsx"
     # file = "ticks_20251006.xlsx"
     code = "7011"
 
@@ -126,8 +126,10 @@ if __name__ == "__main__":
         f"mean: {ser_reward.mean():.3f}, "
         f"stdev: {ser_reward.std():.3f}"
     )
+
     # 報酬分布
-    plot_reward_distribution(ser_reward, logscale=True)
+    plot_reward_distribution(ser_reward, logscale=False)
+
     # 観測値トレンド
     df_obs = pd.concat([pd.Series(row) for row in agent.results["obs"]], axis=1).T
     rows = df_obs.shape[1]

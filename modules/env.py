@@ -60,7 +60,7 @@ class TransactionManager:
         含み損益のインセンティブ・ペナルティ比率
         """
         self.count_unreal_profit = 0
-        self.ratio_unreal_profit = 0.00001
+        self.ratio_unreal_profit = 0.1
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -122,14 +122,16 @@ class TransactionManager:
                 # =============================================================
                 # 含み益
                 # =============================================================
+                # 建玉を長く持つことに対して報酬を調整
+                self.count_unreal_profit += 1
                 profit = self.get_profit(price)
-                reward += self.get_reward_from_profit(profit) * self.ratio_unrealized_profit
-                if profit > 0:
-                    self.count_unreal_profit += 1
-                    reward += self.count_unreal_profit * self.ratio_unreal_profit
-                elif profit < 0:
-                    self.count_unreal_profit += 1
-                    reward -= self.count_unreal_profit * self.ratio_unreal_profit
+                if profit == 0:
+                    profit_modified = profit
+                else:
+                    k = self.count_unreal_profit * self.ratio_unreal_profit
+                    profit_modified = profit * (1 + k)
+
+                reward += self.get_reward_from_profit(profit_modified) * self.ratio_unrealized_profit
 
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
@@ -141,23 +143,23 @@ class TransactionManager:
                 # =============================================================
                 # 返済
                 # =============================================================
-                profit = self.get_profit(price)
+                profit_modified = self.get_profit(price)
                 # 損益追加
-                self.pnl_total += profit
+                self.pnl_total += profit_modified
                 # 報酬
-                if 0.0 <= profit <= 1.0:
+                if 0.0 <= profit_modified <= 1.0:
                     reward += self.get_reward_from_profit(self.penalty_zero_profit)
                 else:
-                    reward += self.get_reward_from_profit(profit)
+                    reward += self.get_reward_from_profit(profit_modified)
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
-                    self.add_transaction(t, "売埋", price, profit)
+                    self.add_transaction(t, "売埋", price, profit_modified)
                 elif self.position == PositionType.SHORT:
                     # 返済: 売建 (SHORT) → 買埋
-                    self.add_transaction(t, "買埋", price, profit)
+                    self.add_transaction(t, "買埋", price, profit_modified)
                 else:
                     raise TypeError(f"Unknown PositionType: {self.position}")
                 # =============================================================
