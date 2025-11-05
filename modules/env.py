@@ -54,13 +54,13 @@ class TransactionManager:
         """
         確定損益が 0 の場合のペナルティ
         """
-        self.penalty_zero_profit = -0.5
+        self.penalty_zero_profit = -0.75
         """
         含み損益の保持のカウンター
         含み損益のインセンティブ・ペナルティ比率
         """
         self.count_unreal_profit = 0
-        self.ratio_unreal_profit = 0.00005
+        self.ratio_unreal_profit = 0.00001
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
