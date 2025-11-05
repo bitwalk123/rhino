@@ -396,7 +396,13 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # HOLD 継続カウンタ
         # ---------------------------------------------------------------------
-        list_feature.append(np.tanh(count_hold / 10000.))
+        if pl > 0:
+            sign_pl = +1
+        elif pl < 0:
+            sign_pl = -1
+        else:
+            sign_pl = 0
+        list_feature.append(np.tanh(count_hold / 10000. * sign_pl))
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
