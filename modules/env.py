@@ -50,7 +50,7 @@ class TransactionManager:
         """
         含み益の場合に乗ずる比率
         """
-        self.ratio_unrealized_profit = 0.01
+        self.ratio_unrealized_profit = 0.1
         """
         確定損益が 0 の場合のペナルティ
         """
@@ -218,7 +218,8 @@ class TransactionManager:
 
     def get_reward_from_profit(self, profit: float) -> float:
         # 報酬は呼び値で割る
-        return np.tanh(profit / self.tickprice / self.factor_scale)
+        # return np.tanh(profit / self.tickprice / self.factor_scale)
+        return np.sign(profit) * np.sqrt(abs(profit) / self.tickprice) / 10.0
 
     def getNumberOfTransactions(self) -> int:
         return len(self.dict_transaction["注文日時"])
@@ -366,7 +367,7 @@ class ObservationManager:
         # ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 10)
         # list_feature.append(ma_diff_1)
 
-        ma_diff_2 = np.tanh((r_ma_060 - r_ma_300) * 2)
+        ma_diff_2 = np.tanh((r_ma_060 - r_ma_300) * 5)
         list_feature.append(ma_diff_2)
 
         # ma_diff_3 = np.tanh((r_ma_120 - r_ma_300) * 10)
