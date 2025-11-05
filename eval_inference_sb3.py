@@ -97,8 +97,8 @@ if __name__ == "__main__":
     agent = PPOAgentSB3()
 
     # 推論用データ
-    #file = "ticks_20250819.xlsx"
-    file = "ticks_20250828.xlsx"
+    file = "ticks_20250819.xlsx"
+    # file = "ticks_20250828.xlsx"
     # file = "ticks_20251006.xlsx"
     code = "7011"
 
@@ -137,6 +137,7 @@ if __name__ == "__main__":
     list_name = [
         "株価比",
         "MA60",
+        "MA120",
         "MA300",
         "MAΔ",
         "RSI",

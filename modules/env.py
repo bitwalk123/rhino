@@ -358,21 +358,21 @@ class ObservationManager:
         r_ma_060 = self.func_ma_ratio(ma_060)
         list_feature.append(r_ma_060)
 
-        # r_ma_120 = self.func_ma_ratio(ma_120)
-        # list_feature.append(r_ma_120)
+        r_ma_120 = self.func_ma_ratio(ma_120)
+        list_feature.append(r_ma_120)
 
         r_ma_300 = self.func_ma_ratio(ma_300)
         list_feature.append(r_ma_300)
 
         # 移動平均の差分
-        # ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 2)
-        # list_feature.append(ma_diff_1)
+        #ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 10)
+        #list_feature.append(ma_diff_1)
 
         ma_diff_2 = np.tanh((r_ma_060 - r_ma_300) * 10)
         list_feature.append(ma_diff_2)
 
-        # ma_diff_3 = np.tanh((r_ma_120 - r_ma_300) * 2)
-        # list_feature.append(ma_diff_3)
+        #ma_diff_3 = np.tanh((r_ma_120 - r_ma_300) * 10)
+        #list_feature.append(ma_diff_3)
 
         n = len(self.deque_price_300)
 
@@ -396,13 +396,7 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # HOLD 継続カウンタ
         # ---------------------------------------------------------------------
-        if pl > 0:
-            sign_pl = +1
-        elif pl < 0:
-            sign_pl = -1
-        else:
-            sign_pl = 0
-        list_feature.append(np.tanh(count_hold / 10000. * sign_pl))
+        list_feature.append(np.tanh(count_hold / 1000.))
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
