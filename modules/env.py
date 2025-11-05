@@ -60,7 +60,7 @@ class TransactionManager:
         含み損益のインセンティブ・ペナルティ比率
         """
         self.count_unreal_profit = 0
-        self.ratio_unreal_profit = 0.0001
+        self.ratio_unreal_profit = 0.1
 
     def add_transaction(self, t: float, transaction: str, price: float, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(t))
@@ -368,7 +368,7 @@ class ObservationManager:
         #ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 10)
         #list_feature.append(ma_diff_1)
 
-        ma_diff_2 = np.tanh((r_ma_060 - r_ma_300) * 10)
+        ma_diff_2 = np.tanh((r_ma_060 - r_ma_300) * 2)
         list_feature.append(ma_diff_2)
 
         #ma_diff_3 = np.tanh((r_ma_120 - r_ma_300) * 10)
@@ -396,7 +396,7 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # HOLD 継続カウンタ
         # ---------------------------------------------------------------------
-        list_feature.append(np.tanh(count_hold / 1000.))
+        list_feature.append(np.tanh(count_hold / 10000.))
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
