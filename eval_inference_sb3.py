@@ -31,6 +31,13 @@ def plot_bar_profit(df: pd.DataFrame):
     ax.bar(ser.index, ser, width=0.0005, label=f"総収益 : {total:d} 円")
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax.set_ylabel("確定損益（円/株）")
+
+    if len(df) > 0:
+        dt = df.index[0]
+        dt_start = pd.to_datetime(f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d} 09:00:00")
+        dt_end = pd.to_datetime(f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d} 15:30:00")
+        ax.set_xlim(dt_start, dt_end)
+
     ax.grid(axis="y")
     ax.legend(fontsize=7)
 
@@ -97,9 +104,9 @@ if __name__ == "__main__":
     agent = PPOAgentSB3()
 
     # 推論用データ
-    #file = "ticks_20250819.xlsx"
-    #file = "ticks_20250828.xlsx"
-    file = "ticks_20251006.xlsx"
+    file = "ticks_20250819.xlsx"
+    # file = "ticks_20250828.xlsx"
+    # file = "ticks_20251006.xlsx"
     code = "7011"
 
     print(f"過去データ {file} の銘柄 {code} について推論します。")

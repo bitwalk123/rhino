@@ -77,7 +77,7 @@ class TransactionManager:
 
     def clear_position(self):
         self.position = PositionType.NONE
-        self.price_entry = 0
+        self.price_entry = 0.0
         self.count_unreal_profit = 0
 
     def evalReward(self, action: int, t: float, price: float) -> float:
@@ -123,16 +123,14 @@ class TransactionManager:
                 # 含み益
                 # =============================================================
                 # 建玉を長く持つことに対して報酬を調整
-                self.count_unreal_profit += 1
                 profit = self.get_profit(price)
-                if profit == 0:
-                    profit_modified = profit
+                if 0.0 <= profit <= 1.0:
+                    profit_modified = self.get_reward_from_profit(self.penalty_zero_profit)
                 else:
+                    self.count_unreal_profit += 1
                     k = self.count_unreal_profit * self.ratio_unreal_profit
                     profit_modified = profit * (1 + k)
-
                 reward += self.get_reward_from_profit(profit_modified) * self.ratio_unrealized_profit
-
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -143,23 +141,23 @@ class TransactionManager:
                 # =============================================================
                 # 返済
                 # =============================================================
-                profit_modified = self.get_profit(price)
+                profit = self.get_profit(price)
                 # 損益追加
-                self.pnl_total += profit_modified
+                self.pnl_total += profit
                 # 報酬
-                if 0.0 <= profit_modified <= 1.0:
+                if 0.0 <= profit <= 1.0:
                     reward += self.get_reward_from_profit(self.penalty_zero_profit)
                 else:
-                    reward += self.get_reward_from_profit(profit_modified)
+                    reward += self.get_reward_from_profit(profit)
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
                 if self.position == PositionType.LONG:
                     # 返済: 買建 (LONG) → 売埋
-                    self.add_transaction(t, "売埋", price, profit_modified)
+                    self.add_transaction(t, "売埋", price, profit)
                 elif self.position == PositionType.SHORT:
                     # 返済: 売建 (SHORT) → 買埋
-                    self.add_transaction(t, "買埋", price, profit_modified)
+                    self.add_transaction(t, "買埋", price, profit)
                 else:
                     raise TypeError(f"Unknown PositionType: {self.position}")
                 # =============================================================
@@ -365,14 +363,14 @@ class ObservationManager:
         list_feature.append(r_ma_300)
 
         # 移動平均の差分
-        #ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 10)
-        #list_feature.append(ma_diff_1)
+        # ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 10)
+        # list_feature.append(ma_diff_1)
 
         ma_diff_2 = np.tanh((r_ma_060 - r_ma_300) * 2)
         list_feature.append(ma_diff_2)
 
-        #ma_diff_3 = np.tanh((r_ma_120 - r_ma_300) * 10)
-        #list_feature.append(ma_diff_3)
+        # ma_diff_3 = np.tanh((r_ma_120 - r_ma_300) * 10)
+        # list_feature.append(ma_diff_3)
 
         n = len(self.deque_price_300)
 
