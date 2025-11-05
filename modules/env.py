@@ -306,17 +306,18 @@ class ObservationManager:
     def func_ratio_scaling(self, ratio: float) -> float:
         return np.clip((ratio - 1.0) * self.factor_mag, -1, 1)
 
-    def func_volume_delta(self, volume: float) -> float:
+    def func_volume_delta_ratio(self, volume: float) -> float:
         if self.volume_prev == 0.0:
-            volume_delta = 0.0
+            volume_delta_ratio = 0.0
         elif volume < self.volume_prev:
-            volume_delta = 0.0
+            volume_delta_ratio = 0.0
         else:
-            x = (volume - self.volume_prev) / self.unit
-            volume_delta = np.log1p(x)
+            # x = (volume - self.volume_prev) / self.unit
+            volume_delta_ratio = (volume - self.volume_prev) / (self.volume_prev + 1e-6) * 25.
+            # volume_delta = np.log1p(x)
 
         self.volume_prev = volume
-        return np.tanh(volume_delta)
+        return np.tanh(volume_delta_ratio)
 
     def getObs(
             self,
@@ -328,16 +329,17 @@ class ObservationManager:
     ) -> np.ndarray:
         list_feature = list()
 
+        # ---------------------------------------------------------------------
         # 株価比率
+        # ---------------------------------------------------------------------
         price_ratio = self.func_price_ratio(price)
         list_feature.append(price_ratio)
 
+        # ---------------------------------------------------------------------
         # 株価差分
-        # price_delta = self.func_price_delta(price)
-        # list_feature.append(price_delta)
-
-        # 累計出来高差分 / 最小取引単位
-        # list_feature.append(self.func_volume_delta(volume))
+        # ---------------------------------------------------------------------
+        price_delta = self.func_price_delta(price)
+        list_feature.append(price_delta)
 
         # キューへの追加
         self.deque_price_060.append(price)
@@ -363,7 +365,9 @@ class ObservationManager:
         r_ma_300 = self.func_ma_ratio(ma_300)
         list_feature.append(r_ma_300)
 
+        # ---------------------------------------------------------------------
         # 移動平均の差分
+        # ---------------------------------------------------------------------
         # ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 10)
         # list_feature.append(ma_diff_1)
 
@@ -375,7 +379,9 @@ class ObservationManager:
 
         n = len(self.deque_price_300)
 
+        # ---------------------------------------------------------------------
         # RSI: [-1, 1] に標準化
+        # ---------------------------------------------------------------------
         n = len(self.deque_price_300)
         if n > 2:
             array_rsi = talib.RSI(
@@ -391,6 +397,12 @@ class ObservationManager:
         # 含み損益
         # ---------------------------------------------------------------------
         list_feature.append(pl)
+
+        # ---------------------------------------------------------------------
+        # 累計出来高差分比
+        # ---------------------------------------------------------------------
+        volume_delta_ratio = self.func_volume_delta_ratio(volume)
+        list_feature.append(volume_delta_ratio)
 
         # ---------------------------------------------------------------------
         # HOLD 継続カウンタ

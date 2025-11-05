@@ -46,13 +46,13 @@ def plot_bar_profit(df: pd.DataFrame):
 
 
 def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
-    fig = plt.figure(figsize=(15, 10))
+    fig = plt.figure(figsize=(15, 12))
     ax = dict()
     # gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
     gs = fig.add_gridspec(
         n, 1,
         wspace=0.0, hspace=0.0,
-        height_ratios=[1 if i < n - 3 else 0.5 for i in range(n)]
+        height_ratios=[1 if i < n - 5 else 0.5 for i in range(n)]
     )
     for i, axis in enumerate(gs.subplots(sharex="col")):
         ax[i] = axis
@@ -60,7 +60,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
 
     for i in range(n):
         ax[i].plot(df[i])
-        if i < n - 3:
+        if i < n - 5:
             y_min, y_max = ax[i].get_ylim()
             if -1.1 < y_min:
                 y_min = -1.1
@@ -143,13 +143,15 @@ if __name__ == "__main__":
     print(f"観測数 : {rows}")
     list_name = [
         "株価比",
+        "株価Δ",
         "MA60",
         "MA120",
         "MA300",
         "MAΔ",
         "RSI",
         "含損益",
-        "HOLD cnt",
+        "VolΔ",
+        "HOLD",
         "NONE",
         "LONG",
         "SHORT"
