@@ -219,7 +219,7 @@ class TransactionManager:
     def get_reward_from_profit(self, profit: float) -> float:
         # 報酬は呼び値で割る
         # return np.tanh(profit / self.tickprice / self.factor_scale)
-        return np.sign(profit) * np.sqrt(abs(profit) / self.tickprice) / 10.0
+        return np.sign(profit) * np.sqrt(abs(profit) / self.tickprice) / 20.
 
     def getNumberOfTransactions(self) -> int:
         return len(self.dict_transaction["注文日時"])
