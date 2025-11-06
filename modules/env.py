@@ -250,11 +250,10 @@ class ObservationManager:
         self.tickprice = 1.0  # 呼び値
         self.unit = 100  # 最小取引単位（出来高）
         self.factor_mag = 20.
+        self.factor_volume = 100000.0
 
         # 特徴量算出のために保持する変数
         self.price_open = 0.0  # ザラバの始値
-        # self.price_prev = 0.0  # １つ前の株価
-        self.volume_prev = 0.0  # １つ前の出来高
 
         # キューを定義
         self.deque_price_010 = deque(maxlen=10)  # 株価Δ用
@@ -262,9 +261,8 @@ class ObservationManager:
         self.deque_price_120 = deque(maxlen=120)  # MA120用
         self.deque_price_300 = deque(maxlen=300)  # MA300用
         self.deque_volume_003 = deque(maxlen=3)  # 最新3個のVolume（diff(2)のため）
-        #self.vol_history = deque(maxlen=3)  # 最新3個のVolume（diff(2)のため）
-        self.deque_rolling_vol_030 = deque(maxlen=30)  # 最新30個のuVol（rolling sum用）
-        self.deque_diff_vol_002 = deque(maxlen=2)  # 最新2個のrVol（diff用）
+        self.deque_rvol_030 = deque(maxlen=30)  # 最新30個のuVol（rolling sum用）
+        self.deque_dvol_002 = deque(maxlen=2)  # 最新2個のrVol（diff用）
 
         # 観測数の取得
         self.n_feature = len(self.getObs())
@@ -273,17 +271,15 @@ class ObservationManager:
     def clear(self):
         # 特徴量算出のために保持する変数
         self.price_open: float = 0.0  # ザラバの始値
-        # self.price_prev: float = 0.0  # １つ前の株価
-        self.volume_prev: float = 0.0  # １つ前の出来高
         # キューのクリア
         self.deque_price_010.clear()
         self.deque_price_060.clear()
         self.deque_price_120.clear()
         self.deque_price_300.clear()
         self.deque_volume_003.clear()
-        #self.vol_history.clear()
-        self.deque_rolling_vol_030.clear()
-        self.deque_diff_vol_002.clear()
+        # self.vol_history.clear()
+        self.deque_rvol_030.clear()
+        self.deque_dvol_002.clear()
 
     def func_moving_average(self, deque_price) -> float:
         return sum(deque_price) / len(deque_price)
@@ -317,27 +313,40 @@ class ObservationManager:
         return np.clip((ratio - 1.0) * self.factor_mag, -1, 1)
 
     def func_volume_delta_ratio(self, volume: float) -> float:
-        # 差分2（dVol）
+        """
+        出来高の差分比
+        """
+        """
+        １階差分（dVol）
+        出来高の情報が 2 秒単位で更新されているようなので、
+        符号が頻繁に変わらないように一つ置きで差分
+        """
         if len(self.deque_volume_003) >= 3:
             dvol = self.deque_volume_003[-1] - self.deque_volume_003[-3]
         else:
             dvol = 0.0
+        self.deque_rvol_030.append(dvol)
 
-        self.deque_rolling_vol_030.append(dvol)
+        """
+        rolling sum（rVol）
+        30 秒のローリング出来高
+        """
+        rvol = sum(self.deque_rvol_030)
+        self.deque_dvol_002.append(rvol)
 
-        # rolling sum（rVol）
-        rvol = sum(self.deque_rolling_vol_030)
-        self.deque_diff_vol_002.append(rvol)
-
-        # 差分1（d2Vol）
-        if len(self.deque_diff_vol_002) >= 2:
-            d2vol = self.deque_diff_vol_002[-1] - self.deque_diff_vol_002[-2]
+        """
+        ２階差分（d2Vol）
+        """
+        if len(self.deque_dvol_002) >= 2:
+            d2vol = self.deque_dvol_002[-1] - self.deque_dvol_002[-2]
         else:
             d2vol = 0.0
 
-        # スケーリング（obs_vol）
-        obs_vol = np.tanh(d2vol / 100000.0)
-        return obs_vol
+        """
+        スケーリング（d2vol_scaled）
+        """
+        d2vol_scaled = np.tanh(d2vol / self.factor_volume)
+        return d2vol_scaled
 
     def getObs(
             self,
@@ -418,15 +427,15 @@ class ObservationManager:
         list_feature.append(rsi)
 
         # ---------------------------------------------------------------------
-        # 含み損益
-        # ---------------------------------------------------------------------
-        list_feature.append(pl)
-
-        # ---------------------------------------------------------------------
         # 累計出来高差分比
         # ---------------------------------------------------------------------
         volume_delta_ratio = self.func_volume_delta_ratio(volume)
         list_feature.append(volume_delta_ratio)
+
+        # ---------------------------------------------------------------------
+        # 含み損益
+        # ---------------------------------------------------------------------
+        list_feature.append(pl)
 
         # ---------------------------------------------------------------------
         # HOLD 継続カウンタ
