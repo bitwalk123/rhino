@@ -249,9 +249,10 @@ class ObservationManager:
         # 調整用係数
         self.tickprice = 1.0  # 呼び値
         self.unit = 100  # 最小取引単位（出来高）
-        self.factor_mag = 20.
-        self.factor_hold = 10000.
-        self.factor_volume = 100000.0
+        self.factor_hold = 10000. # 建玉保持カウンタ用
+        self.factor_ma_diff = 5.0 # 移動平均差用
+        self.factor_price = 20. # 株価用
+        self.factor_volume = 100000.0 # 出来高用
 
         # 特徴量算出のために保持する変数
         self.price_open = 0.0  # ザラバの始値
@@ -298,20 +299,19 @@ class ObservationManager:
             self.price_open = price
             price_ratio = 0.0
         else:
-            price_ratio = (price / self.price_open - 1.0) * self.factor_mag
+            price_ratio = (price / self.price_open - 1.0) * self.factor_price
 
         return price_ratio
 
-    def func_ma_ratio(self, ma: float) -> float:
+    def func_ma_scaling(self, ma: float) -> float:
         if self.price_open == 0.0:
             ma_ratio = 0.0
         else:
-            ma_ratio = (ma / self.price_open - 1.0) * self.factor_mag
-
+            ma_ratio = (ma / self.price_open - 1.0) * self.factor_price
         return ma_ratio
 
     def func_ratio_scaling(self, ratio: float) -> float:
-        return np.clip((ratio - 1.0) * self.factor_mag, -1, 1)
+        return np.clip((ratio - 1.0) * self.factor_price, -1, 1)
 
     def func_volume_delta_ratio(self) -> float:
         """
@@ -357,8 +357,8 @@ class ObservationManager:
             count_hold: int = 0,  # HOLD 継続カウンタ
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
+        # 観測値（特徴量）用リスト
         list_feature = list()
-
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # キューへの追加
         self.deque_price_010.append(price)
@@ -369,18 +369,19 @@ class ObservationManager:
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
 
         # ---------------------------------------------------------------------
-        # 株価比率
+        # 1. 株価比率
         # ---------------------------------------------------------------------
         price_ratio = self.func_price_ratio(price)
         list_feature.append(price_ratio)
 
         # ---------------------------------------------------------------------
-        # 株価差分
+        # 2. 株価差分
         # ---------------------------------------------------------------------
         price_delta = self.func_price_delta(price)
         list_feature.append(price_delta)
 
-        # 移動平均
+        # ---------------------------------------------------------------------
+        # 移動平均の算出
         if price > 0:
             ma_060 = self.func_moving_average(self.deque_price_060)
             ma_120 = self.func_moving_average(self.deque_price_120)
@@ -389,32 +390,26 @@ class ObservationManager:
             ma_060 = 0
             ma_120 = 0
             ma_300 = 0
-
-        r_ma_060 = self.func_ma_ratio(ma_060)
-        list_feature.append(r_ma_060)
-
-        r_ma_120 = self.func_ma_ratio(ma_120)
-        list_feature.append(r_ma_120)
-
-        r_ma_300 = self.func_ma_ratio(ma_300)
-        list_feature.append(r_ma_300)
+        # ---------------------------------------------------------------------
+        # 3. 移動平均 MA60
+        ma_060_scaled = self.func_ma_scaling(ma_060)
+        list_feature.append(ma_060_scaled)
+        # 4. 移動平均 MA120
+        ma_120_scaled = self.func_ma_scaling(ma_120)
+        list_feature.append(ma_120_scaled)
+        # 5. 移動平均 MA300
+        ma_300_scaled = self.func_ma_scaling(ma_300)
+        list_feature.append(ma_300_scaled)
+        # ---------------------------------------------------------------------
 
         # ---------------------------------------------------------------------
-        # 移動平均の差分
+        # 6. 移動平均の差分 MA60 - MA300
         # ---------------------------------------------------------------------
-        # ma_diff_1 = np.tanh((r_ma_060 - r_ma_120) * 10)
-        # list_feature.append(ma_diff_1)
-
-        ma_diff_2 = np.tanh((r_ma_060 - r_ma_300) * 5)
-        list_feature.append(ma_diff_2)
-
-        # ma_diff_3 = np.tanh((r_ma_120 - r_ma_300) * 10)
-        # list_feature.append(ma_diff_3)
-
-        n = len(self.deque_price_300)
+        ma_diff = np.tanh((ma_060_scaled - ma_300_scaled) * self.factor_ma_diff)
+        list_feature.append(ma_diff)
 
         # ---------------------------------------------------------------------
-        # RSI: [-1, 1] に標準化
+        # 7. RSI: [-1, 1] に標準化
         # ---------------------------------------------------------------------
         n = len(self.deque_price_300)
         if n > 2:
@@ -428,18 +423,18 @@ class ObservationManager:
         list_feature.append(rsi)
 
         # ---------------------------------------------------------------------
-        # 累計出来高差分比
+        # 8. 累計出来高差分比
         # ---------------------------------------------------------------------
         volume_delta_ratio = self.func_volume_delta_ratio()
         list_feature.append(volume_delta_ratio)
 
         # ---------------------------------------------------------------------
-        # 含み損益
+        # 9. 含み損益
         # ---------------------------------------------------------------------
         list_feature.append(pl)
 
         # ---------------------------------------------------------------------
-        # HOLD 継続カウンタ
+        # 10.HOLD 継続カウンタ
         # ---------------------------------------------------------------------
         list_feature.append(np.tanh(count_hold / self.factor_hold))
 
@@ -447,7 +442,7 @@ class ObservationManager:
         arr_feature = np.array(list_feature, dtype=np.float32)
 
         # ---------------------------------------------------------------------
-        # PositionType → one-hot (3) ［単位行列へ変換］
+        # 11., 12., 13. PositionType → one-hot (3) ［単位行列へ変換］
         # ---------------------------------------------------------------------
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
 
