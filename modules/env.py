@@ -249,13 +249,17 @@ class ObservationManager:
         # 調整用係数
         self.tickprice = 1.0  # 呼び値
         self.unit = 100  # 最小取引単位（出来高）
-        self.factor_hold = 10000. # 建玉保持カウンタ用
-        self.factor_ma_diff = 5.0 # 移動平均差用
-        self.factor_price = 20. # 株価用
-        self.factor_volume = 100000.0 # 出来高用
+        self.factor_hold = 10000.  # 建玉保持カウンタ用
+        self.factor_ma_diff = 5.0  # 移動平均差用
+        self.factor_price = 20.  # 株価用
+        self.factor_volume = 100000.0  # 出来高用
+        self.factor_vwap = 25.0  # VWAP用
 
         # 特徴量算出のために保持する変数
         self.price_open = 0.0  # ザラバの始値
+        self.cum_pv = 0.0  # VWAP 用 Price × Volume 累積
+        self.cum_vol = 0.0  # VWAP 用 Volume 累積
+        self.volume_prev = None  # VWAP 用 前の Volume
 
         # キューを定義
         self.deque_price_010 = deque(maxlen=10)  # 株価Δ用
@@ -273,6 +277,9 @@ class ObservationManager:
     def clear(self):
         # 特徴量算出のために保持する変数
         self.price_open: float = 0.0  # ザラバの始値
+        self.cum_pv = 0.0
+        self.cum_vol = 0.0
+        self.volume_prev = None
         # キューのクリア
         self.deque_price_010.clear()
         self.deque_price_060.clear()
@@ -348,6 +355,19 @@ class ObservationManager:
         """
         d2vol_scaled = np.tanh(d2vol / self.factor_volume)
         return d2vol_scaled
+
+    def func_vwap(self, price: float, volume: float) -> float:
+        if self.volume_prev is None:
+            diff_volume = 0.0
+        else:
+            diff_volume = volume - self.volume_prev
+
+        self.cum_pv += price * diff_volume
+        self.cum_vol += diff_volume
+        self.volume_prev = volume
+
+        vwap = self.cum_pv / self.cum_vol if self.cum_vol > 0 else price
+        return vwap
 
     def getObs(
             self,
@@ -429,12 +449,23 @@ class ObservationManager:
         list_feature.append(volume_delta_ratio)
 
         # ---------------------------------------------------------------------
-        # 9. 含み損益
+        # 9. VWAP 乖離率
+        # ---------------------------------------------------------------------
+        vwap = self.func_vwap(price, volume)
+        if vwap == 0.0:
+            vwap_deviation = 0
+        else:
+            vwap_deviation = (price - vwap) / vwap
+        obs_vwap_dev = np.clip(vwap_deviation * self.factor_vwap, -1.0, 1.0)
+        list_feature.append(obs_vwap_dev)
+
+        # ---------------------------------------------------------------------
+        # 10. 含み損益
         # ---------------------------------------------------------------------
         list_feature.append(pl)
 
         # ---------------------------------------------------------------------
-        # 10.HOLD 継続カウンタ
+        # 11.HOLD 継続カウンタ
         # ---------------------------------------------------------------------
         list_feature.append(np.tanh(count_hold / self.factor_hold))
 
@@ -442,7 +473,7 @@ class ObservationManager:
         arr_feature = np.array(list_feature, dtype=np.float32)
 
         # ---------------------------------------------------------------------
-        # 11., 12., 13. PositionType → one-hot (3) ［単位行列へ変換］
+        # 12., 13., 14. PositionType → one-hot (3) ［単位行列へ変換］
         # ---------------------------------------------------------------------
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
 
