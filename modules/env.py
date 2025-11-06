@@ -250,6 +250,7 @@ class ObservationManager:
         self.tickprice = 1.0  # 呼び値
         self.unit = 100  # 最小取引単位（出来高）
         self.factor_mag = 20.
+        self.factor_hold = 10000.
         self.factor_volume = 100000.0
 
         # 特徴量算出のために保持する変数
@@ -312,7 +313,7 @@ class ObservationManager:
     def func_ratio_scaling(self, ratio: float) -> float:
         return np.clip((ratio - 1.0) * self.factor_mag, -1, 1)
 
-    def func_volume_delta_ratio(self, volume: float) -> float:
+    def func_volume_delta_ratio(self) -> float:
         """
         出来高の差分比
         """
@@ -429,7 +430,7 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # 累計出来高差分比
         # ---------------------------------------------------------------------
-        volume_delta_ratio = self.func_volume_delta_ratio(volume)
+        volume_delta_ratio = self.func_volume_delta_ratio()
         list_feature.append(volume_delta_ratio)
 
         # ---------------------------------------------------------------------
@@ -440,7 +441,7 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # HOLD 継続カウンタ
         # ---------------------------------------------------------------------
-        list_feature.append(np.tanh(count_hold / 10000.))
+        list_feature.append(np.tanh(count_hold / self.factor_hold))
 
         # 一旦配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
