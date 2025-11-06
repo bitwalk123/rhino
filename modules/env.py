@@ -245,19 +245,26 @@ class TransactionManager:
 
 class ObservationManager:
     def __init__(self):
+
         # 調整用係数
-        self.factor_mag = 20.
+        self.tickprice = 1.0  # 呼び値
         self.unit = 100  # 最小取引単位（出来高）
+        self.factor_mag = 20.
 
         # 特徴量算出のために保持する変数
         self.price_open = 0.0  # ザラバの始値
-        self.price_prev = 0.0  # １つ前の株価
+        # self.price_prev = 0.0  # １つ前の株価
         self.volume_prev = 0.0  # １つ前の出来高
 
         # キューを定義
-        self.deque_price_060 = deque(maxlen=60)  # MA60
-        self.deque_price_120 = deque(maxlen=120)  # MA120
-        self.deque_price_300 = deque(maxlen=300)  # MA300
+        self.deque_price_010 = deque(maxlen=10)  # 株価Δ用
+        self.deque_price_060 = deque(maxlen=60)  # MA60用
+        self.deque_price_120 = deque(maxlen=120)  # MA120用
+        self.deque_price_300 = deque(maxlen=300)  # MA300用
+        self.deque_volume_003 = deque(maxlen=3)  # 最新3個のVolume（diff(2)のため）
+        #self.vol_history = deque(maxlen=3)  # 最新3個のVolume（diff(2)のため）
+        self.deque_rolling_vol_030 = deque(maxlen=30)  # 最新30個のuVol（rolling sum用）
+        self.deque_diff_vol_002 = deque(maxlen=2)  # 最新2個のrVol（diff用）
 
         # 観測数の取得
         self.n_feature = len(self.getObs())
@@ -266,24 +273,27 @@ class ObservationManager:
     def clear(self):
         # 特徴量算出のために保持する変数
         self.price_open: float = 0.0  # ザラバの始値
-        self.price_prev: float = 0.0  # １つ前の株価
+        # self.price_prev: float = 0.0  # １つ前の株価
         self.volume_prev: float = 0.0  # １つ前の出来高
         # キューのクリア
+        self.deque_price_010.clear()
         self.deque_price_060.clear()
         self.deque_price_120.clear()
         self.deque_price_300.clear()
+        self.deque_volume_003.clear()
+        #self.vol_history.clear()
+        self.deque_rolling_vol_030.clear()
+        self.deque_diff_vol_002.clear()
 
     def func_moving_average(self, deque_price) -> float:
         return sum(deque_price) / len(deque_price)
 
     def func_price_delta(self, price: float) -> float:
-        if self.price_prev == 0.0:
-            price_delta = 0.0
+        if price == 0.0:
+            return 0.0
         else:
-            price_delta = (price - self.price_prev) / self.factor_mag
-
-        self.price_prev = price
-        return np.clip(price_delta, -1, 1)
+            price_ma010 = sum(self.deque_price_010) / len(self.deque_price_010)
+            return (price - price_ma010 / self.tickprice) / 5.0
 
     def func_price_ratio(self, price: float) -> float:
         if self.price_open == 0.0:
@@ -307,6 +317,7 @@ class ObservationManager:
         return np.clip((ratio - 1.0) * self.factor_mag, -1, 1)
 
     def func_volume_delta_ratio(self, volume: float) -> float:
+        """
         if self.volume_prev == 0.0:
             volume_delta_ratio = 0.0
         elif volume < self.volume_prev:
@@ -318,6 +329,34 @@ class ObservationManager:
 
         self.volume_prev = volume
         return np.tanh(volume_delta_ratio)
+        if volume == 0.0:
+            return 0.0
+        else:
+            volume_ma010 = sum(self.deque_volume_003) / len(self.deque_volume_003)
+            return (volume - volume_ma010) / self.unit
+        """
+        # 差分2（uVol）
+
+        if len(self.deque_volume_003) >= 3:
+            uvol = self.deque_volume_003[-1] - self.deque_volume_003[-3]
+        else:
+            uvol = 0.0
+
+        self.deque_rolling_vol_030.append(uvol)
+
+        # rolling sum（rVol）
+        rvol = sum(self.deque_rolling_vol_030)
+        self.deque_diff_vol_002.append(rvol)
+
+        # 差分1（dVol）
+        if len(self.deque_diff_vol_002) >= 2:
+            dvol = self.deque_diff_vol_002[-1] - self.deque_diff_vol_002[-2]
+        else:
+            dvol = 0.0
+
+        # スケーリング（obs_vol）
+        obs_vol = np.tanh(dvol / 100000.0)
+        return obs_vol
 
     def getObs(
             self,
@@ -328,6 +367,15 @@ class ObservationManager:
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         list_feature = list()
+
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+        # キューへの追加
+        self.deque_price_010.append(price)
+        self.deque_price_060.append(price)
+        self.deque_price_120.append(price)
+        self.deque_price_300.append(price)
+        self.deque_volume_003.append(volume)
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
 
         # ---------------------------------------------------------------------
         # 株価比率
@@ -340,11 +388,6 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         price_delta = self.func_price_delta(price)
         list_feature.append(price_delta)
-
-        # キューへの追加
-        self.deque_price_060.append(price)
-        self.deque_price_120.append(price)
-        self.deque_price_300.append(price)
 
         # 移動平均
         if price > 0:

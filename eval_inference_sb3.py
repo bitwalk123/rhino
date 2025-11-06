@@ -52,7 +52,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
     gs = fig.add_gridspec(
         n, 1,
         wspace=0.0, hspace=0.0,
-        height_ratios=[1 if i < n - 5 else 0.5 for i in range(n)]
+        height_ratios=[1 if i < n - 4 else 0.5 for i in range(n)]
     )
     for i, axis in enumerate(gs.subplots(sharex="col")):
         ax[i] = axis
@@ -60,15 +60,17 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
 
     for i in range(n):
         ax[i].plot(df[i])
-        if i < n - 5:
-            y_min, y_max = ax[i].get_ylim()
+        y_min, y_max = ax[i].get_ylim()
+        if i < n - 4:
             if -1.1 < y_min:
                 y_min = -1.1
             if y_max < 1.1:
                 y_max = 1.1
             ax[i].set_ylim(y_min, y_max)
         else:
-            ax[i].set_ylim(-0.1, 1.1)
+            if y_max < 1.1:
+                y_max = 1.1
+            ax[i].set_ylim(-0.1, y_max)
         ax[i].set_ylabel(list_ylabel[i])
     plt.tight_layout()
     plt.show()
