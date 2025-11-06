@@ -317,45 +317,26 @@ class ObservationManager:
         return np.clip((ratio - 1.0) * self.factor_mag, -1, 1)
 
     def func_volume_delta_ratio(self, volume: float) -> float:
-        """
-        if self.volume_prev == 0.0:
-            volume_delta_ratio = 0.0
-        elif volume < self.volume_prev:
-            volume_delta_ratio = 0.0
-        else:
-            # x = (volume - self.volume_prev) / self.unit
-            volume_delta_ratio = (volume - self.volume_prev) / (self.volume_prev + 1e-6) * 25.
-            # volume_delta = np.log1p(x)
-
-        self.volume_prev = volume
-        return np.tanh(volume_delta_ratio)
-        if volume == 0.0:
-            return 0.0
-        else:
-            volume_ma010 = sum(self.deque_volume_003) / len(self.deque_volume_003)
-            return (volume - volume_ma010) / self.unit
-        """
-        # 差分2（uVol）
-
+        # 差分2（dVol）
         if len(self.deque_volume_003) >= 3:
-            uvol = self.deque_volume_003[-1] - self.deque_volume_003[-3]
+            dvol = self.deque_volume_003[-1] - self.deque_volume_003[-3]
         else:
-            uvol = 0.0
+            dvol = 0.0
 
-        self.deque_rolling_vol_030.append(uvol)
+        self.deque_rolling_vol_030.append(dvol)
 
         # rolling sum（rVol）
         rvol = sum(self.deque_rolling_vol_030)
         self.deque_diff_vol_002.append(rvol)
 
-        # 差分1（dVol）
+        # 差分1（d2Vol）
         if len(self.deque_diff_vol_002) >= 2:
-            dvol = self.deque_diff_vol_002[-1] - self.deque_diff_vol_002[-2]
+            d2vol = self.deque_diff_vol_002[-1] - self.deque_diff_vol_002[-2]
         else:
-            dvol = 0.0
+            d2vol = 0.0
 
         # スケーリング（obs_vol）
-        obs_vol = np.tanh(dvol / 100000.0)
+        obs_vol = np.tanh(d2vol / 100000.0)
         return obs_vol
 
     def getObs(
