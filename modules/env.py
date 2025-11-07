@@ -143,25 +143,14 @@ class TransactionManager:
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 報酬設計
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
-        """
-        tanh が直線的に変化する [-1, 1] に収まるように割る因子
-        ティックは最大 100 動くと仮定
-        """
-        self.factor_scale = 100.
-        """
-        含み益の場合に乗ずる比率
-        """
-        self.ratio_unrealized_profit = 0.1
-        """
-        確定損益が 0 の場合のペナルティ
-        """
-        self.penalty_zero_profit = -0.75
-        """
-        含み損益の保持のカウンター
-        含み損益のインセンティブ・ペナルティ比率
-        """
-        self.count_unreal_profit = 0
+        # 含み損益の場合に乗ずる比率
         self.ratio_unreal_profit = 0.1
+        # 含み損益の保持のカウンター
+        self.count_unreal_profit_weighted = 0
+        # 含み損益のインセンティブ・ペナルティ比率
+        self.ratio_unreal_profit_weighted = 0.1
+        # 報酬の平方根処理で割る因子
+        self.factor_reward_sqrt = 25.0
 
     def add_transaction(self, transaction: str, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(self.provider.ts))
@@ -179,7 +168,7 @@ class TransactionManager:
     def clear_position(self):
         self.position = PositionType.NONE
         self.price_entry = 0.0
-        self.count_unreal_profit = 0
+        self.count_unreal_profit_weighted = 0
 
     def evalReward(self, action: int) -> float:
         action_type = ActionType(action)
@@ -225,10 +214,10 @@ class TransactionManager:
                 # =============================================================
                 profit = self.get_profit()
                 # 含み益を持ち続けることで付与されるボーナス
-                self.count_unreal_profit += 1
-                k = self.count_unreal_profit * self.ratio_unreal_profit
+                self.count_unreal_profit_weighted += 1
+                k = self.count_unreal_profit_weighted * self.ratio_unreal_profit_weighted
                 profit_weighted = profit * (1 + k)
-                reward += self.get_reward_from_profit(profit_weighted) * self.ratio_unrealized_profit
+                reward += self.get_reward_from_profit(profit_weighted) * self.ratio_unreal_profit
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -313,8 +302,7 @@ class TransactionManager:
 
     def get_reward_from_profit(self, profit: float) -> float:
         # 報酬は呼び値で割る
-        # return np.tanh(profit / self.tickprice / self.factor_scale)
-        return np.sign(profit) * np.sqrt(abs(profit) / self.tickprice) / 20.
+        return np.sign(profit) * np.sqrt(abs(profit/ self.tickprice)) / self.factor_reward_sqrt
 
     def getNumberOfTransactions(self) -> int:
         return len(self.dict_transaction["注文日時"])
@@ -523,7 +511,7 @@ class TrainingEnv(TradingEnv):
         # 観測値
         obs = self.obs_man.getObs(
             self.trans_man.getPL4Obs(),  # 含み損益
-            self.trans_man.count_unreal_profit,  # HOLD 継続カウンタ
+            self.trans_man.count_unreal_profit_weighted,  # HOLD 継続カウンタ
             self.trans_man.position,  # ポジション
         )
 
