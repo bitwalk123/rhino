@@ -38,9 +38,6 @@ class FeatureProvider:
         # キューを定義
         self.n_deque_price = 300
         self.deque_price = deque(maxlen=self.n_deque_price)  # 移動平均など
-        # self.deque_volume_003 = deque(maxlen=3)  # 最新3個のVolume（diff(2)のため）
-        # self.deque_rvol_030 = deque(maxlen=30)  # 最新30個のuVol（rolling sum用）
-        # self.deque_dvol_002 = deque(maxlen=2)  # 最新2個のrVol（diff用）
 
     def _calc_vwap(self) -> float:
         if self.volume_prev is None:
@@ -66,7 +63,7 @@ class FeatureProvider:
         self.cum_vol = 0.0  # VWAP 用 Volume 累積
         self.volume_prev = None  # VWAP 用 前の Volume
 
-        # キューを定義
+        # キュー
         self.deque_price.clear()  # 移動平均など
 
     def getMA(self, period: int) -> float:
@@ -352,9 +349,13 @@ class ObservationManager:
         self.factor_ma_diff = 5.0  # 移動平均差用
         self.factor_price = 20.  # 株価用
         self.factor_vwap = 25.0  # VWAP用
-        # 観測数の取得
+        """
+        観測量（特徴量）数の取得
+        観測量の数 (self.n_feature) は、評価によって頻繁に変動するので、
+        コンストラクタでダミー（空）を実行して数を自律的に把握できるようにする。
+        """
         self.n_feature = len(self.getObs())
-        self.clear()
+        self.clear()  # ダミーを実行したのでリセット
 
     def clear(self):
         self.provider.clear()
@@ -406,20 +407,17 @@ class ObservationManager:
         # 5. 含み損益
         # ---------------------------------------------------------------------
         list_feature.append(pl)
-
         # ---------------------------------------------------------------------
         # 6. HOLD 継続カウンタ
         # ---------------------------------------------------------------------
         list_feature.append(np.tanh(count_hold / self.factor_hold))
-
-        # 一旦配列に変換
+        # 一旦、配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
-
         # ---------------------------------------------------------------------
+        # ポジション情報
         # 7., 8., 9. PositionType → one-hot (3) ［単位行列へ変換］
         # ---------------------------------------------------------------------
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
-
         # arr_feature と pos_onehot を単純結合
         return np.concatenate([arr_feature, pos_onehot])
 
