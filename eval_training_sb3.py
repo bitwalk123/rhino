@@ -1,5 +1,3 @@
-import os
-
 from funcs.commons import get_collection_path
 from funcs.ios import get_excel_sheet
 from funcs.models import get_ppo_model_path
@@ -12,8 +10,8 @@ if __name__ == "__main__":
 
     # 学習用データ
     code = "7011"
-    # list_file = ["ticks_20250819.xlsx"]
-    list_file = sorted(os.listdir(res.dir_collection))
+    list_file = ["ticks_20250819.xlsx"]
+    # list_file = sorted(os.listdir(res.dir_collection))
     flag_new_model = True
     for file in list_file:
         print(f"学習するティックデータ : {file}")

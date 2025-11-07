@@ -122,15 +122,12 @@ class TransactionManager:
                 # =============================================================
                 # 含み益
                 # =============================================================
-                # 建玉を長く持つことに対して報酬を調整
                 profit = self.get_profit(price)
-                if 0.0 <= profit <= 1.0:
-                    profit_modified = self.get_reward_from_profit(self.penalty_zero_profit)
-                else:
-                    self.count_unreal_profit += 1
-                    k = self.count_unreal_profit * self.ratio_unreal_profit
-                    profit_modified = profit * (1 + k)
-                reward += self.get_reward_from_profit(profit_modified) * self.ratio_unrealized_profit
+                # 含み益を持ち続けることで付与されるボーナス
+                self.count_unreal_profit += 1
+                k = self.count_unreal_profit * self.ratio_unreal_profit
+                profit_weighted = profit * (1 + k)
+                reward += self.get_reward_from_profit(profit_weighted) * self.ratio_unrealized_profit
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -145,10 +142,7 @@ class TransactionManager:
                 # 損益追加
                 self.pnl_total += profit
                 # 報酬
-                if 0.0 <= profit <= 1.0:
-                    reward += self.get_reward_from_profit(self.penalty_zero_profit)
-                else:
-                    reward += self.get_reward_from_profit(profit)
+                reward += self.get_reward_from_profit(profit)
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
