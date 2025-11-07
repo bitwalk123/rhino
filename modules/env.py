@@ -22,6 +22,21 @@ class PositionType(Enum):
     SHORT = 2
 
 
+class PreProcManager:
+    def __init__(self):
+        # 特徴量算出のために保持する変数
+        self.price_open = 0.0  # ザラバの始値
+        self.cum_pv = 0.0  # VWAP 用 Price × Volume 累積
+        self.cum_vol = 0.0  # VWAP 用 Volume 累積
+        self.volume_prev = None  # VWAP 用 前の Volume
+
+        # キューを定義
+        self.deque_price = deque(maxlen=300)  # 移動平均など
+        self.deque_volume_003 = deque(maxlen=3)  # 最新3個のVolume（diff(2)のため）
+        self.deque_rvol_030 = deque(maxlen=30)  # 最新30個のuVol（rolling sum用）
+        self.deque_dvol_002 = deque(maxlen=2)  # 最新2個のrVol（diff用）
+
+
 class TransactionManager:
     """
     売買管理クラス
@@ -249,6 +264,7 @@ class ObservationManager:
         self.factor_volume = 100000.0  # 出来高用
         self.factor_vwap = 25.0  # VWAP用
 
+        """
         # 特徴量算出のために保持する変数
         self.price_open = 0.0  # ザラバの始値
         self.cum_pv = 0.0  # VWAP 用 Price × Volume 累積
@@ -263,6 +279,7 @@ class ObservationManager:
         self.deque_volume_003 = deque(maxlen=3)  # 最新3個のVolume（diff(2)のため）
         self.deque_rvol_030 = deque(maxlen=30)  # 最新30個のuVol（rolling sum用）
         self.deque_dvol_002 = deque(maxlen=2)  # 最新2個のrVol（diff用）
+        """
 
         # 観測数の取得
         self.n_feature = len(self.getObs())
