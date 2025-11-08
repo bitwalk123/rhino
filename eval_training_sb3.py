@@ -14,8 +14,8 @@ if __name__ == "__main__":
     res = AppRes()
     agent = PPOAgentSB3()
 
-    dt_now = datetime.datetime.now()
-    date_str = f"{dt_now.year:04d}{dt_now.month:02d}{dt_now.day:02d}"
+    dt = datetime.datetime.now()
+    date_str = f"{dt.year:04d}{dt.month:02d}{dt.day:02d}{dt.hour:02d}{dt.minute:02d}{dt.second:02d}"
 
     # 学習用データ
     code = "7011"
