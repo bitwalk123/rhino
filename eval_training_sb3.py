@@ -81,7 +81,7 @@ if __name__ == "__main__":
             file_date_str = m.group(1)
         else:
             file_date_str = "unknown"
-        log_dir = os.path.join(res.dir_log, code, date_str, file_date_str)
+        log_dir: str = os.path.join(res.dir_log, code, date_str, file_date_str)
         # モデルの学習
         agent.train(df, path_model, log_dir, new_model=flag_new_model)
         if flag_new_model:

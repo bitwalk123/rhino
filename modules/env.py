@@ -333,7 +333,7 @@ class ObservationManager:
         # 調整用係数
         self.tickprice = 1.0  # 呼び値
         self.unit = 100  # 最小取引単位（出来高）
-        self.factor_hold = 20000.  # 建玉保持カウンタ用
+        self.factor_hold = 10_000.  # 建玉保持カウンタ用
         self.factor_ma_diff = 5.0  # 移動平均差用
         self.factor_price = 20.  # 株価用
         self.factor_vwap = 25.0  # VWAP用
