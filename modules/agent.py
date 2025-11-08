@@ -18,7 +18,7 @@ class PPOAgentSB3:
         # 結果保持用辞書
         self.results = dict()
         # 設定値
-        self.total_timesteps = 200_000
+        self.total_timesteps = 100_000
 
     def get_env_with_df(self, df: pd.DataFrame) -> Monitor:
         # 環境のインスタンスを生成
