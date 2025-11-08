@@ -46,7 +46,7 @@ def plot_bar_profit(df: pd.DataFrame):
 
 
 def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
-    fig = plt.figure(figsize=(15, 12))
+    fig = plt.figure(figsize=(15, 8))
     ax = dict()
     # gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
     gs = fig.add_gridspec(
