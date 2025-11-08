@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
 
 from modules.agent_auxiliary import ActionMaskWrapper
@@ -17,7 +18,7 @@ class PPOAgentSB3:
         # 結果保持用辞書
         self.results = dict()
         # 設定値
-        self.total_timesteps = 100_000
+        self.total_timesteps = 200_000
 
     def get_env_with_df(self, df: pd.DataFrame) -> Monitor:
         # 環境のインスタンスを生成
@@ -31,7 +32,9 @@ class PPOAgentSB3:
 
         return env_monitor
 
-    def train(self, df: pd.DataFrame, path_model: str, new_model: bool = False):
+    def train(self, df: pd.DataFrame, path_model: str, log_dir:str, new_model: bool = False):
+        custom_logger = configure(log_dir, ["stdout", "csv", "tensorboard"])  # 出力形式を指定
+
         # 学習環境の取得
         env = self.get_env_with_df(df)
         # 学習済モデルを読み込む
@@ -46,6 +49,9 @@ class PPOAgentSB3:
             print(f"新規にモデルを作成します。")
             model = PPO("MlpPolicy", env, verbose=1)
 
+        # ロガーを差し替え
+        model.set_logger(custom_logger)
+
         # モデルの学習
         model.learn(total_timesteps=self.total_timesteps)
 
@@ -56,7 +62,7 @@ class PPOAgentSB3:
         # 学習環境の解放
         env.close()
 
-    def infer(self, df: pd.DataFrame, path_model:str)->bool:
+    def infer(self, df: pd.DataFrame, path_model: str) -> bool:
         # 学習環境の取得
         env = self.get_env_with_df(df)
 
