@@ -148,9 +148,11 @@ class TransactionManager:
         # 含み損益の保持のカウンター
         self.count_unreal_profit_weighted = 0
         # 含み損益のインセンティブ・ペナルティ比率
-        self.ratio_unreal_profit_weighted = 0.1
+        self.ratio_unreal_profit_weighted = 0.5
         # 報酬の平方根処理で割る因子
-        self.factor_reward_sqrt = 25.0
+        self.factor_reward_sqrt = 20.0
+        # エントリ時のVWAP に紐づく報酬ファクター
+        self.factor_vwap_scaling = 0.001
 
     def add_transaction(self, transaction: str, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(self.provider.ts))
@@ -185,6 +187,7 @@ class TransactionManager:
                 # =============================================================
                 self.position = PositionType.LONG  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
+                reward += np.tanh((self.provider.vwap - self.price_entry) / self.provider.vwap * self.factor_vwap_scaling)
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
@@ -195,6 +198,7 @@ class TransactionManager:
                 # =============================================================
                 self.position = PositionType.SHORT  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
+                reward += np.tanh((self.price_entry - self.provider.vwap) / self.provider.vwap * self.factor_vwap_scaling)
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
@@ -334,9 +338,9 @@ class ObservationManager:
         self.tickprice = 1.0  # 呼び値
         self.unit = 100  # 最小取引単位（出来高）
         self.factor_hold = 10_000.  # 建玉保持カウンタ用
-        self.factor_ma_diff = 5.0  # 移動平均差用
+        self.factor_ma_diff = 7.5  # 移動平均差用
         self.factor_price = 20.  # 株価用
-        self.factor_vwap = 25.0  # VWAP用
+        self.factor_vwap = 30.0  # VWAP用
         """
         観測量（特徴量）数の取得
         観測量の数 (self.n_feature) は、評価によって頻繁に変動するので、
