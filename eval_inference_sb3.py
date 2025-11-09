@@ -48,7 +48,6 @@ def plot_bar_profit(df: pd.DataFrame):
 def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
     fig = plt.figure(figsize=(15, 8))
     ax = dict()
-    # gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
     gs = fig.add_gridspec(
         n, 1,
         wspace=0.0, hspace=0.0,
@@ -101,14 +100,26 @@ def plot_reward_distribution(ser: pd.Series, logscale: bool = False):
     plt.show()
 
 
+def plot_tick_trend(df: pd.DataFrame):
+    fig, ax = plt.subplots(figsize=(15, 3))
+
+    ax.plot(df["Price"])
+    ax.set_ylabel("Price")
+    ax.grid()
+
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
     res = AppRes()
     agent = PPOAgentSB3()
 
     # 推論用データ
-    file = "ticks_20250819.xlsx"
+    # file = "ticks_20250819.xlsx"
     # file = "ticks_20250828.xlsx"
     # file = "ticks_20251006.xlsx"
+    file = "ticks_20251009.xlsx"
     code = "7011"
 
     print(f"過去データ {file} の銘柄 {code} について推論します。")
@@ -139,13 +150,17 @@ if __name__ == "__main__":
     # 報酬分布
     plot_reward_distribution(ser_reward, logscale=True)
 
+    # ティックトレンド
+    plot_tick_trend(df)
+
     # 観測値トレンド
     df_obs = pd.concat([pd.Series(row) for row in agent.results["obs"]], axis=1).T
     rows = df_obs.shape[1]
     print(f"観測数 : {rows}")
     list_name = [
         "株価比",
-        "MAΔ",
+        "MAΔ1",
+        "MAΔ2",
         "RSI",
         "VWAPΔ",
         "含損益",
