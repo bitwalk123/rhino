@@ -59,6 +59,6 @@ if __name__ == "__main__":
     print(f"総々収益 : {df_result["総損益"].sum()} 円")
 
     t_delta = t_end - t_start
-    print(f"計測時間 : {t_delta * 1_000:,.6f} msec")
-    print(f"総ティック量 : {n_tick:,d} tick")
-    print(f"時間 / 1 ティック : {t_delta / n_tick * 1_000:.6f} msec")
+    print(f"計測時間 :\t\t\t{t_delta * 1_000:,.6f} msec")
+    print(f"総ティック量 :\t\t{n_tick:,d} tick")
+    print(f"時間 / 1 ティック :\t{t_delta / n_tick * 1_000:.6f} msec")
