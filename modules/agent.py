@@ -32,7 +32,7 @@ class PPOAgentSB3:
 
         return env_monitor
 
-    def train(self, df: pd.DataFrame, path_model: str, log_dir:str, new_model: bool = False):
+    def train(self, df: pd.DataFrame, path_model: str, log_dir: str, new_model: bool = False):
         custom_logger = configure(log_dir, ["stdout", "csv", "tensorboard"])  # 出力形式を指定
 
         # 学習環境の取得

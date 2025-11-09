@@ -148,9 +148,9 @@ class TransactionManager:
         # 含み損益の保持のカウンター
         self.count_unreal_profit_weighted = 0
         # 含み損益のインセンティブ・ペナルティ比率
-        self.ratio_unreal_profit_weighted = 0.2
+        self.ratio_unreal_profit_weighted = 0.1
         # 報酬の平方根処理で割る因子
-        self.factor_reward_sqrt = 25.0
+        self.factor_reward_sqrt = 20.0
         # エントリ時のVWAP に紐づく報酬ファクター
         self.factor_vwap_scaling = 0.0
 
