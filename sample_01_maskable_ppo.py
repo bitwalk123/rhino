@@ -10,11 +10,11 @@ from structs.res import AppRes
 res = AppRes()
 file = "ticks_20250819.xlsx"
 code = "7011"
-path_excel = os.path.join(res.dir_collection, file)
-df = get_excel_sheet(path_excel, code)
+path_excel = os.path.join(res.dir_collection, file)  # フルパスを生成
+df = get_excel_sheet(path_excel, code)  # 銘柄コードがシート名
 
-env_raw = TrainingEnv(df)
-env = ActionMasker(env_raw, lambda obs: env_raw._get_action_mask())
+env_raw = TrainingEnv(df)  # gymnasium.Env を継承した自作の環境
+env = ActionMasker(env_raw, lambda obs: env_raw.getActionMask())
 
 model = MaskablePPO("MlpPolicy", env, verbose=1)
 model.learn(total_timesteps=100_000)

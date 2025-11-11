@@ -485,7 +485,10 @@ class TradingEnv(gym.Env):
         # 行動空間
         self.action_space = gym.spaces.Discrete(len(ActionType))
 
-    def _get_action_mask(self) -> np.ndarray:
+    def _get_tick(self) -> tuple[float, float, float]:
+        ...
+
+    def getActionMask(self) -> np.ndarray:
         # 行動マスク
         if self.step_current < self.n_warmup:
             """
@@ -514,9 +517,6 @@ class TradingEnv(gym.Env):
         else:
             raise TypeError(f"Unknown PositionType: {self.trans_man.position}")
 
-    def _get_tick(self) -> tuple[float, float, float]:
-        ...
-
     def getTransaction(self) -> pd.DataFrame:
         return pd.DataFrame(self.trans_man.dict_transaction)
 
@@ -524,7 +524,7 @@ class TradingEnv(gym.Env):
         self.step_current = 0
         self.trans_man.clear()
         obs = self.obs_man.getObsReset()
-        return obs, {"action_mask": self._get_action_mask()}
+        return obs, {"action_mask": self.getActionMask()}
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
         ...
@@ -579,7 +579,7 @@ class TrainingEnv(TradingEnv):
         self.step_current += 1
         info = {
             "pnl_total": self.trans_man.pnl_total,
-            "action_mask": self._get_action_mask()
+            "action_mask": self.getActionMask()
         }
 
         return obs, reward, done, truncated, info
