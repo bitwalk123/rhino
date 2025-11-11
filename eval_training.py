@@ -52,21 +52,21 @@ if __name__ == "__main__":
     res = AppRes()
 
     n_epoch = 1
-    flag_new_model = True
+    flag_new_model = False
 
     # PPO エージェントのインスタンス
     agent = PPOAgent()
 
     # 学習用データフレーム
     code = "7011"
-    # list_file = sorted(os.listdir(res.dir_collection))
-    list_file = ["ticks_20250819.xlsx"]
+    list_file = sorted(os.listdir(res.dir_collection))
+    # list_file = ["ticks_20250819.xlsx"]
     for idx, file in enumerate(list_file):
         path_excel = os.path.join(res.dir_collection, file)
         df_code = get_excel_sheet(path_excel, code)
 
         # モデルの保存先
-        model_path = get_trained_ppo_model_path(res, code)
+        model_path = get_trained_ppo_model_path(res, code, ext="pch")
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
         # 学習
@@ -101,11 +101,12 @@ if __name__ == "__main__":
     print(f"観測数 : {rows}")
     list_name = [
         "株価比",
-        "株価Δ",
-        "MAΔ",
-        "ROC",
+        "MAΔ1",
+        "MAΔ2",
         "RSI",
+        "VWAPΔ",
         "含損益",
+        "HOLD",
         "NONE",
         "LONG",
         "SHORT"
