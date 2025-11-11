@@ -13,7 +13,6 @@ class ActionType(Enum):
     HOLD = 0
     BUY = 1
     SELL = 2
-    REPAY = 3
 
 
 class PositionType(Enum):
@@ -148,7 +147,7 @@ class TransactionManager:
         # 含み損益の保持のカウンター
         self.count_unreal_profit_weighted = 0
         # 含み損益のインセンティブ・ペナルティ比率
-        self.ratio_unreal_profit_weighted = 0.5
+        self.ratio_unreal_profit_weighted = 0.1
         # 報酬の平方根処理で割る因子
         self.factor_reward_sqrt = 25.0
         # エントリ時のVWAP に紐づく報酬ファクター
@@ -205,14 +204,11 @@ class TransactionManager:
                 # 取引明細
                 # -------------------------------------------------------------
                 self.add_transaction("売建")
-            elif action_type == ActionType.REPAY:
-                # 取引ルール違反
-                raise TypeError(f"Violation of transaction rule: {action_type}")
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
-        else:
+        elif self.position == PositionType.LONG:
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
-            # ポジションが有る場合に取りうるアクションは HOLD, REPAY
+            # LONG ポジションの場合に取りうるアクションは HOLD, SELL
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
                 # =============================================================
@@ -228,11 +224,8 @@ class TransactionManager:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
             elif action_type == ActionType.SELL:
-                # 取引ルール違反
-                raise TypeError(f"Violation of transaction rule: {action_type}")
-            elif action_type == ActionType.REPAY:
                 # =============================================================
-                # 返済
+                # 売埋
                 # =============================================================
                 profit = self.get_profit()
                 # 損益追加
@@ -242,20 +235,53 @@ class TransactionManager:
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
-                if self.position == PositionType.LONG:
-                    # 返済: 買建 (LONG) → 売埋
-                    self.add_transaction("売埋", profit)
-                elif self.position == PositionType.SHORT:
-                    # 返済: 売建 (SHORT) → 買埋
-                    self.add_transaction("買埋", profit)
-                else:
-                    raise TypeError(f"Unknown PositionType: {self.position}")
+                # 返済: 買建 (LONG) → 売埋
+                self.add_transaction("売埋", profit)
                 # =============================================================
                 # ポジション解消
                 # =============================================================
                 self.clear_position()
             else:
                 raise TypeError(f"Unknown ActionType: {action_type}")
+        elif self.position == PositionType.SHORT:
+            # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+            # SHORT ポジションの場合に取りうるアクションは HOLD, BUY
+            # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+            if action_type == ActionType.HOLD:
+                # =============================================================
+                # 含み益
+                # =============================================================
+                profit = self.get_profit()
+                # 含み益を持ち続けることで付与されるボーナス
+                self.count_unreal_profit_weighted += 1
+                k = self.count_unreal_profit_weighted * self.ratio_unreal_profit_weighted
+                profit_weighted = profit * (1 + k)
+                reward += self.get_reward_from_profit(profit_weighted) * self.ratio_unreal_profit
+            elif action_type == ActionType.BUY:
+                # =============================================================
+                # 買埋
+                # =============================================================
+                profit = self.get_profit()
+                # 損益追加
+                self.pnl_total += profit
+                # 報酬
+                reward += self.get_reward_from_profit(profit)
+                # -------------------------------------------------------------
+                # 取引明細
+                # -------------------------------------------------------------
+                # 返済: 売建 (SHORT) → 買埋
+                self.add_transaction("買埋", profit)
+                # =============================================================
+                # ポジション解消
+                # =============================================================
+                self.clear_position()
+            elif action_type == ActionType.SELL:
+                # 取引ルール違反
+                raise TypeError(f"Violation of transaction rule: {action_type}")
+            else:
+                raise TypeError(f"Unknown ActionType: {action_type}")
+        else:
+            raise TypeError(f"Unknown PositionType: {self.position}")
 
         return reward
 
@@ -365,7 +391,7 @@ class ObservationManager:
         if self.provider.price_open == 0.0:
             ma_diff_scaled = 0.0
         else:
-            ma_diff_scaled = ma_diff / self.tickprice  * self.factor_ma_diff
+            ma_diff_scaled = ma_diff / self.tickprice * self.factor_ma_diff
         return np.tanh(ma_diff_scaled)
 
     def getObs(
@@ -466,19 +492,27 @@ class TradingEnv(gym.Env):
             ウォーミングアップ期間
             強制 HOLD
             """
-            return np.array([1, 0, 0, 0], dtype=np.int8)
+            return np.array([1, 0, 0], dtype=np.int8)
         elif self.trans_man.position == PositionType.NONE:
             """
             建玉なし
             取りうるアクション: HOLD, BUY, SELL
             """
-            return np.array([1, 1, 1, 0], dtype=np.int8)
+            return np.array([1, 1, 1], dtype=np.int8)
+        elif self.trans_man.position == PositionType.LONG:
+            """
+            建玉あり LONG
+            取りうるアクション: HOLD, SELL
+            """
+            return np.array([1, 0, 1], dtype=np.int8)
+        elif self.trans_man.position == PositionType.SHORT:
+            """
+            建玉あり SHORT
+            取りうるアクション: HOLD, BUY
+            """
+            return np.array([1, 1, 0], dtype=np.int8)
         else:
-            """
-            建玉あり
-            取りうるアクション: HOLD, REPAY
-            """
-            return np.array([1, 0, 0, 1], dtype=np.int8)
+            raise TypeError(f"Unknown PositionType: {self.trans_man.position}")
 
     def _get_tick(self) -> tuple[float, float, float]:
         ...
