@@ -7,6 +7,7 @@ import gymnasium as gym
 import numpy as np
 import pandas as pd
 import talib
+from gymnasium.utils import seeding
 
 
 class ActionType(Enum):
@@ -488,31 +489,19 @@ class TradingEnv(gym.Env):
     def _get_tick(self) -> tuple[float, float, float]:
         ...
 
-    def getActionMask(self) -> np.ndarray:
+    def action_masks(self) -> np.ndarray:
         # 行動マスク
         if self.step_current < self.n_warmup:
-            """
-            ウォーミングアップ期間
-            強制 HOLD
-            """
+            # ウォーミングアップ期間 → 強制 HOLD
             return np.array([1, 0, 0], dtype=np.int8)
         elif self.trans_man.position == PositionType.NONE:
-            """
-            建玉なし
-            取りうるアクション: HOLD, BUY, SELL
-            """
+            # 建玉なし → 取りうるアクション: HOLD, BUY, SELL
             return np.array([1, 1, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.LONG:
-            """
-            建玉あり LONG
-            取りうるアクション: HOLD, SELL
-            """
+            # 建玉あり LONG → 取りうるアクション: HOLD, SELL
             return np.array([1, 0, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.SHORT:
-            """
-            建玉あり SHORT
-            取りうるアクション: HOLD, BUY
-            """
+            # 建玉あり SHORT → 取りうるアクション: HOLD, BUY
             return np.array([1, 1, 0], dtype=np.int8)
         else:
             raise TypeError(f"Unknown PositionType: {self.trans_man.position}")
@@ -521,10 +510,11 @@ class TradingEnv(gym.Env):
         return pd.DataFrame(self.trans_man.dict_transaction)
 
     def reset(self, seed=None, options=None) -> tuple[np.ndarray, dict]:
+        self.np_random, seed = seeding.np_random(seed)  # ← 乱数生成器を初期化
         self.step_current = 0
         self.trans_man.clear()
         obs = self.obs_man.getObsReset()
-        return obs, {"action_mask": self.getActionMask()}
+        return obs, {}
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
         ...
@@ -577,9 +567,6 @@ class TrainingEnv(TradingEnv):
             truncated = True  # ← 時間切れによる終了を明示
 
         self.step_current += 1
-        info = {
-            "pnl_total": self.trans_man.pnl_total,
-            "action_mask": self.getActionMask()
-        }
+        info = {"pnl_total": self.trans_man.pnl_total}
 
         return obs, reward, done, truncated, info
