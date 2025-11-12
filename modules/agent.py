@@ -66,11 +66,12 @@ class PPOAgentSB3:
         self.results["obs"] = list()
         self.results["reward"] = list()
         obs, _ = env.reset()
-        done = False
-        while not done:
+        terminated = False
+        truncated = False
+        while not (terminated or truncated):
             action_masks = env.action_masks()
             action, _states = model.predict(obs, action_masks=action_masks)
-            obs, reward, done, truncated, info = env.step(action)
+            obs, reward, terminated, truncated, info = env.step(action)
             # 観測値トレンド成用
             self.results["obs"].append(obs)
             # 報酬分布作成用

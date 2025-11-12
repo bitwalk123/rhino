@@ -138,6 +138,8 @@ class TransactionManager:
         self.tickprice: float = 1.0  # 呼び値
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
+        self.n_trade_max = 100  # 最大取引回数
+        self.n_trade_remain = self.n_trade_max  # 残り取引回数
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self.init_transaction()  # 取引明細
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
@@ -165,6 +167,7 @@ class TransactionManager:
     def clear(self):
         self.clear_position()
         self.pnl_total = 0.0  # 総損益
+        self.n_trade_remain = self.n_trade_max  # 残り取引回数
         self.dict_transaction = self.init_transaction()  # 取引明細
 
     def clear_position(self):
@@ -185,6 +188,7 @@ class TransactionManager:
                 # =============================================================
                 # 買建 (LONG)
                 # =============================================================
+                self.n_trade_remain -= 1  # 残り取引回数を更新
                 self.position = PositionType.LONG  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
                 reward += np.tanh(
@@ -197,6 +201,7 @@ class TransactionManager:
                 # =============================================================
                 # 売建 (SHORT)
                 # =============================================================
+                self.n_trade_remain -= 1  # 残り取引回数を更新
                 self.position = PositionType.SHORT  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
                 reward += np.tanh(
@@ -228,6 +233,7 @@ class TransactionManager:
                 # =============================================================
                 # 売埋
                 # =============================================================
+                self.n_trade_remain -= 1  # 残り取引回数を更新
                 profit = self.get_profit()
                 # 損益追加
                 self.pnl_total += profit
@@ -262,6 +268,7 @@ class TransactionManager:
                 # =============================================================
                 # 買埋
                 # =============================================================
+                self.n_trade_remain -= 1  # 残り取引回数を更新
                 profit = self.get_profit()
                 # 損益追加
                 self.pnl_total += profit
@@ -399,6 +406,7 @@ class ObservationManager:
             self,
             pl: float = 0,  # 含み損益
             count_hold: int = 0,  # HOLD 継続カウンタ
+            n_trade_remain: int = 100,  # 残り取引回数（カウントダウン）
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         # 観測値（特徴量）用リスト
@@ -445,11 +453,17 @@ class ObservationManager:
         # 7. HOLD 継続カウンタ
         # ---------------------------------------------------------------------
         list_feature.append(np.tanh(count_hold / self.factor_hold))
+        # ---------------------------------------------------------------------
+        # 8. 残り取引回数（カウントダウン）
+        # ---------------------------------------------------------------------
+        ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(100)
+        list_feature.append(ratio_trade_remain)
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
         # ---------------------------------------------------------------------
         # ポジション情報
-        # 8., 9., 10. PositionType → one-hot (3) ［単位行列へ変換］
+        # 9., 10., 11. PositionType → one-hot (3) ［単位行列へ変換］
         # ---------------------------------------------------------------------
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
         # arr_feature と pos_onehot を単純結合
@@ -555,6 +569,7 @@ class TrainingEnv(TradingEnv):
         obs = self.obs_man.getObs(
             self.trans_man.getPL4Obs(),  # 含み損益
             self.trans_man.count_unreal_profit_weighted,  # HOLD 継続カウンタ
+            self.trans_man.n_trade_remain,  # 残り取引回数（カウントダウン）
             self.trans_man.position,  # ポジション
         )
 
@@ -563,8 +578,11 @@ class TrainingEnv(TradingEnv):
 
         if self.step_current >= len(self.df) - 1:
             reward += self.trans_man.forceRepay()
-            terminated = True
             truncated = True  # ← 時間切れによる終了を明示
+
+        if self.trans_man.n_trade_remain == 0:
+            reward += self.trans_man.forceRepay()
+            truncated = True  # 取引回数上限終了を明示
 
         self.step_current += 1
         info = {"pnl_total": self.trans_man.pnl_total}
