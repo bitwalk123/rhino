@@ -558,15 +558,15 @@ class TrainingEnv(TradingEnv):
             self.trans_man.position,  # ポジション
         )
 
-        done = False
+        terminated = False
         truncated = False
 
         if self.step_current >= len(self.df) - 1:
             reward += self.trans_man.forceRepay()
-            done = True
+            terminated = True
             truncated = True  # ← 時間切れによる終了を明示
 
         self.step_current += 1
         info = {"pnl_total": self.trans_man.pnl_total}
 
-        return obs, reward, done, truncated, info
+        return obs, reward, terminated, truncated, info
