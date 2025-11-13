@@ -138,7 +138,7 @@ class TransactionManager:
         self.tickprice: float = 1.0  # 呼び値
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
-        self.n_trade_max = 100  # 最大取引回数
+        self.n_trade_max = 50.0  # 最大取引回数
         self.n_trade_remain = self.n_trade_max  # 残り取引回数
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self.init_transaction()  # 取引明細
@@ -156,7 +156,7 @@ class TransactionManager:
         # エントリ時のVWAP に紐づく報酬ファクター
         self.factor_vwap_scaling = 0.0
         # 取引コストペナルティ
-        self.penalty_trade_count = 0.005
+        self.penalty_trade_count = 0.0025
 
     def add_transaction(self, transaction: str, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(self.provider.ts))
@@ -246,8 +246,8 @@ class TransactionManager:
                 # 売埋
                 # =============================================================
                 # 取引コストペナルティ付与
-                reward -= self.calc_penalty_trade_code()
-                self.n_trade_remain -= 1  # 残り取引回数を更新
+                # reward -= self.calc_penalty_trade_code()
+                # self.n_trade_remain -= 1  # 残り取引回数を更新
                 profit = self.get_profit()
                 # 損益追加
                 self.pnl_total += profit
@@ -283,8 +283,8 @@ class TransactionManager:
                 # 買埋
                 # =============================================================
                 # 取引コストペナルティ付与
-                reward -= self.calc_penalty_trade_code()
-                self.n_trade_remain -= 1  # 残り取引回数を更新
+                # reward -= self.calc_penalty_trade_code()
+                # self.n_trade_remain -= 1  # 残り取引回数を更新
                 profit = self.get_profit()
                 # 損益追加
                 self.pnl_total += profit
@@ -472,8 +472,8 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # 8. 残り取引回数（カウントダウン）
         # ---------------------------------------------------------------------
-        #ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(100)
-        ratio_trade_remain = n_trade_remain / 100.0
+        ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(50)
+        # ratio_trade_remain = n_trade_remain / 50.0
         list_feature.append(ratio_trade_remain)
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換
