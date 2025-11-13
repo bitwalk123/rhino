@@ -155,6 +155,8 @@ class TransactionManager:
         self.factor_reward_sqrt = 25.0
         # エントリ時のVWAP に紐づく報酬ファクター
         self.factor_vwap_scaling = 0.0
+        # 取引コストペナルティ
+        self.penalty_trade_count = 0.005
 
     def add_transaction(self, transaction: str, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(self.provider.ts))
@@ -188,6 +190,8 @@ class TransactionManager:
                 # =============================================================
                 # 買建 (LONG)
                 # =============================================================
+                # 取引コストペナルティ付与
+                reward -= (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
                 self.n_trade_remain -= 1  # 残り取引回数を更新
                 self.position = PositionType.LONG  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
@@ -201,6 +205,8 @@ class TransactionManager:
                 # =============================================================
                 # 売建 (SHORT)
                 # =============================================================
+                # 取引コストペナルティ付与
+                reward -= (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
                 self.n_trade_remain -= 1  # 残り取引回数を更新
                 self.position = PositionType.SHORT  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
@@ -233,6 +239,8 @@ class TransactionManager:
                 # =============================================================
                 # 売埋
                 # =============================================================
+                # 取引コストペナルティ付与
+                reward -= (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
                 self.n_trade_remain -= 1  # 残り取引回数を更新
                 profit = self.get_profit()
                 # 損益追加
@@ -268,6 +276,8 @@ class TransactionManager:
                 # =============================================================
                 # 買埋
                 # =============================================================
+                # 取引コストペナルティ付与
+                reward -= (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
                 self.n_trade_remain -= 1  # 残り取引回数を更新
                 profit = self.get_profit()
                 # 損益追加
