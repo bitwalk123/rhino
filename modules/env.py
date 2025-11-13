@@ -177,6 +177,12 @@ class TransactionManager:
         self.price_entry = 0.0
         self.count_unreal_profit_weighted = 0
 
+    def calc_penalty_trade_code(self) -> float:
+        """
+        取引回数に応じたペナルティ
+        """
+        return (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
+
     def evalReward(self, action: int) -> float:
         action_type = ActionType(action)
         reward = 0.0
@@ -191,7 +197,7 @@ class TransactionManager:
                 # 買建 (LONG)
                 # =============================================================
                 # 取引コストペナルティ付与
-                reward -= (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
+                reward -= self.calc_penalty_trade_code()
                 self.n_trade_remain -= 1  # 残り取引回数を更新
                 self.position = PositionType.LONG  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
@@ -206,7 +212,7 @@ class TransactionManager:
                 # 売建 (SHORT)
                 # =============================================================
                 # 取引コストペナルティ付与
-                reward -= (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
+                reward -= self.calc_penalty_trade_code()
                 self.n_trade_remain -= 1  # 残り取引回数を更新
                 self.position = PositionType.SHORT  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
@@ -240,7 +246,7 @@ class TransactionManager:
                 # 売埋
                 # =============================================================
                 # 取引コストペナルティ付与
-                reward -= (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
+                reward -= self.calc_penalty_trade_code()
                 self.n_trade_remain -= 1  # 残り取引回数を更新
                 profit = self.get_profit()
                 # 損益追加
@@ -277,7 +283,7 @@ class TransactionManager:
                 # 買埋
                 # =============================================================
                 # 取引コストペナルティ付与
-                reward -= (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
+                reward -= self.calc_penalty_trade_code()
                 self.n_trade_remain -= 1  # 残り取引回数を更新
                 profit = self.get_profit()
                 # 損益追加
@@ -466,7 +472,8 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # 8. 残り取引回数（カウントダウン）
         # ---------------------------------------------------------------------
-        ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(100)
+        #ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(100)
+        ratio_trade_remain = n_trade_remain / 100.0
         list_feature.append(ratio_trade_remain)
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換
