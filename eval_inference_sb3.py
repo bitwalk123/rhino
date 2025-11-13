@@ -55,6 +55,7 @@ def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
     )
     for i, axis in enumerate(gs.subplots(sharex="col")):
         ax[i] = axis
+        ax[i].set_xlim(0, 19500)
         ax[i].grid()
 
     for i in range(n):
@@ -116,10 +117,10 @@ if __name__ == "__main__":
     agent = PPOAgentSB3()
 
     # 推論用データ
-    file = "ticks_20250819.xlsx"
+    # file = "ticks_20250819.xlsx"
     # file = "ticks_20250828.xlsx"
     # file = "ticks_20251006.xlsx"
-    # file = "ticks_20251009.xlsx"
+    file = "ticks_20251009.xlsx"
     code = "7011"
 
     print(f"過去データ {file} の銘柄 {code} について推論します。")
