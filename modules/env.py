@@ -156,7 +156,7 @@ class TransactionManager:
         # エントリ時のVWAP に紐づく報酬ファクター
         self.factor_vwap_scaling = 0.0
         # 取引コストペナルティ
-        self.penalty_trade_count = 0.0025
+        self.penalty_trade_count = 0.02
 
     def add_transaction(self, transaction: str, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(self.provider.ts))
