@@ -181,7 +181,8 @@ class TransactionManager:
         """
         取引回数に応じたペナルティ
         """
-        return (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
+        penalty = (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
+        return np.tanh(penalty)
 
     def evalReward(self, action: int) -> float:
         action_type = ActionType(action)
