@@ -474,7 +474,8 @@ class ObservationManager:
         # 8. 残り取引回数（カウントダウン）
         # ---------------------------------------------------------------------
         # ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(50)
-        ratio_trade_remain = n_trade_remain / 50.0
+        # ratio_trade_remain = n_trade_remain / 50.0
+        ratio_trade_remain = np.log(1 + n_trade_remain) / np.log(50.0)
         list_feature.append(ratio_trade_remain)
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換

@@ -1,0 +1,12 @@
+過去データ ticks_20251009.xlsx の銘柄 7011 について推論します。
+モデル models/ppo_7011.zip を読み込みます。
+Wrapping the env with a `Monitor` wrapper
+Wrapping the env in a DummyVecEnv.
+                  注文日時 銘柄コード        売買  約定単価  約定数量     損益
+0  2025-10-09 09:01:20  7011        売建  4329     1    NaN
+1  2025-10-09 15:24:59  7011  買埋（強制返済）  4203     1  126.0
+一株当りの損益 : 126.0 円
+モデルへの報酬分布
+n: 19391, mean: 2.790, stdev: 1.199
+観測数 : 11
+
