@@ -46,7 +46,7 @@ def plot_bar_profit(df: pd.DataFrame):
 
 
 def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
-    fig = plt.figure(figsize=(15, 10))
+    fig = plt.figure(figsize=(15, 8))
     ax = dict()
     gs = fig.add_gridspec(
         n, 1,
@@ -166,7 +166,6 @@ if __name__ == "__main__":
         "VWAPΔ",
         "含損益",
         "HOLD",
-        "TRADE",
         "NONE",
         "LONG",
         "SHORT"
