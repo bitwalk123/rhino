@@ -138,7 +138,7 @@ class TransactionManager:
         self.tickprice: float = 1.0  # 呼び値
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
-        self.n_trade_max = 50.0  # 最大取引回数
+        self.n_trade_max = 50  # 最大取引回数
         self.n_trade_remain = self.n_trade_max  # 残り取引回数
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self.init_transaction()  # 取引明細
@@ -475,8 +475,8 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(50)
         # ratio_trade_remain = n_trade_remain / 50.0
-        #ratio_trade_remain = np.log(1 + n_trade_remain) / np.log(50.0)
-        #list_feature.append(ratio_trade_remain)
+        # ratio_trade_remain = np.log(1 + n_trade_remain) / np.log(50.0)
+        # list_feature.append(ratio_trade_remain)
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
@@ -601,7 +601,12 @@ class TrainingEnv(TradingEnv):
 
         if self.trans_man.n_trade_remain == 0:
             reward += self.trans_man.forceRepay()
-            truncated = True  # 取引回数上限終了を明示
+            """
+            生成 AI は取引回数上限終了は正常終了なので truncated のフラグを立てろと言うが、
+            取引回数上限終了は異常終了とみなし terminated のフラグを立ててみる
+            """
+            # truncated = True  # 取引回数上限終了を明示
+            terminated = True  # 取引回数上限終了を明示
 
         self.step_current += 1
         info = {"pnl_total": self.trans_man.pnl_total}
