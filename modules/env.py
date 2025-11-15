@@ -471,18 +471,18 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         list_feature.append(np.tanh(count_hold / self.factor_hold))
         # ---------------------------------------------------------------------
-        # ?. 残り取引回数（カウントダウン）
+        # 8. 残り取引回数（カウントダウン）
         # ---------------------------------------------------------------------
-        # ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(50)
+        ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(50)
         # ratio_trade_remain = n_trade_remain / 50.0
         # ratio_trade_remain = np.log(1 + n_trade_remain) / np.log(50.0)
-        # list_feature.append(ratio_trade_remain)
+        list_feature.append(ratio_trade_remain)
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
         # ---------------------------------------------------------------------
         # ポジション情報
-        # 8., 9., 10. PositionType → one-hot (3) ［単位行列へ変換］
+        # 9., 10., 11. PositionType → one-hot (3) ［単位行列へ変換］
         # ---------------------------------------------------------------------
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
         # arr_feature と pos_onehot を単純結合
@@ -607,6 +607,7 @@ class TrainingEnv(TradingEnv):
             """
             # truncated = True  # 取引回数上限終了を明示
             terminated = True  # 取引回数上限終了を明示
+            obs = -1.0  # 報酬を強制的に -1 にする。
 
         self.step_current += 1
         info = {"pnl_total": self.trans_man.pnl_total}

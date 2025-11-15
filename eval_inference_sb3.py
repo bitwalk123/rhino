@@ -166,6 +166,7 @@ if __name__ == "__main__":
         "VWAPΔ",
         "含損益",
         "HOLD",
+        "TRADE",
         "NONE",
         "LONG",
         "SHORT"
