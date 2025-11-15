@@ -423,7 +423,7 @@ class ObservationManager:
             self,
             pl: float = 0,  # 含み損益
             count_hold: int = 0,  # HOLD 継続カウンタ
-            n_trade_remain: int = 100,  # 残り取引回数（カウントダウン）
+            n_trade_remain: int = 50,  # 残り取引回数（カウントダウン）
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         # 観測値（特徴量）用リスト
@@ -473,10 +473,12 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         # 8. 残り取引回数（カウントダウン）
         # ---------------------------------------------------------------------
-        ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(50)
+        #ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(50)
         # ratio_trade_remain = n_trade_remain / 50.0
         # ratio_trade_remain = np.log(1 + n_trade_remain) / np.log(50.0)
-        list_feature.append(ratio_trade_remain)
+        #list_feature.append(ratio_trade_remain)
+        ratio_trade_count = (50. - n_trade_remain) / 50.0
+        list_feature.append(ratio_trade_count)
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
