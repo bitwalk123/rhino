@@ -35,6 +35,13 @@ class FeatureProvider:
         self.cum_vol = 0.0  # VWAP 用 Volume 累積
         self.volume_prev = None  # VWAP 用 前の Volume
 
+        # カウンタ関連
+        self.n_trade_max = 50.0  # 最大取引回数（買建、売建）
+        self.n_trade = 0.0  # 取引カウンタ
+        self.n_hold_divisor = 250.0  # 建玉なしの HOLD カウンタ用除数（仮）
+        self.n_hold = 0.0  # 建玉なしの HOLD カウンタ
+        self.n_hold_position = 0.0  # 建玉ありの HOLD カウンタ
+
         # キューを定義
         self.n_deque_price = 300
         self.deque_price = deque(maxlen=self.n_deque_price)  # 移動平均など
@@ -62,6 +69,14 @@ class FeatureProvider:
         self.cum_pv = 0.0  # VWAP 用 Price × Volume 累積
         self.cum_vol = 0.0  # VWAP 用 Volume 累積
         self.volume_prev = None  # VWAP 用 前の Volume
+
+        # カウンタ関連
+        # 取引カウンタ
+        self.resetTradeCounter()
+        # 建玉なしの HOLD カウンタ
+        self.resetHoldCounter()
+        # 建玉ありの HOLD カウンタ
+        self.resetHoldPosCounter()
 
         # キュー
         self.deque_price.clear()  # 移動平均など
@@ -103,6 +118,15 @@ class FeatureProvider:
         else:
             return (self.price - self.vwap) / self.vwap
 
+    def resetHoldCounter(self):
+        self.n_hold = 0.0  # 建玉なしの HOLD カウンタ
+
+    def resetHoldPosCounter(self):
+        self.n_hold_position = 0.0  # 建玉ありの HOLD カウンタ
+
+    def resetTradeCounter(self):
+        self.n_trade = 0.0  # 取引カウンタ
+
     def update(self, ts, price, volume):
         # 最新ティック情報を保持
         self.ts = ts
@@ -138,8 +162,6 @@ class TransactionManager:
         self.tickprice: float = 1.0  # 呼び値
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
-        self.n_trade_max = 50  # 最大取引回数
-        self.n_trade_remain = self.n_trade_max  # 残り取引回数
         self.pnl_total = 0.0  # 総損益
         self.dict_transaction = self.init_transaction()  # 取引明細
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
@@ -148,15 +170,17 @@ class TransactionManager:
         # 含み損益の場合に乗ずる比率
         self.ratio_unreal_profit = 0.1
         # 含み損益の保持のカウンター
-        self.count_unreal_profit_weighted = 0
+        # self.n_hold_position = 0
         # 含み損益のインセンティブ・ペナルティ比率
-        self.ratio_unreal_profit_weighted = 0.5
+        self.ratio_hold_position = 0.5
         # 報酬の平方根処理で割る因子
         self.factor_reward_sqrt = 25.0
         # エントリ時のVWAP に紐づく報酬ファクター
         self.factor_vwap_scaling = 0.0
         # 取引コストペナルティ
         self.penalty_trade_count = 0.02
+        # 建玉なしで僅かなペナルティ
+        self.reward_hold = 0.00001
 
     def add_transaction(self, transaction: str, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(self.provider.ts))
@@ -169,19 +193,20 @@ class TransactionManager:
     def clear(self):
         self.clear_position()
         self.pnl_total = 0.0  # 総損益
-        self.n_trade_remain = self.n_trade_max  # 残り取引回数
+        self.provider.resetTradeCounter()  # 取引回数カウンターのリセット
         self.dict_transaction = self.init_transaction()  # 取引明細
 
     def clear_position(self):
         self.position = PositionType.NONE
         self.price_entry = 0.0
-        self.count_unreal_profit_weighted = 0
+        #self.n_hold_position = 0
+        self.provider.resetHoldPosCounter()
 
-    def calc_penalty_trade_code(self) -> float:
+    def calc_penalty_trade_count(self) -> float:
         """
         取引回数に応じたペナルティ
         """
-        penalty = (self.n_trade_max - self.n_trade_remain) * self.penalty_trade_count
+        penalty = self.provider.n_trade * self.penalty_trade_count
         return np.tanh(penalty)
 
     def evalReward(self, action: int) -> float:
@@ -192,14 +217,18 @@ class TransactionManager:
             # ポジションが無い場合に取りうるアクションは HOLD, BUY, SELL
             # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
             if action_type == ActionType.HOLD:
-                pass
+                # HOLD カウンターのインクリメント
+                self.provider.n_hold += 1.0
+                reward += self.reward_hold
             elif action_type == ActionType.BUY:
+                # HOLD カウンターのリセット
+                self.provider.n_hold = 0.0
                 # =============================================================
                 # 買建 (LONG)
                 # =============================================================
                 # 取引コストペナルティ付与
-                reward -= self.calc_penalty_trade_code()
-                self.n_trade_remain -= 1  # 残り取引回数を更新
+                reward -= self.calc_penalty_trade_count()
+                self.provider.n_trade += 1  # 取引回数を更新
                 self.position = PositionType.LONG  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
                 reward += np.tanh(
@@ -209,12 +238,14 @@ class TransactionManager:
                 # -------------------------------------------------------------
                 self.add_transaction("買建")
             elif action_type == ActionType.SELL:
+                # HOLD カウンターのリセット
+                self.provider.n_hold = 0.0
                 # =============================================================
                 # 売建 (SHORT)
                 # =============================================================
                 # 取引コストペナルティ付与
-                reward -= self.calc_penalty_trade_code()
-                self.n_trade_remain -= 1  # 残り取引回数を更新
+                reward -= self.calc_penalty_trade_count()
+                self.provider.n_trade += 1  # 取引回数を更新
                 self.position = PositionType.SHORT  # ポジションを更新
                 self.price_entry = self.provider.price  # 取得価格
                 reward += np.tanh(
@@ -235,10 +266,10 @@ class TransactionManager:
                 # =============================================================
                 profit = self.get_profit()
                 # 含み益を持ち続けることで付与されるボーナス
-                self.count_unreal_profit_weighted += 1
-                k = self.count_unreal_profit_weighted * self.ratio_unreal_profit_weighted
+                self.provider.n_hold_position += 1
+                k = self.provider.n_hold_position * self.ratio_hold_position
                 profit_weighted = profit * (1 + k)
-                reward += self.get_reward_from_profit(profit_weighted) * self.ratio_unreal_profit
+                reward += self.get_reward_sqrt(profit_weighted) * self.ratio_unreal_profit
             elif action_type == ActionType.BUY:
                 # 取引ルール違反
                 raise TypeError(f"Violation of transaction rule: {action_type}")
@@ -246,14 +277,12 @@ class TransactionManager:
                 # =============================================================
                 # 売埋
                 # =============================================================
-                # 取引コストペナルティ付与
-                # reward -= self.calc_penalty_trade_code()
-                # self.n_trade_remain -= 1  # 残り取引回数を更新
+                # 含み益
                 profit = self.get_profit()
                 # 損益追加
                 self.pnl_total += profit
                 # 報酬
-                reward += self.get_reward_from_profit(profit)
+                reward += self.get_reward_sqrt(profit)
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
@@ -275,22 +304,20 @@ class TransactionManager:
                 # =============================================================
                 profit = self.get_profit()
                 # 含み益を持ち続けることで付与されるボーナス
-                self.count_unreal_profit_weighted += 1
-                k = self.count_unreal_profit_weighted * self.ratio_unreal_profit_weighted
+                self.provider.n_hold_position += 1
+                k = self.provider.n_hold_position * self.ratio_hold_position
                 profit_weighted = profit * (1 + k)
-                reward += self.get_reward_from_profit(profit_weighted) * self.ratio_unreal_profit
+                reward += self.get_reward_sqrt(profit_weighted) * self.ratio_unreal_profit
             elif action_type == ActionType.BUY:
                 # =============================================================
                 # 買埋
                 # =============================================================
-                # 取引コストペナルティ付与
-                # reward -= self.calc_penalty_trade_code()
-                # self.n_trade_remain -= 1  # 残り取引回数を更新
+                # 含み益
                 profit = self.get_profit()
                 # 損益追加
                 self.pnl_total += profit
                 # 報酬
-                reward += self.get_reward_from_profit(profit)
+                reward += self.get_reward_sqrt(profit)
                 # -------------------------------------------------------------
                 # 取引明細
                 # -------------------------------------------------------------
@@ -331,7 +358,7 @@ class TransactionManager:
         # 損益追加
         self.pnl_total += profit
         # 報酬
-        reward += self.get_reward_from_profit(profit)
+        reward += self.get_reward_sqrt(profit)
         # =====================================================================
         # ポジション解消
         # =====================================================================
@@ -357,7 +384,7 @@ class TransactionManager:
         else:
             return 0.0  # 実現損益
 
-    def get_reward_from_profit(self, profit: float) -> float:
+    def get_reward_sqrt(self, profit: float) -> float:
         # 報酬は呼び値で割る
         return np.sign(profit) * np.sqrt(abs(profit / self.tickprice)) / self.factor_reward_sqrt
 
@@ -369,7 +396,7 @@ class TransactionManager:
         観測値用に、損益用の報酬と同じにスケーリングして含み損益を返す。
         """
         profit = self.get_profit()
-        return self.get_reward_from_profit(profit)
+        return self.get_reward_sqrt(profit)
 
     @staticmethod
     def init_transaction() -> dict:
@@ -422,8 +449,6 @@ class ObservationManager:
     def getObs(
             self,
             pl: float = 0,  # 含み損益
-            count_hold: int = 0,  # HOLD 継続カウンタ
-            n_trade_remain: int = 50,  # 残り取引回数（カウントダウン）
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         # 観測値（特徴量）用リスト
@@ -467,24 +492,24 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         list_feature.append(pl)
         # ---------------------------------------------------------------------
-        # 7. HOLD 継続カウンタ
+        # 7. HOLD 継続カウンタ 2（建玉なし）
         # ---------------------------------------------------------------------
-        list_feature.append(np.tanh(count_hold / self.factor_hold))
+        list_feature.append(np.tanh(self.provider.n_hold / self.provider.n_hold_divisor))
         # ---------------------------------------------------------------------
-        # 8. 残り取引回数（カウントダウン）
+        # 8. HOLD 継続カウンタ 2（建玉あり）
         # ---------------------------------------------------------------------
-        #ratio_trade_remain = np.log1p(n_trade_remain) / np.log1p(50)
-        # ratio_trade_remain = n_trade_remain / 50.0
-        # ratio_trade_remain = np.log(1 + n_trade_remain) / np.log(50.0)
-        #list_feature.append(ratio_trade_remain)
-        ratio_trade_count = (50. - n_trade_remain) / 50.0
+        list_feature.append(self.provider.n_hold_position / self.factor_hold)
+        # ---------------------------------------------------------------------
+        # 9. 取引回数
+        # ---------------------------------------------------------------------
+        ratio_trade_count = self.provider.n_trade / self.provider.n_trade_max
         list_feature.append(ratio_trade_count)
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
         # ---------------------------------------------------------------------
         # ポジション情報
-        # 9., 10., 11. PositionType → one-hot (3) ［単位行列へ変換］
+        # 10., 11., 12. PositionType → one-hot (3) ［単位行列へ変換］
         # ---------------------------------------------------------------------
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
         # arr_feature と pos_onehot を単純結合
@@ -589,19 +614,17 @@ class TrainingEnv(TradingEnv):
         # 観測値
         obs = self.obs_man.getObs(
             self.trans_man.getPL4Obs(),  # 含み損益
-            self.trans_man.count_unreal_profit_weighted,  # HOLD 継続カウンタ
-            self.trans_man.n_trade_remain,  # 残り取引回数（カウントダウン）
             self.trans_man.position,  # ポジション
         )
 
         terminated = False
         truncated = False
 
-        if self.step_current >= len(self.df) - 1:
+        if len(self.df) - 1 <= self.step_current:
             reward += self.trans_man.forceRepay()
             truncated = True  # ← 時間切れによる終了を明示
 
-        if self.trans_man.n_trade_remain == 0:
+        if self.provider.n_trade_max <= self.provider.n_trade:
             reward += self.trans_man.forceRepay()
             """
             生成 AI は取引回数上限終了は正常終了なので truncated のフラグを立てろと言うが、
