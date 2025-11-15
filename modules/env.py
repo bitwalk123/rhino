@@ -607,7 +607,7 @@ class TrainingEnv(TradingEnv):
             """
             # truncated = True  # 取引回数上限終了を明示
             terminated = True  # 取引回数上限終了を明示
-            obs = -1.0  # 報酬を強制的に -1 にする。
+            obs = -5.0  # 報酬を強制的に -5 にする。
 
         self.step_current += 1
         info = {"pnl_total": self.trans_man.pnl_total}
