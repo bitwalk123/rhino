@@ -163,14 +163,13 @@ class TransactionManager:
         self.position = PositionType.NONE  # ポジション（建玉）
         self.price_entry = 0.0  # 取得価格
         self.pnl_total = 0.0  # 総損益
+        self.profit_max = 0.0  # 含み損益の最大値
         self.dict_transaction = self.init_transaction()  # 取引明細
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 報酬設計
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 含み損益の場合に乗ずる比率
         self.ratio_unreal_profit = 0.1
-        # 含み損益の保持のカウンター
-        # self.n_hold_position = 0
         # 含み損益のインセンティブ・ペナルティ比率
         self.ratio_hold_position = 0.5
         # 報酬の平方根処理で割る因子
@@ -199,7 +198,7 @@ class TransactionManager:
     def clear_position(self):
         self.position = PositionType.NONE
         self.price_entry = 0.0
-        #self.n_hold_position = 0
+        self.profit_max = 0.0  # 含み損益の最大値
         self.provider.resetHoldPosCounter()
 
     def calc_penalty_trade_count(self) -> float:
@@ -265,6 +264,8 @@ class TransactionManager:
                 # 含み益
                 # =============================================================
                 profit = self.get_profit()
+                if self.profit_max < profit:
+                    self.profit_max = profit
                 # 含み益を持ち続けることで付与されるボーナス
                 self.provider.n_hold_position += 1
                 k = self.provider.n_hold_position * self.ratio_hold_position
@@ -277,7 +278,7 @@ class TransactionManager:
                 # =============================================================
                 # 売埋
                 # =============================================================
-                # 含み益
+                # 含み損益 →　確定損益
                 profit = self.get_profit()
                 # 損益追加
                 self.pnl_total += profit
@@ -303,6 +304,8 @@ class TransactionManager:
                 # 含み益
                 # =============================================================
                 profit = self.get_profit()
+                if self.profit_max < profit:
+                    self.profit_max = profit
                 # 含み益を持ち続けることで付与されるボーナス
                 self.provider.n_hold_position += 1
                 k = self.provider.n_hold_position * self.ratio_hold_position
@@ -312,7 +315,7 @@ class TransactionManager:
                 # =============================================================
                 # 買埋
                 # =============================================================
-                # 含み益
+                # 含み損益 →　確定損益
                 profit = self.get_profit()
                 # 損益追加
                 self.pnl_total += profit
@@ -398,6 +401,15 @@ class TransactionManager:
         profit = self.get_profit()
         return self.get_reward_sqrt(profit)
 
+    def getPLRatio4Obs(self) -> float:
+        """
+        含み損益最大値からの比。
+        """
+        if self.profit_max == 0:
+            return 0.0
+        else:
+            return self.get_profit() / self.profit_max
+
     @staticmethod
     def init_transaction() -> dict:
         return {
@@ -449,6 +461,7 @@ class ObservationManager:
     def getObs(
             self,
             pl: float = 0,  # 含み損益
+            pl_ratio: float = 0,  # 含み損益（最大値）
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         # 観測値（特徴量）用リスト
@@ -492,15 +505,19 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         list_feature.append(pl)
         # ---------------------------------------------------------------------
-        # 7. HOLD 継続カウンタ 2（建玉なし）
+        # 7. 含み損益（最大値からの比）
+        # ---------------------------------------------------------------------
+        list_feature.append(np.tanh(pl_ratio))
+        # ---------------------------------------------------------------------
+        # 8. HOLD 継続カウンタ 2（建玉なし）
         # ---------------------------------------------------------------------
         list_feature.append(np.tanh(self.provider.n_hold / self.provider.n_hold_divisor))
         # ---------------------------------------------------------------------
-        # 8. HOLD 継続カウンタ 2（建玉あり）
+        # 9. HOLD 継続カウンタ 2（建玉あり）
         # ---------------------------------------------------------------------
         list_feature.append(self.provider.n_hold_position / self.factor_hold)
         # ---------------------------------------------------------------------
-        # 9. 取引回数
+        # 10. 取引回数
         # ---------------------------------------------------------------------
         ratio_trade_count = self.provider.n_trade / self.provider.n_trade_max
         list_feature.append(ratio_trade_count)
@@ -509,7 +526,7 @@ class ObservationManager:
         arr_feature = np.array(list_feature, dtype=np.float32)
         # ---------------------------------------------------------------------
         # ポジション情報
-        # 10., 11., 12. PositionType → one-hot (3) ［単位行列へ変換］
+        # 11., 12., 13. PositionType → one-hot (3) ［単位行列へ変換］
         # ---------------------------------------------------------------------
         pos_onehot = np.eye(len(PositionType))[position.value].astype(np.float32)
         # arr_feature と pos_onehot を単純結合
@@ -614,6 +631,7 @@ class TrainingEnv(TradingEnv):
         # 観測値
         obs = self.obs_man.getObs(
             self.trans_man.getPL4Obs(),  # 含み損益
+            self.trans_man.getPLRatio4Obs(),  # 含み損益最大値からの比
             self.trans_man.position,  # ポジション
         )
 

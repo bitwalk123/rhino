@@ -165,6 +165,7 @@ if __name__ == "__main__":
         "RSI",
         "VWAPΔ",
         "含損益",
+        "含損益R",
         "HOLD1",
         "HOLD2",
         "TRADE",
