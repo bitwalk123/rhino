@@ -401,6 +401,15 @@ class TransactionManager:
         profit = self.get_profit()
         return self.get_reward_sqrt(profit)
 
+    def getPLMax4Obs(self) -> float:
+        """
+        含み損益最大値からの比。
+        """
+        if self.profit_max == 0:
+            return 0.0
+        else:
+            return self.get_reward_sqrt(self.profit_max)
+
     def getPLRatio4Obs(self) -> float:
         """
         含み損益最大値からの比。
@@ -461,7 +470,7 @@ class ObservationManager:
     def getObs(
             self,
             pl: float = 0,  # 含み損益
-            pl_ratio: float = 0,  # 含み損益（最大値）
+            pl_max: float = 0,  # 含み損益（最大値）
             position: PositionType = PositionType.NONE  # ポジション
     ) -> np.ndarray:
         # 観測値（特徴量）用リスト
@@ -505,9 +514,9 @@ class ObservationManager:
         # ---------------------------------------------------------------------
         list_feature.append(pl)
         # ---------------------------------------------------------------------
-        # 7. 含み損益（最大値からの比）
+        # 7. 含み損益（最大）
         # ---------------------------------------------------------------------
-        list_feature.append(np.tanh(pl_ratio))
+        list_feature.append(pl_max)
         # ---------------------------------------------------------------------
         # 8. HOLD 継続カウンタ 2（建玉なし）
         # ---------------------------------------------------------------------
@@ -655,7 +664,7 @@ class TrainingEnv(TradingEnv):
         # 観測値
         obs = self.obs_man.getObs(
             self.trans_man.getPL4Obs(),  # 含み損益
-            self.trans_man.getPLRatio4Obs(),  # 含み損益最大値からの比
+            self.trans_man.getPLMax4Obs(),  # 含み損益最大値
             self.trans_man.position,  # ポジション
         )
 
