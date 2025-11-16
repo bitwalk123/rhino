@@ -564,13 +564,13 @@ class TradingEnv(gym.Env):
     def __init__(self):
         super().__init__()
         # ウォームアップ期間
-        self.n_warmup: int = 60
+        self.n_warmup: int = 90
         # 一つ前のアクション
         self.action_pre = PositionType.NONE
         # 現在の行位置
         self.step_current: int = 0
         # 最低建玉保持期間
-        self.count_hold_min: int = 5
+        self.count_hold_min: int = 1
         # 利確しきい値
         self.threshold_ratio_profit: float = 0.1
         # 特徴量プロバイダ
