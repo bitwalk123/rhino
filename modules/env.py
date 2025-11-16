@@ -541,7 +541,7 @@ class ObservationManager:
         # 10. 取引回数
         # ---------------------------------------------------------------------
         ratio_trade_count = self.provider.n_trade / self.provider.n_trade_max
-        list_feature.append(ratio_trade_count)
+        list_feature.append(np.tanh(ratio_trade_count))
         # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 一旦、配列に変換
         arr_feature = np.array(list_feature, dtype=np.float32)
