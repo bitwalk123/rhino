@@ -570,15 +570,20 @@ class TradingEnv(gym.Env):
         # 現在の行位置
         self.step_current: int = 0
         # 最低建玉保持期間
-        self.count_hold_min: int = 5
+        self.count_hold_min: int = 30
         # 利確しきい値
         self.threshold_ratio_profit: float = 0.1
+        # 次の取引までのインターバル
+        self.interval_trade = 60
+        self.count_interval_trade = 0
+
         # 特徴量プロバイダ
         self.provider = provider = FeatureProvider()
         # 売買管理クラス
         self.trans_man = TransactionManager(provider)
         # 観測値管理クラス
         self.obs_man = ObservationManager(provider)
+
         # 観測空間
         n_feature = self.obs_man.n_feature
         self.observation_space = gym.spaces.Box(
@@ -599,7 +604,12 @@ class TradingEnv(gym.Env):
             # ウォーミングアップ期間 → 強制 HOLD
             return np.array([1, 0, 0], dtype=np.int8)
         elif self.trans_man.position == PositionType.NONE:
-            if ActionType(self.action_pre) != ActionType.HOLD and self.trans_man.position == PositionType.NONE:
+            if self.count_interval_trade > 0:
+                self.count_interval_trade -= 1
+                return np.array([1, 0, 0], dtype=np.int8)
+            elif ActionType(self.action_pre) != ActionType.HOLD and self.trans_man.position == PositionType.NONE:
+                # 次回の取引が可能になるまでのインターバル
+                self.count_interval_trade = self.interval_trade
                 # ドテン売買をしないようにする措置
                 return np.array([1, 0, 0], dtype=np.int8)
             else:
