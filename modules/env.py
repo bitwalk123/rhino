@@ -401,6 +401,12 @@ class TransactionManager:
         profit = self.get_profit()
         return self.get_reward_sqrt(profit)
 
+    def getPLRaw(self) -> float:
+        """
+        含み損益。
+        """
+        return self.get_profit()
+
     def getPLMax4Obs(self) -> float:
         """
         含み損益最大値からの比。
@@ -409,6 +415,12 @@ class TransactionManager:
             return 0.0
         else:
             return self.get_reward_sqrt(self.profit_max)
+
+    def getPLMaxRaw(self) -> float:
+        """
+        含み損益最大値。
+        """
+        return self.profit_max
 
     def getPLRatio4Obs(self) -> float:
         """
@@ -597,7 +609,7 @@ class TradingEnv(gym.Env):
             if self.provider.n_hold_position < self.count_hold_min:
                 # 建玉最低保持期間
                 return np.array([1, 0, 0], dtype=np.int8)
-            elif self.trans_man.getPLRatio4Obs() < self.threshold_ratio_profit:
+            elif self.trans_man.getPLRaw() < self.trans_man.getPLMaxRaw() * self.threshold_ratio_profit:
                 # 利確 LONG → 取りうるアクション: SELL
                 return np.array([0, 0, 1], dtype=np.int8)
             else:
@@ -607,7 +619,7 @@ class TradingEnv(gym.Env):
             if self.provider.n_hold_position < self.count_hold_min:
                 # 建玉最低保持期間
                 return np.array([1, 0, 0], dtype=np.int8)
-            elif self.trans_man.getPLRatio4Obs() < self.threshold_ratio_profit:
+            elif self.trans_man.getPLRaw() < self.trans_man.getPLMaxRaw() * self.threshold_ratio_profit:
                 # 利確 SHORT → 取りうるアクション: BUY
                 return np.array([0, 1, 0], dtype=np.int8)
             else:
