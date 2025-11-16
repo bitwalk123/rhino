@@ -544,10 +544,12 @@ class TradingEnv(gym.Env):
         super().__init__()
         # ウォームアップ期間
         self.n_warmup: int = 60
+        # 一つ前のアクション
+        self.action_pre = PositionType.NONE
         # 現在の行位置
         self.step_current: int = 0
         # 最低建玉保持期間
-        self.count_hold_min: int = 10
+        self.count_hold_min: int = 5
         # 利確しきい値
         self.threshold_ratio_profit: float = 0.1
         # 特徴量プロバイダ
@@ -576,8 +578,12 @@ class TradingEnv(gym.Env):
             # ウォーミングアップ期間 → 強制 HOLD
             return np.array([1, 0, 0], dtype=np.int8)
         elif self.trans_man.position == PositionType.NONE:
-            # 建玉なし → 取りうるアクション: HOLD, BUY, SELL
-            return np.array([1, 1, 1], dtype=np.int8)
+            if ActionType(self.action_pre) != ActionType.HOLD and self.trans_man.position == PositionType.NONE:
+                # ドテン売買をしないようにする措置
+                return np.array([1, 0, 0], dtype=np.int8)
+            else:
+                # 建玉なし → 取りうるアクション: HOLD, BUY, SELL
+                return np.array([1, 1, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.LONG:
             if self.provider.n_hold_position < self.count_hold_min:
                 # 建玉最低保持期間
@@ -672,5 +678,8 @@ class TrainingEnv(TradingEnv):
 
         self.step_current += 1
         info = {"pnl_total": self.trans_man.pnl_total}
+
+        # 保持するアクションを更新
+        self.action_pre = action
 
         return obs, reward, terminated, truncated, info
