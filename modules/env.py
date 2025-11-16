@@ -546,6 +546,10 @@ class TradingEnv(gym.Env):
         self.n_warmup: int = 60
         # 現在の行位置
         self.step_current: int = 0
+        # 最低建玉保持期間
+        self.count_hold_min: int = 10
+        # 利確しきい値
+        self.threshold_ratio_profit: float = 0.1
         # 特徴量プロバイダ
         self.provider = provider = FeatureProvider()
         # 売買管理クラス
@@ -575,11 +579,25 @@ class TradingEnv(gym.Env):
             # 建玉なし → 取りうるアクション: HOLD, BUY, SELL
             return np.array([1, 1, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.LONG:
-            # 建玉あり LONG → 取りうるアクション: HOLD, SELL
-            return np.array([1, 0, 1], dtype=np.int8)
+            if self.provider.n_hold_position < self.count_hold_min:
+                # 建玉最低保持期間
+                return np.array([1, 0, 0], dtype=np.int8)
+            elif self.trans_man.getPLRatio4Obs() < self.threshold_ratio_profit:
+                # 利確 LONG → 取りうるアクション: SELL
+                return np.array([0, 0, 1], dtype=np.int8)
+            else:
+                # 建玉あり LONG → 取りうるアクション: HOLD, SELL
+                return np.array([1, 0, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.SHORT:
-            # 建玉あり SHORT → 取りうるアクション: HOLD, BUY
-            return np.array([1, 1, 0], dtype=np.int8)
+            if self.provider.n_hold_position < self.count_hold_min:
+                # 建玉最低保持期間
+                return np.array([1, 0, 0], dtype=np.int8)
+            elif self.trans_man.getPLRatio4Obs() < self.threshold_ratio_profit:
+                # 利確 SHORT → 取りうるアクション: BUY
+                return np.array([0, 1, 0], dtype=np.int8)
+            else:
+                # 建玉あり SHORT → 取りうるアクション: HOLD, BUY
+                return np.array([1, 1, 0], dtype=np.int8)
         else:
             raise TypeError(f"Unknown PositionType: {self.trans_man.position}")
 
