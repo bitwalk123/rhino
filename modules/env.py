@@ -679,13 +679,11 @@ class TrainingEnv(TradingEnv):
 
         if len(self.df) - 1 <= self.step_current:
             reward += self.trans_man.forceRepay()
-            truncated = True  # ← 時間切れによる終了を明示
+            truncated = True  # ← ステップ数上限による終了
 
         if self.provider.n_trade_max <= self.provider.n_trade:
             reward += self.trans_man.forceRepay()
-            # terminated = True  # 取引回数上限終了を明示
-            truncated = True  # 取引回数上限終了を明示
-            # obs = -5.0  # 報酬を強制的に -5 にする。
+            truncated = True  # 取引回数上限による終了を明示
 
         self.step_current += 1
         info = {"pnl_total": self.trans_man.pnl_total}
