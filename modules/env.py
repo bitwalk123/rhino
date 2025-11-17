@@ -28,6 +28,7 @@ class FeatureProvider:
         self.price = 0
         self.volume = 0
         self.vwap = 0
+        self.period_rsi = 60
 
         # 特徴量算出のために保持する変数
         self.price_open = 0.0  # ザラバの始値
@@ -36,7 +37,7 @@ class FeatureProvider:
         self.volume_prev = None  # VWAP 用 前の Volume
 
         # カウンタ関連
-        self.n_trade_max = 50.0  # 最大取引回数（買建、売建）
+        self.n_trade_max = 100.0  # 最大取引回数（買建、売建）
         self.n_trade = 0.0  # 取引カウンタ
         self.n_hold_divisor = 250.0  # 建玉なしの HOLD カウンタ用除数（仮）
         self.n_hold = 0.0  # 建玉なしの HOLD カウンタ
@@ -103,7 +104,7 @@ class FeatureProvider:
         VWAP 乖離率 (deviation rate = dr)
         """
         n = len(self.deque_price)
-        if n > 2:
+        if 2 < n:
             array_rsi = talib.RSI(
                 np.array(self.deque_price, dtype=np.float64),
                 timeperiod=n - 1
@@ -278,6 +279,9 @@ class TransactionManager:
                 # =============================================================
                 # 売埋
                 # =============================================================
+                # 取引コストペナルティ付与
+                reward -= self.calc_penalty_trade_count()
+                self.provider.n_trade += 1  # 取引回数を更新
                 # 含み損益 →　確定損益
                 profit = self.get_profit()
                 # 損益追加
@@ -315,6 +319,9 @@ class TransactionManager:
                 # =============================================================
                 # 買埋
                 # =============================================================
+                # 取引コストペナルティ付与
+                reward -= self.calc_penalty_trade_count()
+                self.provider.n_trade += 1  # 取引回数を更新
                 # 含み損益 →　確定損益
                 profit = self.get_profit()
                 # 損益追加
@@ -604,37 +611,14 @@ class TradingEnv(gym.Env):
             # ウォーミングアップ期間 → 強制 HOLD
             return np.array([1, 0, 0], dtype=np.int8)
         elif self.trans_man.position == PositionType.NONE:
-            if self.count_interval_trade > 0:
-                self.count_interval_trade -= 1
-                return np.array([1, 0, 0], dtype=np.int8)
-            elif ActionType(self.action_pre) != ActionType.HOLD and self.trans_man.position == PositionType.NONE:
-                # 次回の取引が可能になるまでのインターバル
-                self.count_interval_trade = self.interval_trade
-                # ドテン売買をしないようにする措置
-                return np.array([1, 0, 0], dtype=np.int8)
-            else:
-                # 建玉なし → 取りうるアクション: HOLD, BUY, SELL
-                return np.array([1, 1, 1], dtype=np.int8)
+            # 建玉なし → 取りうるアクション: HOLD, BUY, SELL
+            return np.array([1, 1, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.LONG:
-            if self.provider.n_hold_position < self.count_hold_min:
-                # 建玉最低保持期間
-                return np.array([1, 0, 0], dtype=np.int8)
-            elif self.trans_man.getPLRaw() < self.trans_man.getPLMaxRaw() * self.threshold_ratio_profit:
-                # 利確 LONG → 取りうるアクション: SELL
-                return np.array([0, 0, 1], dtype=np.int8)
-            else:
-                # 建玉あり LONG → 取りうるアクション: HOLD, SELL
-                return np.array([1, 0, 1], dtype=np.int8)
+            # 建玉あり LONG → 取りうるアクション: HOLD, SELL
+            return np.array([1, 0, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.SHORT:
-            if self.provider.n_hold_position < self.count_hold_min:
-                # 建玉最低保持期間
-                return np.array([1, 0, 0], dtype=np.int8)
-            elif self.trans_man.getPLRaw() < self.trans_man.getPLMaxRaw() * self.threshold_ratio_profit:
-                # 利確 SHORT → 取りうるアクション: BUY
-                return np.array([0, 1, 0], dtype=np.int8)
-            else:
-                # 建玉あり SHORT → 取りうるアクション: HOLD, BUY
-                return np.array([1, 1, 0], dtype=np.int8)
+            # 建玉あり SHORT → 取りうるアクション: HOLD, BUY
+            return np.array([1, 1, 0], dtype=np.int8)
         else:
             raise TypeError(f"Unknown PositionType: {self.trans_man.position}")
 
@@ -699,13 +683,9 @@ class TrainingEnv(TradingEnv):
 
         if self.provider.n_trade_max <= self.provider.n_trade:
             reward += self.trans_man.forceRepay()
-            """
-            生成 AI は取引回数上限終了は正常終了なので truncated のフラグを立てろと言うが、
-            取引回数上限終了は異常終了とみなし terminated のフラグを立ててみる
-            """
-            # truncated = True  # 取引回数上限終了を明示
-            terminated = True  # 取引回数上限終了を明示
-            obs = -5.0  # 報酬を強制的に -5 にする。
+            # terminated = True  # 取引回数上限終了を明示
+            truncated = True  # 取引回数上限終了を明示
+            # obs = -5.0  # 報酬を強制的に -5 にする。
 
         self.step_current += 1
         info = {"pnl_total": self.trans_man.pnl_total}
