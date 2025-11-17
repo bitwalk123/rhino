@@ -180,7 +180,8 @@ class TransactionManager:
         # 取引コストペナルティ
         self.penalty_trade_count = 0.02
         # 建玉なしで僅かなペナルティ
-        self.reward_hold = 0.00001
+        # self.reward_hold = 0.00001
+        self.reward_hold = 0.0  # 11/17(2)  AlmaLinux
 
     def add_transaction(self, transaction: str, profit: float = np.nan):
         self.dict_transaction["注文日時"].append(self.get_datetime(self.provider.ts))
@@ -680,8 +681,7 @@ class TrainingEnv(TradingEnv):
         if len(self.df) - 1 <= self.step_current:
             reward += self.trans_man.forceRepay()
             truncated = True  # ← ステップ数上限による終了
-
-        if self.provider.n_trade_max <= self.provider.n_trade:
+        elif self.provider.n_trade_max <= self.provider.n_trade:
             reward += self.trans_man.forceRepay()
             truncated = True  # 取引回数上限による終了を明示
 
