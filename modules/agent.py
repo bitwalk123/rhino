@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 from sb3_contrib import MaskablePPO
-from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.logger import configure
 
 from modules.env import TrainingEnv
