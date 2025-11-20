@@ -1,114 +1,95 @@
+import datetime
 import os
+import re
 
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from funcs.commons import get_collection_path
 from funcs.ios import get_excel_sheet
-from funcs.models import get_trained_ppo_model_path
-from modules.agent_torch import PPOAgent
+from funcs.models import get_ppo_model_path
+from modules.agent import MaskablePPOAgent
 from structs.res import AppRes
 
-FONT_PATH = "fonts/RictyDiminished-Regular.ttf"
-fm.fontManager.addfont(FONT_PATH)
 
-# FontPropertiesオブジェクト生成（名前の取得のため）
-font_prop = fm.FontProperties(fname=FONT_PATH)
-font_prop.get_name()
+def plot_metric(df: pd.DataFrame, path_png: str):
+    # x軸：イテレーション（time/iterations）
+    x = df["time/iterations"]
 
-plt.rcParams["font.family"] = font_prop.get_name()
+    # 可視化したい指標（必要に応じて追加・変更）
+    metrics = ["train/approx_kl", "train/clip_fraction", "train/value_loss"]
 
+    FONT_PATH = "fonts/RictyDiminished-Regular.ttf"
+    fm.fontManager.addfont(FONT_PATH)
 
-def plot_reward_distribution(ser: pd.Series):
-    plt.hist(ser, bins=20)
-    plt.title("Reward Distribution")
-    plt.xlabel("Reward")
-    plt.ylabel("Frequency")
-    plt.yscale("log")
-    plt.grid()
-    plt.show()
+    # FontPropertiesオブジェクト生成（名前の取得のため）
+    font_prop = fm.FontProperties(fname=FONT_PATH)
+    font_prop.get_name()
 
+    plt.rcParams["font.family"] = font_prop.get_name()
+    plt.rcParams["font.size"] = 12
 
-def plot_obs_trend(df: pd.DataFrame, n: int, list_ylabel: list):
-    fig = plt.figure(figsize=(15, 9))
+    fig = plt.figure(figsize=(8, 8))
+    n = 3
     ax = dict()
-    gs = fig.add_gridspec(n, 1, wspace=0.0, hspace=0.0)
+    gs = fig.add_gridspec(
+        n, 1, wspace=0.0, hspace=0.0, height_ratios=[1 for i in range(n)]
+    )
     for i, axis in enumerate(gs.subplots(sharex="col")):
         ax[i] = axis
         ax[i].grid()
 
-    for i in range(n):
-        ax[i].plot(df[i])
-        if i < n - 3:
-            ax[i].set_ylim(-1.1, 1.1)
-        else:
-            ax[i].set_ylim(0, 1.1)
-        ax[i].set_ylabel(list_ylabel[i])
+    # プロット設定
+    for i, metric in enumerate(metrics):
+        if metric in df.columns:
+            ax[i].plot(x, df[metric], label=metric)
+            ax[i].set_xlabel("Iterations")
+            ax[i].set_ylabel(metric)
+            if i == 2:
+                ax[i].set_yscale("log")
+
+    ax[0].set_title("Training Metrics Over Iterations")
+
     plt.tight_layout()
-    plt.show()
+    plt.savefig(path_png)
 
 
 if __name__ == "__main__":
+    pattern = re.compile(r".+(\d{8})\.xlsx")
+
     res = AppRes()
+    agent = MaskablePPOAgent()
 
-    n_epoch = 1
-    flag_new_model = False
+    dt = datetime.datetime.now()
+    datetime_str = f"{dt.year:04d}{dt.month:02d}{dt.day:02d}{dt.hour:02d}{dt.minute:02d}{dt.second:02d}"
 
-    # PPO エージェントのインスタンス
-    agent = PPOAgent()
-
-    # 学習用データフレーム
+    # 学習用データ
     code = "7011"
-    list_file = sorted(os.listdir(res.dir_collection))
-    # list_file = ["ticks_20250819.xlsx"]
-    for idx, file in enumerate(list_file):
-        path_excel = os.path.join(res.dir_collection, file)
-        df_code = get_excel_sheet(path_excel, code)
-
-        # モデルの保存先
-        model_path = get_trained_ppo_model_path(res, code, ext="pch")
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
-
-        # 学習
-        print(f"{idx + 1:>4d}/{len(list_file):>4d}: {file}")
-        agent.train(
-            df_code,
-            model_path,
-            num_epoch=n_epoch,
-            new_model=flag_new_model
-        )
-
+    list_file = ["ticks_20250819.xlsx"]
+    # list_file = ["ticks_20250819.xlsx", "ticks_20250828.xlsx", "ticks_20251009.xlsx"]
+    # list_file = sorted(os.listdir(res.dir_collection))
+    flag_new_model = True
+    for file in list_file:
+        print(f"学習するティックデータ : {file}")
+        # Excel ファイルのフルパス
+        path_excel = get_collection_path(res, file)
+        # Excel ファイルをデータフレームに読み込む
+        df = get_excel_sheet(path_excel, code)
+        path_model = get_ppo_model_path(res, code)
+        # ログ出力先ディレクトリ（例: logs/ticks_20250819）
+        if m := pattern.match(file):
+            file_date_str = m.group(1)
+        else:
+            file_date_str = "unknown"
+        log_dir = str(os.path.join(res.dir_log, code, datetime_str, file_date_str))
+        # モデルの学習
+        agent.train(df, path_model, log_dir, new_model=flag_new_model)
         if flag_new_model:
             flag_new_model = False
 
-    # 取引結果
-    df_transaction = agent.get_transaction()
-    print(df_transaction)
-    print(f"一株当りの損益 : {df_transaction['損益'].sum()} 円")
+        path_csv = os.path.join(log_dir, "progress.csv")
+        path_png = os.path.join(log_dir, "progress.png")
+        df = pd.read_csv(path_csv)
 
-    # 報酬分布
-    ser_reward = pd.Series(agent.epoch_log["reward_raw"])
-    print(
-        f"n: {len(ser_reward)}, "
-        f"mean: {ser_reward.mean():.3f}, "
-        f"stdev: {ser_reward.std():.3f}"
-    )
-    plot_reward_distribution(ser_reward)
-
-    # 観測空間
-    df_obs = pd.concat([pd.Series(row) for row in agent.epoch_log["obs_raw"]], axis=1).T
-    rows = df_obs.shape[1]
-    print(f"観測数 : {rows}")
-    list_name = [
-        "株価比",
-        "MAΔ1",
-        "MAΔ2",
-        "RSI",
-        "VWAPΔ",
-        "含損益",
-        "HOLD",
-        "NONE",
-        "LONG",
-        "SHORT"
-    ]
-    plot_obs_trend(df_obs, rows, list_name)
+        plot_metric(df, path_png)

@@ -606,7 +606,9 @@ class TradingEnv(gym.Env):
         ...
 
     def action_masks(self) -> np.ndarray:
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         # 行動マスク
+        # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
         if self.step_current < self.n_warmup:
             # ウォーミングアップ期間 → 強制 HOLD
             return np.array([1, 0, 0], dtype=np.int8)
@@ -614,10 +616,10 @@ class TradingEnv(gym.Env):
             # 建玉なし → 取りうるアクション: HOLD, BUY, SELL
             return np.array([1, 1, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.LONG:
-            # 建玉あり LONG → 取りうるアクション: HOLD, SELL
+            # 建玉あり (LONG) → 取りうるアクション: HOLD, SELL
             return np.array([1, 0, 1], dtype=np.int8)
         elif self.trans_man.position == PositionType.SHORT:
-            # 建玉あり SHORT → 取りうるアクション: HOLD, BUY
+            # 建玉あり (SHORT) → 取りうるアクション: HOLD, BUY
             return np.array([1, 1, 0], dtype=np.int8)
         else:
             raise TypeError(f"Unknown PositionType: {self.trans_man.position}")

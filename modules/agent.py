@@ -7,7 +7,7 @@ from stable_baselines3.common.logger import configure
 from modules.env import TrainingEnv
 
 
-class PPOAgentSB3:
+class MaskablePPOAgent:
     def __init__(self):
         super().__init__()
         # 結果保持用辞書
